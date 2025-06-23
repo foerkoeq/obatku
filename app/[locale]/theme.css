@@ -1,0 +1,63 @@
+.theme-dark {
+     --sidebar: 222.2 84% 4.9%;
+     --header: 222.2 84% 4.9%;
+}
+.theme-rose {
+     --sidebar: 341, 64%, 43%; 
+     --header: 341, 64%, 43%;
+     --secondary: 339, 60%, 51%;
+     --menu-arrow: 339, 60%, 51%;
+     --menu-arrow-active: 336, 67%, 60%;
+     
+}
+
+.theme-gray {
+     --sidebar:  210, 10%, 23%;
+     --header:  210, 10%, 23%;
+
+      --secondary: 207, 14%, 31%;
+      --menu-arrow: 207, 14%, 31%;
+    --menu-arrow-active: 203, 16%, 43%;
+}
+.theme-steel-blue {
+     --sidebar: 226, 36%, 39%; 
+     --header: 226, 36%, 39%;
+       --secondary: 224, 40%, 48%;
+      --menu-arrow: 224, 40%, 48%;
+    --menu-arrow-active: 216, 47%, 60%;
+}
+.theme-purple {
+     --sidebar: 299, 56%, 19%;
+     --header: 299, 56%, 19%;
+      --secondary: 299, 40%, 28%;
+      --menu-arrow: 299, 40%, 28%;
+    --menu-arrow-active: 298, 44%, 33%;
+}
+
+.theme-redwood {
+     --sidebar: 345, 24%, 29%; 
+     --header: 345, 24%, 29%;
+      --secondary: 346, 26%, 35%;
+      --menu-arrow: 346, 26%, 35%;
+    --menu-arrow-active: 344, 27%, 42%;
+}
+.theme-green {
+     --sidebar: 164, 64%, 21%;
+     --header: 164, 64%, 21%;
+
+      --secondary: 164, 68%, 24%;
+      --menu-arrow: 164, 68%, 24%;
+    --menu-arrow-active: 163, 69%, 30%;
+}
+.theme-ocean-blue {
+     --sidebar: 206, 92%, 35%; 
+     --header: 206, 92%, 35%;
+
+       --secondary: 205, 94%, 39%;
+      --menu-arrow: 205, 94%, 39%;
+    --menu-arrow-active: 203, 85%, 48%;
+}
+.theme-transparent{
+     --header: transparent;
+     box-shadow: none;
+}
