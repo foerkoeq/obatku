@@ -14,9 +14,6 @@ import {
 
 const allSidebars: { key: sidebarType, label: string, icon: string }[] = [
   { key: "classic", label: "Classic", icon: "heroicons:chart-bar" },
-  { key: "draggable", label: "Draggable", icon: "heroicons:chart-pie" },
-  { key: "two-column", label: "Two Column", icon: "heroicons:chart-pie" },
-  { key: "compact", label: "Compact", icon: "heroicons:chart-pie" },
 ];
 
 

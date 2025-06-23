@@ -12,7 +12,6 @@ import { skinType } from '@/lib/type'
 
 const allSkin: { key: skinType; label: string; }[] = [
   { key: "default", label: "Default" },
-  { key: "bordered", label: "Bordered" },
 ];
 
 const SetSkin = () => {

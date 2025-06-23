@@ -1,4 +1,3 @@
-
 import {
   Sheet,
   SheetContent,
@@ -85,31 +84,12 @@ const ThemeCustomize = ({ }) => {
               <TabsContent value="style" className="p-6 divide-y divide-default-300">
                 <div className="space-y-6 pb-6">
                   <ColorSchema />
-                  <SetSkin />
-                </div>
-                <div className="space-y-6 -mx-6 p-6">
-                  <SetLayout />
-                  <SetSidebar />
-                  <div className="space-y-3">
-                    <MenuHidden />
-                    <SearchBarToggle />
-                    <TeamSwitcherToggle />
-                  </div>
-                  <SetContentWidth />
-                </div>
-                <HeaderStyle />
-                <FooterStyle />
-                <div className="border-t-0! -mx-6 p-6 pb-0">
-                  <FullScreenToggle />
                 </div>
               </TabsContent>
-              <TabsContent value="color" className="px-6  divide-y divide-default-300 ">
+              <TabsContent value="color" className="p-6 divide-y divide-default-300">
                 <SidebarColor />
-                <HeaderColor />
                 <SidebarBg />
-                <div className="border-t-0! -mx-6 p-6">
-                  <FullScreenToggle />
-                </div>
+                <HeaderColor />
               </TabsContent>
             </Tabs>
           </div>

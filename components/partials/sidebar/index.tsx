@@ -4,7 +4,7 @@ import SidebarContent from './sidebar-content'
 import { Menu } from './menu'
 
 
-const DashCodeSidebar = () => {
+const FoerSidebar = () => {
     return (
         <SidebarContent>
             <Menu />
@@ -12,4 +12,4 @@ const DashCodeSidebar = () => {
     )
 }
 
-export default DashCodeSidebar
+export default FoerSidebar

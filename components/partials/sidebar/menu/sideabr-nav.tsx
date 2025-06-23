@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import MenuLabel from "../common/menu-label";
 import { Icon } from "@/components/ui/icon";
 import { CollapseMenuButton2 } from "../common/collapse-menu-button2";
-import TeamSwitcher from "../common/team-switcher";
 import SearchBar from "../common/search-bar";
 import { getLangDir } from "rtl-detect";
 import { cn } from "@/lib/utils";
@@ -41,7 +40,7 @@ const SidebarNav = ({ menuList }: { menuList: Group[] }) => {
 
       <ScrollArea className="[&>div>div[style]]:block! h-full" dir={direction}>
         <div className="px-4 space-y-3 mt-6">
-          <TeamSwitcher />
+
           <SearchBar />
         </div>
         <div className="px-4 pt-6  sticky top-0  z-20">

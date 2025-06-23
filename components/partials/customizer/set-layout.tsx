@@ -13,15 +13,7 @@ import {
 } from "./data";
 
 const allLayouts: { key: layoutType, label: string, icon: string }[] = [
-  { key: "vertical", label: "Vertical", icon: "heroicons:chart-bar", },
-  {
-    key: "horizontal",
-    label: "Horizontal",
-    icon: "heroicons:chart-pie",
-
-  },
-  { key: "semi-box", label: "SemiBox", icon: "heroicons:chart-pie" },
-  { key: "compact", label: "Compact", icon: "heroicons:chart-pie" },
+  { key: "vertical", label: "Vertical", icon: "heroicons:chart-bar" },
 ];
 
 
