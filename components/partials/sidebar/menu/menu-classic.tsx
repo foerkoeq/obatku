@@ -17,7 +17,6 @@ import MenuLabel from "../common/menu-label";
 import MenuItem from "../common/menu-item";
 import { CollapseMenuButton } from "../common/collapse-menu-button";
 import MenuWidget from "../common/menu-widget";
-import SearchBar from '@/components/partials/sidebar/common/search-bar'
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation'
 import { getLangDir } from 'rtl-detect';
@@ -74,11 +73,7 @@ export function MenuClassic({ }) {
                         'px-4': !collapsed || hovered,
                         'text-center': collapsed || !hovered
                     })}>
-
-                        
-                        <SearchBar />
                     </div>
-
                 )}
 
                 <nav className="mt-8 h-full w-full">

@@ -3,8 +3,6 @@ import HeaderContent from './header-content'
 import HeaderSearch from './header-search'
 import ProfileInfo from './profile-info'
 import Notifications from './notifications'
-import Messages from "./messages"
-import { Cart } from './cart'
 import ThemeSwitcher from './theme-switcher'
 import { SidebarToggle } from '@/components/partials/sidebar/sidebar-toggle'
 import HorizontalMenu from "./horizontal-menu"
@@ -22,10 +20,8 @@ const DashCodeHeader = async () => {
                     <HeaderSearch />
                 </div>
                 <div className="nav-tools flex items-center  md:gap-4 gap-3">
-                    <LocalSwitcher />
+                  <LocalSwitcher />
                     <ThemeSwitcher />
-                    <Cart />
-                    <Messages />
                     <Notifications />
                     <ProfileInfo />
 
