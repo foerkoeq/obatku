@@ -12,17 +12,16 @@ import {
 import { Link } from '@/i18n/routing';
 import { Icon } from "@/components/ui/icon";
 import { useConfig } from "@/hooks/use-config";
+
 const HeaderSearch = () => {
     const [config] = useConfig();
     if (config.layout === 'horizontal') return null
     return (
         <Dialog>
             <DialogTrigger asChild>
-
                 <button
                     type="button"
                     className="flex items-center xl:text-sm text-lg xl:text-default-400 text-default-800 dark:text-default-700 gap-3 cursor-pointer"
-
                 >
                     <Icon icon="heroicons-outline:search" />
                     <span className="xl:inline-block hidden">Search... </span>
@@ -43,9 +42,7 @@ const HeaderSearch = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <CommandGroup
                                 heading="Populer Searches"
-                                className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:font-normal [&_[cmdk-group-heading]]:text-default-400 [&_[cmdk-group-heading]]:mb-2.5
-                [&_[cmdk-group-heading]]:uppercase    [&_[cmdk-group-heading]]:tracking-widest
-                "
+                                className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:font-normal [&_[cmdk-group-heading]]:text-default-400 [&_[cmdk-group-heading]]:mb-2.5 [&_[cmdk-group-heading]]:uppercase    [&_[cmdk-group-heading]]:tracking-widest"
                             >
                                 <CommandItem className="aria-selected:bg-transparent p-0 mb-2.5">
                                     <Link
