@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -47,30 +47,30 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const updateFilters = (updates: Partial<InventoryFilters>) => {
+  const updateFilters = useCallback((updates: Partial<InventoryFilters>) => {
     onFiltersChange({ ...filters, ...updates });
-  };
+  }, [filters, onFiltersChange]);
 
-  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+  const handleCategoryChange = useCallback((categoryId: string, checked: boolean) => {
     const updatedCategories = checked
       ? [...filters.category, categoryId]
       : filters.category.filter(id => id !== categoryId);
     updateFilters({ category: updatedCategories });
-  };
+  }, [filters.category, updateFilters]);
 
-  const handleSupplierChange = (supplierId: string, checked: boolean) => {
+  const handleSupplierChange = useCallback((supplierName: string, checked: boolean) => {
     const updatedSuppliers = checked
-      ? [...filters.supplier, supplierId]
-      : filters.supplier.filter(id => id !== supplierId);
+      ? [...filters.supplier, supplierName]
+      : filters.supplier.filter(name => name !== supplierName);
     updateFilters({ supplier: updatedSuppliers });
-  };
+  }, [filters.supplier, updateFilters]);
 
-  const handleStatusChange = (status: StockStatus, checked: boolean) => {
+  const handleStatusChange = useCallback((status: StockStatus, checked: boolean) => {
     const updatedStatus = checked
       ? [...filters.status, status]
       : filters.status.filter(s => s !== status);
     updateFilters({ status: updatedStatus });
-  };
+  }, [filters.status, updateFilters]);
 
   const FilterContent = () => (
     <div className="space-y-6 p-4">
@@ -120,9 +120,9 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
             <div key={supplier.id} className="flex items-center space-x-2">
               <Checkbox
                 id={`supplier-${supplier.id}`}
-                checked={filters.supplier.includes(supplier.id)}
+                checked={filters.supplier.includes(supplier.name)}
                 onCheckedChange={(checked) => 
-                  handleSupplierChange(supplier.id, checked as boolean)
+                  handleSupplierChange(supplier.name, checked as boolean)
                 }
               />
               <Label

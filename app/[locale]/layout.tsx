@@ -38,16 +38,11 @@ export default async function RootLayout(
   const messages = await getMessages();
   const direction = getLangDir(locale);
   return (
-    <html lang={locale} dir={direction}>
-      <body className={`${inter.className} dashcode-app `}>
+    <html lang={locale} dir={direction} suppressHydrationWarning>
+      <body className={`${inter.className} dashcode-app `} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+            <ThemeProvider>
               <MountedProvider>
                 <DirectionProvider direction={direction}>
                   {children}

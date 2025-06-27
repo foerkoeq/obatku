@@ -68,7 +68,7 @@ const mockInventoryData: DrugInventory[] = [
     notes: 'Simpan di tempat sejuk dan kering',
     barcode: 'RU486-240115-001',
     status: 'normal',
-    lastUpdated: new Date(),
+    lastUpdated: new Date('2024-01-15T10:00:00Z'),
     createdBy: 'Admin',
   },
   {
@@ -88,7 +88,7 @@ const mockInventoryData: DrugInventory[] = [
     storageLocation: 'Gudang B-2',
     barcode: 'DCS25-240210-002',
     status: 'low',
-    lastUpdated: new Date(),
+    lastUpdated: new Date('2024-02-10T10:00:00Z'),
     createdBy: 'Staff Gudang',
   },
   {
@@ -108,7 +108,7 @@ const mockInventoryData: DrugInventory[] = [
     storageLocation: 'Gudang C-1',
     barcode: 'SCR250-231120-003',
     status: 'expired',
-    lastUpdated: new Date(),
+    lastUpdated: new Date('2023-11-20T10:00:00Z'),
     createdBy: 'Admin',
   },
 ];
@@ -224,7 +224,7 @@ const InventoryPage: React.FC = () => {
       total: filtered.length,
       page: 1, // Reset to first page when filters change
     }));
-  }, [data, filters, sortConfig]);
+  }, [data, filters.search, filters.category, filters.supplier, filters.status, filters.stockRange, filters.expiryRange, sortConfig]);
 
   // Apply filters when dependencies change
   useEffect(() => {
@@ -241,15 +241,15 @@ const InventoryPage: React.FC = () => {
   const totalPages = Math.ceil(pagination.total / pagination.limit);
 
   // Event handlers
-  const handleSearch = (search: string) => {
+  const handleSearch = useCallback((search: string) => {
     setFilters(prev => ({ ...prev, search }));
-  };
+  }, []);
 
-  const handleFiltersChange = (newFilters: InventoryFilters) => {
+  const handleFiltersChange = useCallback((newFilters: InventoryFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setFilters({
       search: '',
       category: [],
@@ -258,7 +258,7 @@ const InventoryPage: React.FC = () => {
       expiryRange: {},
       stockRange: {},
     });
-  };
+  }, []);
 
   const handleRowClick = (item: DrugInventory) => {
     setSelectedItem(item);
@@ -320,7 +320,7 @@ const InventoryPage: React.FC = () => {
   const canAddNew = userRole !== 'ppl';
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background" suppressHydrationWarning>
       {/* Filter Sidebar */}
       <FilterSidebar
         filters={filters}
