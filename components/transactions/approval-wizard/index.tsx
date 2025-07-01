@@ -22,6 +22,7 @@ import { Step3Summary } from "./step-3-summary";
 import { approvalWizardSchema } from "./types";
 import type { ApprovalWizardSchema } from "./types";
 import { Icon } from "@/components/ui/icon";
+import { RejectConfirmationDialog } from "./reject-confirmation-dialog";
 
 interface ApprovalWizardModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export const ApprovalWizardModal = ({
   transaction,
 }: ApprovalWizardModalProps) => {
   const [currentStep, setCurrentStep] = useState(STEPS.DETAILS);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const form = useForm<ApprovalWizardSchema>({
     resolver: zodResolver(approvalWizardSchema),
@@ -99,10 +101,12 @@ export const ApprovalWizardModal = ({
     onClose();
   };
   
-  const handleReject = () => {
-     toast.error("Permintaan Ditolak", {
-      description: `Pengajuan dari ${transaction.farmerGroup.name} telah ditolak.`,
+  const handleConfirmRejection = (reason: string) => {
+    console.log("Rejection Reason:", reason);
+    toast.warning("Permintaan Dikembalikan untuk Revisi", {
+     description: `Pengajuan dari ${transaction.farmerGroup.name} telah dikembalikan dengan catatan.`,
     });
+    setIsRejecting(false);
     onClose();
   }
   
@@ -110,64 +114,75 @@ export const ApprovalWizardModal = ({
   const progress = (currentStep / totalSteps) * 100;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>
-            Review Pengajuan: {transaction.letterNumber} (Langkah {currentStep}/{totalSteps})
-          </DialogTitle>
-          <DialogDescription>
-            {currentStep === STEPS.DETAILS && "Periksa detail pemohon dan informasi pertanian."}
-            {currentStep === STEPS.APPROVAL && "Tentukan persetujuan dan alokasi obat."}
-            {currentStep === STEPS.SUMMARY && "Ringkasan akhir sebelum finalisasi persetujuan."}
-          </DialogDescription>
-           <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mt-2">
-            <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-          </div>
-        </DialogHeader>
-
-        <div className="h-[calc(90vh-220px)] overflow-hidden">
-          <div className="h-full">
-            {currentStep === STEPS.DETAILS && (
-              <Step1Details transaction={transaction} />
-            )}
-            {currentStep === STEPS.APPROVAL && (
-              <Step2Approval form={form} transaction={transaction} />
-            )}
-            {currentStep === STEPS.SUMMARY && <Step3Summary form={form} transaction={transaction} />}
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <div className="w-full flex justify-between">
-            <div>
-               <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Tutup
-                </Button>
-              </DialogClose>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              Review Pengajuan: {transaction.letterNumber} (Langkah {currentStep}/{totalSteps})
+            </DialogTitle>
+            <DialogDescription>
+              {currentStep === STEPS.DETAILS && "Periksa detail pemohon dan informasi pertanian."}
+              {currentStep === STEPS.APPROVAL && "Tentukan persetujuan dan alokasi obat."}
+              {currentStep === STEPS.SUMMARY && "Ringkasan akhir sebelum finalisasi persetujuan."}
+            </DialogDescription>
+             <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mt-2">
+              <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
             </div>
-            <div className="flex gap-2">
-              {currentStep > STEPS.DETAILS && (
-                <Button type="button" variant="outline" onClick={handleBack}>
-                  Kembali
-                </Button>
-              )}
+          </DialogHeader>
 
-              {currentStep < STEPS.SUMMARY ? (
-                <Button type="button" onClick={handleNext}>
-                  Selanjutnya
-                </Button>
-              ) : (
-                <Button type="button" onClick={handleNext}>
-                   <Icon icon="lucide:send" className="w-4 h-4 mr-2" />
-                  Kirim Persetujuan
-                </Button>
+          <div className="h-[calc(90vh-220px)] overflow-hidden">
+            <div className="h-full">
+              {currentStep === STEPS.DETAILS && (
+                <Step1Details transaction={transaction} />
               )}
+              {currentStep === STEPS.APPROVAL && (
+                <Step2Approval form={form} transaction={transaction} />
+              )}
+              {currentStep === STEPS.SUMMARY && <Step3Summary form={form} transaction={transaction} />}
             </div>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          
+          <DialogFooter>
+            <div className="w-full flex justify-between">
+              <div>
+                <Button
+                  type="button"
+                  color="destructive"
+                  onClick={() => setIsRejecting(true)}
+                >
+                  Tolak
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                {currentStep > STEPS.DETAILS && (
+                  <Button type="button" variant="outline" onClick={handleBack}>
+                    Kembali
+                  </Button>
+                )}
+
+                {currentStep < STEPS.SUMMARY ? (
+                  <Button type="button" onClick={handleNext}>
+                    Selanjutnya
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={handleNext}>
+                     <Icon icon="lucide:send" className="w-4 h-4 mr-2" />
+                    Kirim Persetujuan
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <RejectConfirmationDialog
+          isOpen={isRejecting}
+          onClose={() => setIsRejecting(false)}
+          onConfirm={handleConfirmRejection}
+          farmerGroupName={transaction.farmerGroup.name}
+      />
+    </>
   );
 }; 

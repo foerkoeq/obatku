@@ -31,6 +31,7 @@ interface DatePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  modal?: boolean
 }
 
 export function DatePicker({
@@ -41,13 +42,14 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled = false,
   className,
+  modal,
 }: DatePickerProps) {
   // Backward-compatible prop resolution
   const resolvedValue = value ?? selected;
   const resolvedOnChange = onChange ?? onSelect;
 
   return (
-    <Popover>
+    <Popover modal={modal}>
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}

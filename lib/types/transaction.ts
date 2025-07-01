@@ -89,6 +89,7 @@ export type TransactionStatus =
   | 'draft'           // Draft submission (PPL can still edit)
   | 'submitted'       // Submitted to Dinas for approval
   | 'under_review'    // Being reviewed by Dinas
+  | 'needs_revision'  // Returned to PPL for correction
   | 'approved'        // Approved by Dinas, waiting for distribution
   | 'partially_approved' // Partially approved with conditions
   | 'rejected'        // Rejected by Dinas
