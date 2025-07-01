@@ -20,8 +20,14 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
+  /** Current selected date - preferred prop */
   value?: Date
+  /** Legacy alias of value */
+  selected?: Date
+  /** Change handler - preferred prop */
   onChange?: (date: Date | undefined) => void
+  /** Legacy alias of onChange */
+  onSelect?: (date: Date | undefined) => void
   placeholder?: string
   disabled?: boolean
   className?: string
@@ -29,11 +35,17 @@ interface DatePickerProps {
 
 export function DatePicker({
   value,
+  selected,
   onChange,
+  onSelect,
   placeholder = "Pick a date",
   disabled = false,
   className,
 }: DatePickerProps) {
+  // Backward-compatible prop resolution
+  const resolvedValue = value ?? selected;
+  const resolvedOnChange = onChange ?? onSelect;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -41,20 +53,20 @@ export function DatePicker({
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground",
+            !resolvedValue && "text-muted-foreground",
             className
           )}
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>{placeholder}</span>}
+          {resolvedValue ? format(resolvedValue, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
           mode="single"
-          selected={value}
-          onSelect={onChange}
+          selected={resolvedValue}
+          onSelect={resolvedOnChange}
           initialFocus
         />
       </PopoverContent>

@@ -34,6 +34,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Custom Components
 import PageTitle from "@/components/page-title";
+import { SelectWithOther } from "@/components/form/select-with-other";
+import { TagInput } from "@/components/form/tag-input";
+import { ImageUpload } from "@/components/form/image-upload";
 
 // Types
 import { DrugInventory, DrugCategory, Supplier, UserRole } from "@/lib/types/inventory";
@@ -59,9 +62,10 @@ const addMedicineSchema = z.object({
     required_error: "Tanggal expired wajib diisi",
   }),
   pricePerUnit: z.number().min(0, "Harga tidak boleh negatif").optional(),
-  targetPest: z.string().min(1, "Jenis OPT wajib diisi"),
+  targetPest: z.array(z.string()).min(1, "Minimal satu jenis OPT wajib diisi"),
   storageLocation: z.string().min(1, "Lokasi penyimpanan wajib diisi"),
   notes: z.string().optional(),
+  images: z.array(z.any()).optional(),
 }).refine((data) => data.expiryDate > data.entryDate, {
   message: "Tanggal expired harus lebih dari tanggal masuk",
   path: ["expiryDate"],
@@ -98,6 +102,12 @@ const AddMedicinePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [userRole] = useState<UserRole>('admin'); // In real app, get from auth context
 
+  // State for dynamic options
+  const [categories, setCategories] = useState(mockCategories);
+  const [suppliers, setSuppliers] = useState(mockSuppliers);
+  const [units, setUnits] = useState(unitOptions);
+  const [largePackUnitsList, setLargePackUnitsList] = useState(largePackUnits);
+
   // Check authorization - only admin, dinas, and popt can add medicine
   useEffect(() => {
     if (userRole === 'ppl') {
@@ -125,11 +135,43 @@ const AddMedicinePage: React.FC = () => {
       },
       entryDate: new Date(),
       pricePerUnit: 0,
-      targetPest: '',
+      targetPest: [],
       storageLocation: '',
       notes: '',
+      images: [],
     },
   });
+
+  // Handlers for adding new options
+  const handleAddCategory = (newCategory: string) => {
+    const newCategoryObj = {
+      id: Date.now().toString(),
+      name: newCategory,
+      description: `Kategori ${newCategory}`,
+    };
+    setCategories(prev => [...prev, newCategoryObj]);
+    // In real app, save to backend
+  };
+
+  const handleAddSupplier = (newSupplier: string) => {
+    const newSupplierObj = {
+      id: Date.now().toString(),
+      name: newSupplier,
+      contact: '-',
+    };
+    setSuppliers(prev => [...prev, newSupplierObj]);
+    // In real app, save to backend
+  };
+
+  const handleAddUnit = (newUnit: string) => {
+    setUnits(prev => [...prev, newUnit]);
+    // In real app, save to backend
+  };
+
+  const handleAddLargePackUnit = (newUnit: string) => {
+    setLargePackUnitsList(prev => [...prev, newUnit]);
+    // In real app, save to backend
+  };
 
   // Form submission handler
   const onSubmit = async (data: AddMedicineFormData) => {
@@ -139,7 +181,6 @@ const AddMedicinePage: React.FC = () => {
       // Prepare data for API
       const medicineData = {
         ...data,
-        targetPest: data.targetPest.split(',').map(pest => pest.trim()),
         status: 'normal' as const,
         lastUpdated: new Date(),
         createdBy: 'Current User', // In real app, get from auth context
@@ -288,20 +329,15 @@ const AddMedicinePage: React.FC = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Kategori Obat *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih kategori obat" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {mockCategories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <SelectWithOther
+                          options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddNew={handleAddCategory}
+                          placeholder="Pilih kategori obat"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -314,20 +350,15 @@ const AddMedicinePage: React.FC = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Supplier *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih supplier" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {mockSuppliers.map((supplier) => (
-                            <SelectItem key={supplier.id} value={supplier.name}>
-                              {supplier.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <SelectWithOther
+                          options={suppliers.map(supplier => ({ value: supplier.name, label: supplier.name }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddNew={handleAddSupplier}
+                          placeholder="Pilih supplier"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -366,20 +397,15 @@ const AddMedicinePage: React.FC = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Satuan *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih satuan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {unitOptions.map((unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SelectWithOther
+                            options={units.map(unit => ({ value: unit, label: unit }))}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onAddNew={handleAddUnit}
+                            placeholder="Pilih satuan"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -441,20 +467,15 @@ const AddMedicinePage: React.FC = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Satuan Kemasan Besar</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih satuan kemasan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {largePackUnits.map((unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SelectWithOther
+                            options={largePackUnitsList.map(unit => ({ value: unit, label: unit }))}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onAddNew={handleAddLargePackUnit}
+                            placeholder="Pilih satuan kemasan"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -542,14 +563,12 @@ const AddMedicinePage: React.FC = () => {
                       <FormItem>
                         <FormLabel>Jenis OPT *</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Contoh: Gulma daun lebar, Gulma rumput"
-                            {...field} 
+                          <TagInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Ketik jenis OPT dan tekan Enter atau koma..."
                           />
                         </FormControl>
-                        <FormDescription>
-                          Pisahkan dengan koma untuk beberapa jenis OPT
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -590,6 +609,32 @@ const AddMedicinePage: React.FC = () => {
                       </FormControl>
                       <FormDescription>
                         Opsional - Informasi tambahan tentang penyimpanan, penggunaan, atau catatan khusus
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Upload Images Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Unggah Foto/Dokumen</h3>
+                <FormField
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Foto Obat, Label, atau Dokumen Pendukung</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value || []}
+                          onChange={field.onChange}
+                          maxFiles={3}
+                          maxSize={5}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Opsional - Unggah foto obat, label kemasan, atau dokumen pendukung lainnya
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
