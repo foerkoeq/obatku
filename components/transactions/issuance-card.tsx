@@ -1,6 +1,12 @@
+// # START OF Issuance Card Component - Card for distribution-ready transactions
+// Purpose: Display transaction cards for ready-to-distribute items with navigation to wizard
+// Features: Transaction info display, priority indicators, navigation to process wizard
+// Props: transaction
+// Dependencies: Card components, navigation utilities, transaction types
+
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Transaction } from "@/lib/types/transaction";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,16 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { IssuanceModal } from "./issuance-modal";
 
 interface IssuanceCardProps {
   transaction: Transaction;
 }
 
 const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { farmerGroup, bppOfficer, submissionDate, priority, status } = transaction;
+  const router = useRouter();
+  const { applicantData, submissionDate, priority, status } = transaction;
 
+  // Calculate time since submission
   const timeSince = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 31536000;
@@ -33,6 +39,7 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
     return Math.floor(seconds) + " detik lalu";
   };
 
+  // Priority configuration for display
   const priorityConfig = {
     urgent: { label: "Sangat Penting", color: "bg-red-500", icon: "lucide:siren" },
     high: { label: "Penting", color: "bg-orange-500", icon: "lucide:alert-triangle" },
@@ -40,68 +47,106 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
     low: { label: "Rendah", color: "bg-green-500", icon: "lucide:shield-check" },
   };
   
+  // Calculate total approved items
   const totalApproved = transaction.approval?.approvedDrugs.reduce((sum, drug) => sum + drug.approvedQuantity, 0) ?? 0;
 
+  // Handle start distribution process
+  const handleStartProcess = () => {
+    router.push(`/transactions/outgoing/process/${transaction.id}`);
+  };
+
   return (
-    <>
-      <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-200 ease-in-out group">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-lg font-semibold leading-tight">{farmerGroup.name}</CardTitle>
-            <Badge
-              className={cn(
-                "text-white text-xs",
-                priorityConfig[priority]?.color
-              )}
-            >
-              <Icon icon={priorityConfig[priority]?.icon} className="w-3 h-3 mr-1" />
-              {priorityConfig[priority]?.label || "Normal"}
+    <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-200 ease-in-out group">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-lg font-semibold leading-tight">
+            {applicantData.farmerGroup}
+          </CardTitle>
+          <Badge
+            className={cn(
+              "text-white text-xs",
+              priorityConfig[priority]?.color
+            )}
+          >
+            <Icon icon={priorityConfig[priority]?.icon} className="w-3 h-3 mr-1" />
+            {priorityConfig[priority]?.label || "Normal"}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {applicantData.district} - {applicantData.commodity}
+        </p>
+      </CardHeader>
+      
+      <CardContent className="flex-grow space-y-4">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage 
+              src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicantData.bppOfficer}`} 
+              alt={applicantData.bppOfficer} 
+            />
+            <AvatarFallback>
+              {applicantData.bppOfficer.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-semibold text-sm">{applicantData.bppOfficer}</p>
+            <p className="text-xs text-gray-500">
+              Diajukan {timeSince(submissionDate)}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-sm pt-2">
+          <div className="flex items-center">
+            <Icon icon="lucide:boxes" className="w-4 h-4 mr-2 text-gray-500" />
+            <span>Total item disetujui: <strong>{totalApproved} unit</strong></span>
+          </div>
+          <div className="flex items-center">
+            <Icon icon="lucide:bug" className="w-4 h-4 mr-2 text-gray-500" />
+            <span>Jenis OPT: <strong>{applicantData.pestType}</strong></span>
+          </div>
+          <div className="flex items-center">
+            <Icon icon="lucide:clipboard-list" className="w-4 h-4 mr-2 text-gray-500" />
+            <span>Status: </span>
+            <Badge variant="outline" className="ml-1 capitalize text-xs">
+              {status.replace("_", " ")}
             </Badge>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {farmerGroup.district}, {farmerGroup.village}
-          </p>
-        </CardHeader>
-        <CardContent className="flex-grow space-y-4">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${bppOfficer.name}`} alt={bppOfficer.name} />
-              <AvatarFallback>{bppOfficer.name.substring(0, 2)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-sm">{bppOfficer.name}</p>
-              <p className="text-xs text-gray-500">
-                Diajukan {timeSince(submissionDate)}
-              </p>
-            </div>
-          </div>
+        </div>
 
-          <div className="space-y-2 text-sm pt-2">
-             <div className="flex items-center">
-              <Icon icon="lucide:boxes" className="w-4 h-4 mr-2 text-gray-500" />
-              <span>Total item disetujui: <strong>{totalApproved} unit</strong></span>
+        {/* Quick Info */}
+        <div className="border-t pt-3">
+          <div className="text-xs text-gray-500 space-y-1">
+            <div className="flex justify-between">
+              <span>No. Surat:</span>
+              <span className="font-medium">{transaction.letterNumber}</span>
             </div>
-            <div className="flex items-center">
-              <Icon icon="lucide:clipboard-list" className="w-4 h-4 mr-2 text-gray-500" />
-              <span>Status: <Badge color="success" className="capitalize">{status.replace("_", " ")}</Badge></span>
-            </div>
+            {transaction.approval?.pickupSchedule && (
+              <div className="flex justify-between">
+                <span>Jadwal Ambil:</span>
+                <span className="font-medium">
+                  {new Date(transaction.approval.pickupSchedule).toLocaleDateString('id-ID')}
+                </span>
+              </div>
+            )}
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" onClick={() => setIsModalOpen(true)}>
-            <Icon icon="lucide:package-open" className="w-4 h-4 mr-2" />
-            Proses Pengeluaran
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </CardContent>
       
-      <IssuanceModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        transaction={transaction}
-      />
-    </>
+      <CardFooter>
+        <Button 
+          className="w-full" 
+          onClick={handleStartProcess}
+          size="lg"
+        >
+          <Icon icon="lucide:package-open" className="w-4 h-4 mr-2" />
+          Mulai Proses Pengeluaran
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
-export default IssuanceCard; 
+export default IssuanceCard;
+
+// # END OF Issuance Card Component 

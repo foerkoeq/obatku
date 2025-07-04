@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,9 +6,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react";
-import { useTranslations } from "next-intl";
+
 const DashboardDropdown = () => {
-    const t = useTranslations("AnalyticsDashboard");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -22,13 +20,13 @@ const DashboardDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[140px] p-0">
         <DropdownMenuItem className="py-2 rounded-none border-b border-default-200  text-default-900 focus:bg-default-400 focus:text-default-100 dark:focus:text-default-900">
-          {t("last_28_days")}
+          28 Hari Terakhir
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 rounded-none border-b border-default-200  text-default-900 focus:bg-default-400 focus:text-default-100 dark:focus:text-default-900">
-          {t("last_months")}
+          Bulan Lalu
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 rounded-none  text-default-900 focus:bg-default-400 focus:text-default-100 dark:focus:text-default-900">
-          {t("last_year")}
+          Tahun Lalu
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

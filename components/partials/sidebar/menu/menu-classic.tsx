@@ -17,25 +17,16 @@ import MenuLabel from "../common/menu-label";
 import MenuItem from "../common/menu-item";
 import { CollapseMenuButton } from "../common/collapse-menu-button";
 import MenuWidget from "../common/menu-widget";
-import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation'
-import { getLangDir } from 'rtl-detect';
 import Logo from '@/components/logo';
 import { useMenuHoverConfig } from '@/hooks/use-menu-hover';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
-
 export function MenuClassic({ }) {
-    // translate
-    const t = useTranslations("Menu")
     const pathname = usePathname();
-    const params = useParams<{ locale: string; }>();
-    const direction = getLangDir(params?.locale ?? '');
-
+    
     const isDesktop = useMediaQuery('(min-width: 1280px)')
 
-
-    const menuList = getMenuList(pathname, t);
+    const menuList = getMenuList(pathname);
     const [config, setConfig] = useConfig()
     const collapsed = config.collapsed
     const [hoverConfig] = useMenuHoverConfig();
@@ -64,10 +55,7 @@ export function MenuClassic({ }) {
                 </div>
             )}
 
-
-
-
-            <ScrollArea className="[&>div>div[style]]:block!" dir={direction}>
+            <ScrollArea className="[&>div>div[style]]:block!" dir="ltr">
                 {isDesktop && (
                     <div className={cn(' space-y-3 mt-6 ', {
                         'px-4': !collapsed || hovered,
@@ -137,11 +125,6 @@ export function MenuClassic({ }) {
 
                             </li>
                         ))}
-                        {!collapsed && (
-                            <li className="w-full grow flex items-end">
-                                <MenuWidget />
-                            </li>
-                        )}
                     </ul>
                 </nav>
 

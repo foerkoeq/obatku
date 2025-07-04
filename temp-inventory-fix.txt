@@ -1,0 +1,37 @@
+Changes needed for app/[locale]/(protected)/inventory/add/page.tsx:
+
+1. Replace line ~521:
+FROM:
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pilih tanggal masuk"
+                            allowClear
+                          />
+
+TO:
+                          <SimpleDateInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pilih tanggal masuk"
+                            allowClear
+                            displayFormat="dd/MM/yyyy"
+                          />
+
+2. Replace line ~540:
+FROM:
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pilih tanggal expired"
+                            allowClear
+                          />
+
+TO:
+                          <SimpleDateInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pilih tanggal expired"
+                            allowClear
+                            displayFormat="dd/MM/yyyy"
+                          /> 

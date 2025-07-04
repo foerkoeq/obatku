@@ -9,7 +9,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { Link } from '@/i18n/routing';
+import Link from 'next/link';
 import { Icon } from "@/components/ui/icon";
 import { useConfig } from "@/hooks/use-config";
 

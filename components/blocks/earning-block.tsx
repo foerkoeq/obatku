@@ -4,7 +4,7 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+
 interface EarningBlockProps {
   title?: string,
   className?: string;
@@ -82,7 +82,7 @@ const EarningBlock = ({
       }
     }
   };
-    const t = useTranslations("EcommerceDashboard");
+
   return (
     <Card className={cn("", className)}>
       <CardContent className="py-3 px-4">
@@ -94,7 +94,7 @@ const EarningBlock = ({
             </div>
             <div className="font-normal text-xs md:text-sm text-default-600 whitespace-nowrap">
               <span className="text-primary me-1">{percentage}</span>
-              {t("statistics_graph_desc")}
+              dari bulan lalu
             </div>
           </div>
 

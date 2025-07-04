@@ -1,60 +1,83 @@
+"use client";
 import React from "react";
 import FooterContent from "./footer-content";
 import { Link } from "@/components/navigation";
-import Image from "next/image";
 import { Icon } from "@/components/ui/icon";
+import { getMenuList } from "@/lib/menus";
+import { usePathname } from "@/components/navigation";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-const DashCodeFooter = async () => {
+const DashCodeFooter = () => {
+  const pathname = usePathname();
+  const menuList = getMenuList(pathname);
+
+  // Get main menu items for bottom nav
+  const mainMenuItems = menuList.map(group => group.menus).flat().slice(0, 4);
+
   return (
     <FooterContent>
-      <div className=" md:flex  justify-between text-default-600 hidden">
+      <div className="md:flex justify-between text-default-600 hidden">
         <div className="text-center md:ltr:text-start md:rtl:text-right text-sm">
-          COPYRIGHT &copy; {new Date().getFullYear()} FoerKoeq, All rights
-          Reserved
+          COPYRIGHT &copy; {new Date().getFullYear()} ObatKu, Semua hak dilindungi
         </div>
         <div className="md:ltr:text-right md:rtl:text-end text-center text-sm">
-          Hand-crafted & Made by FoerKoeq
+          Dibuat dengan ❤️ untuk pertanian Indonesia
         </div>
       </div>
-      <div className="flex md:hidden justify-around items-center">
-        <Link href="/app/chat" className="text-default-600">
-          <div>
-            <span className="relative cursor-pointer rounded-full text-[20px] flex flex-col items-center justify-center mb-1">
-              <Icon icon="heroicons-outline:mail" />
-              <span className="absolute right-[5px] lg:top-0 -top-2 h-4 w-4 bg-red-500 text-[8px] font-semibold flex flex-col items-center justify-center rounded-full text-white z-99">
-                10
-              </span>
-            </span>
-            <span className="block text-xs text-default-600">Messages</span>
-          </div>
-        </Link>
-        <Link
-          href="profile"
-          className="relative bg-card bg-no-repeat backdrop-filter backdrop-blur-[40px] rounded-full footer-bg dark:bg-default-300 h-[65px] w-[65px] z-[-1] -mt-[40px] flex justify-center items-center"
-        >
-          <div className="h-[50px] w-[50px] rounded-full relative left-[0px] top-[0px] custom-dropshadow">
-            <Image
-              src="/images/avatar/av-1.jpg"
-              alt="dashcode"
-              width={50}
-              height={50}
-              className="w-full h-full rounded-full border-2"
-            />
-          </div>
-        </Link>
-        <Link href="notifications">
-          <div>
-            <span className="relative cursor-pointer rounded-full text-[20px] flex flex-col items-center justify-center mb-1">
-              <Icon icon="heroicons-outline:bell" />
-              <span className="absolute right-[17px] lg:top-0 -top-2 h-4 w-4 bg-red-500 text-[8px] font-semibold flex flex-col items-center justify-center rounded-full text-white z-99">
-                2
-              </span>
-            </span>
-            <span className="block text-xs text-default-600">
-              Notifications
-            </span>
-          </div>
-        </Link>
+      
+      {/* Mobile Bottom Navigation */}
+      <div className="flex md:hidden justify-around items-center py-2">
+        {mainMenuItems.map((item, index) => {
+          if (item.submenus.length > 0) {
+            // Menu dengan submenu menggunakan popover
+            return (
+              <Popover key={item.id}>
+                <PopoverTrigger asChild>
+                  <button className="flex flex-col items-center justify-center p-2 min-w-[60px]">
+                    <div className={`p-2 rounded-lg ${item.active ? 'bg-primary text-primary-foreground' : 'text-default-600'}`}>
+                      <Icon icon={item.icon} className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs mt-1 text-center leading-tight">{item.label}</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" side="top">
+                  <div className="space-y-1">
+                    {item.submenus.map((submenu) => (
+                      <Link
+                        key={submenu.href}
+                        href={submenu.href}
+                        className={`flex items-center gap-2 p-2 rounded text-sm hover:bg-secondary ${
+                          submenu.active ? 'bg-primary text-primary-foreground' : 'text-default-700'
+                        }`}
+                      >
+                        <Icon icon={submenu.icon} className="h-4 w-4" />
+                        {submenu.label}
+                      </Link>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            );
+          } else {
+            // Menu tanpa submenu langsung link
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="flex flex-col items-center justify-center p-2 min-w-[60px]"
+              >
+                <div className={`p-2 rounded-lg ${item.active ? 'bg-primary text-primary-foreground' : 'text-default-600'}`}>
+                  <Icon icon={item.icon} className="h-5 w-5" />
+                </div>
+                <span className="text-xs mt-1 text-center leading-tight">{item.label}</span>
+              </Link>
+            );
+          }
+        })}
       </div>
     </FooterContent>
   );

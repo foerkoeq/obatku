@@ -36,4 +36,15 @@ export {
   getTransactionStats
 } from '@/lib/data/transaction-demo';
 
+// Additional components
+export { default as ApprovalCard } from './approval-card';
+export { default as DistributionCard } from './distribution-card';
+export { default as DocumentCard } from './document-card';
+export { default as FarmingInfoCard } from './farming-info-card';
+export { default as IssuanceCard } from './issuance-card';
+export { default as IssuanceModal } from './issuance-modal';
+export { default as StatusTimeline } from './status-timeline';
+export { default as SubmissionDetailsCard } from './submission-details-card';
+export { default as TransactionPrintTemplate } from './transaction-print-template';
+
 // # END OF Transaction Components Index 

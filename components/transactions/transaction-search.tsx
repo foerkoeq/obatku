@@ -1,22 +1,19 @@
 // # START OF Transaction Search Component - Search functionality for transactions
-// Purpose: Provide search functionality with debounced input and filters
-// Props: value, onChange, placeholder, className, advancedFilters
-// Returns: Search input with advanced filter options
-// Dependencies: Input, Button, useDebounce hook
+// Purpose: Provide search and advanced filtering for transaction list
+// Props: value, onChange, placeholder, className, showAdvanced, onAdvancedSearch
+// Returns: Search input with optional advanced filters
+// Dependencies: Input, Button, Popover, Badge, Icon
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { InputGroup, InputGroupText } from "@/components/ui/input-group";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { InputGroup, InputGroupText } from "@/components/ui/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Icon } from "@iconify/react";
+import { HydrationSafe } from "@/components/ui/hydration-safe";
 import { cn } from "@/lib/utils";
 
 interface TransactionSearchProps {
@@ -48,7 +45,12 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
   const [showAdvancedPopover, setShowAdvancedPopover] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters>({});
 
-  // Debounce search
+  // Sync with parent value
+  useEffect(() => {
+    setSearchValue(value);
+  }, [value]);
+
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(searchValue);
@@ -57,10 +59,10 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
     return () => clearTimeout(timer);
   }, [searchValue, onChange]);
 
-  const handleClear = () => {
-    setSearchValue("");
-    onChange("");
-  };
+  const handleClear = useCallback(() => {
+    setSearchValue('');
+    onChange('');
+  }, [onChange]);
 
   const handleAdvancedFilter = (key: keyof SearchFilters, value: string) => {
     const updated = { ...advancedFilters, [key]: value };
@@ -83,7 +85,9 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
         <div className="flex-1">
           <InputGroup>
             <InputGroupText>
-              <Icon icon="heroicons:magnifying-glass" className="h-4 w-4 text-default-400" />
+              <HydrationSafe fallback={<div className="h-4 w-4 bg-current opacity-50 rounded-sm" />}>
+                <Icon icon="heroicons:magnifying-glass" className="h-4 w-4 text-default-400" />
+              </HydrationSafe>
             </InputGroupText>
             <Input
               placeholder={placeholder}
@@ -99,7 +103,9 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
                   onClick={handleClear}
                   className="h-6 w-6 p-0 hover:bg-default-100"
                 >
-                  <Icon icon="heroicons:x-mark" className="h-3 w-3" />
+                  <HydrationSafe fallback={<div className="h-3 w-3 bg-current opacity-50 rounded-sm" />}>
+                    <Icon icon="heroicons:x-mark" className="h-3 w-3" />
+                  </HydrationSafe>
                   <span className="sr-only">Clear search</span>
                 </Button>
               </div>
@@ -117,7 +123,9 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
                   hasActiveFilters && "border-primary bg-primary/5"
                 )}
               >
-                <Icon icon="heroicons:adjustments-horizontal" className="h-4 w-4 mr-2" />
+                <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
+                  <Icon icon="heroicons:adjustments-horizontal" className="h-4 w-4 mr-2" />
+                </HydrationSafe>
                 Filter Lanjut
                 {hasActiveFilters && (
                   <Badge 
@@ -247,7 +255,9 @@ const TransactionSearch: React.FC<TransactionSearchProps> = ({
                   onClick={() => handleAdvancedFilter(key as keyof SearchFilters, '')}
                   className="h-3 w-3 p-0 hover:bg-transparent"
                 >
-                  <Icon icon="heroicons:x-mark" className="h-2 w-2" />
+                  <HydrationSafe fallback={<div className="h-2 w-2 bg-current opacity-50 rounded-sm" />}>
+                    <Icon icon="heroicons:x-mark" className="h-2 w-2" />
+                  </HydrationSafe>
                 </Button>
               </Badge>
             );

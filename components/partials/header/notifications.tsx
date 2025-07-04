@@ -1,4 +1,4 @@
-
+'use client';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Link } from '@/i18n/routing';
+import { Link } from '@/components/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { notifications, type Notification } from "./data";
@@ -34,49 +34,58 @@ const Notifications = () => {
                 <DropdownMenuLabel>
                     <div className="flex justify-between px-4 py-3 border-b border-default-100 ">
                         <div className="text-sm text-default-800  font-medium ">
-                            Notifications
+                            Notifikasi
                         </div>
                         <div className="text-default-800  text-xs md:text-right">
                             <Link href="/notifications" className="underline">
-                                View all
+                                Lihat semua
                             </Link>
                         </div>
                     </div>
                 </DropdownMenuLabel>
                 <div className="h-[300px] xl:h-[350px]">
                     <ScrollArea className="h-full">
-                        {notifications.map((item: Notification, index: number) => (
-                            <DropdownMenuItem
-                                key={`inbox-${index}`}
-                                className="flex gap-9 py-2 px-4 cursor-pointer group">
-                                <div className="flex items-start gap-2 flex-1">
-                                    <div className="flex-none">
-                                        <Avatar className="h-8 w-8 ">
-                                            <AvatarImage src={item.avatar} />
-                                            <AvatarFallback> {item.title.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                    </div>
-                                    <div className="flex-1 flex flex-col gap-0.5">
-                                        <div className="text-sm   text-default-600  dark:group-hover:text-default-800  font-normal   truncate">
+                        {notifications?.map((item, index) => (
+                            <div
+                                key={`inbox-list-${index}`}
+                                className="flex  items-center gap-2 px-4 py-3 border-b border-default-100 last:border-b-0  cursor-pointer hover:bg-secondary  last:rounded-b-lg"
+                            >
+                                <div className="flex-none">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={item.image} />
+                                        <AvatarFallback>{item.title.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                </div>
+                                <div className="flex-1 flex">
+                                    <div className="flex-1">
+                                        <div
+                                            className={cn(
+                                                "text-sm font-medium text-default-900",
+                                                {
+                                                    "text-default-600": item.unread,
+                                                }
+                                            )}
+                                        >
                                             {item.title}
                                         </div>
-                                        <div className="text-xs text-default-600  dark:group-hover:text-default-700 font-light line-clamp-1  ">
+                                        <div
+                                            className={cn("text-xs  text-default-600 mt-1", {
+                                                "text-default-500": item.unread,
+                                            })}
+                                        >
                                             {item.desc}
                                         </div>
-                                        <div className=" text-default-400 dark:group-hover:text-default-500  text-xs"> {item.date}</div>
+                                    </div>
+                                    <div className="flex-none">
+                                        <div className="text-xs text-default-400 mt-1">
+                                            {item.date}
+                                        </div>
                                     </div>
                                 </div>
-                                {item.unreadmessage && (
-                                    <div className="flex-0">
-                                        <span className="h-[10px] w-[10px] bg-destructive border border-destructive-foreground dark:border-default-400 rounded-full inline-block" />
-                                    </div>
-                                )}
-
-                            </DropdownMenuItem>
+                            </div>
                         ))}
                     </ScrollArea>
                 </div>
-
             </DropdownMenuContent>
         </DropdownMenu>
     );

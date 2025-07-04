@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { userSchema } from "@/lib/validations/user";
 import { cn } from "@/lib/utils";
-import { DatePicker } from "@/components/ui/date-picker";
+import { SimpleDateInput } from "@/components/ui/simple-date-input";
 
 type AddUserModalProps = {
   open: boolean;
@@ -50,6 +50,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
       email: "",
       phone: "",
       role: "PPL",
+      birthDate: new Date(),
     },
   });
 
@@ -107,12 +108,16 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Date of birth</FormLabel>
-                  <DatePicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Pick a date"
-                    modal={false}
-                  />
+                  <FormControl>
+                    <SimpleDateInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select date of birth"
+                      allowClear={true}
+                      displayFormat="dd/MM/yyyy"
+                      max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,3 +1,5 @@
+'use client';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,9 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon"
 import Image from "next/image";
-import { Link } from '@/i18n/routing';
+import Link from 'next/link';
 
-const ProfileInfo = async () => {
+const ProfileInfo = () => {
   return (
     <div className="md:block hidden">
       <DropdownMenu>

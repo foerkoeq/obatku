@@ -2,20 +2,18 @@
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Group } from "@/lib/menus";
-import { useParams, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Link } from "@/components/navigation";
 import { useConfig } from "@/hooks/use-config";
 import { Button } from "@/components/ui/button";
 import MenuLabel from "../common/menu-label";
 import { Icon } from "@/components/ui/icon";
 import { CollapseMenuButton2 } from "../common/collapse-menu-button2";
-import { getLangDir } from "rtl-detect";
 import { cn } from "@/lib/utils";
+
 const SidebarNav = ({ menuList }: { menuList: Group[] }) => {
   const [config, setConfig] = useConfig();
   const pathname = usePathname();
-  const params = useParams<{ locale: string }>();
-  const direction = getLangDir(params?.locale ?? "");
   const activeKey = pathname?.split("/")?.[2];
   const data = menuList.find((item) => item.id === activeKey);
 
@@ -37,7 +35,7 @@ const SidebarNav = ({ menuList }: { menuList: Group[] }) => {
         ></div>
       )}
 
-      <ScrollArea className="[&>div>div[style]]:block! h-full" dir={direction}>
+      <ScrollArea className="[&>div>div[style]]:block! h-full" dir="ltr">
         <div className="px-4 space-y-3 mt-6">
 
         </div>
@@ -49,7 +47,7 @@ const SidebarNav = ({ menuList }: { menuList: Group[] }) => {
             />
           )}
         </div>
-        <nav className="mt-6 h-full w-full ">
+        <nav className="mt-8 h-full w-full">
           <div className=" h-full  space-y-1.5 flex flex-col  items-start  px-4 pb-8 ">
             {data?.menus.map(({ submenus }, index) =>
               submenus?.map(

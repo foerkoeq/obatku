@@ -8,6 +8,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/react";
+import { HydrationSafe } from "@/components/ui/hydration-safe";
 import { cn } from "@/lib/utils";
 import { TransactionStatus, Priority } from "@/lib/types/transaction";
 
@@ -143,7 +144,9 @@ const TransactionStatusIndicator: React.FC<TransactionStatusIndicatorProps> = ({
           statusConfig.color
         )}
       >
-        <Icon icon={statusConfig.icon} className="h-3 w-3" />
+        <HydrationSafe fallback={<div className="h-3 w-3 bg-current opacity-50 rounded-sm" />}>
+          <Icon icon={statusConfig.icon} className="h-3 w-3 flex-shrink-0" />
+        </HydrationSafe>
         {showText && statusConfig.text}
       </Badge>
 
@@ -154,7 +157,9 @@ const TransactionStatusIndicator: React.FC<TransactionStatusIndicatorProps> = ({
             priorityConfig.color
           )}
         >
-          <Icon icon={priorityConfig.icon} className="h-3 w-3" />
+          <HydrationSafe fallback={<div className="h-3 w-3 bg-current opacity-50 rounded-sm" />}>
+            <Icon icon={priorityConfig.icon} className="h-3 w-3 flex-shrink-0" />
+          </HydrationSafe>
           {showText && (
             <span className="hidden sm:inline">{priorityConfig.text}</span>
           )}

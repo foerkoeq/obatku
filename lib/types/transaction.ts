@@ -43,6 +43,7 @@ export interface Transaction {
     noteToSubmitter?: string;
     noteToWarehouse?: string;
     status: ApprovalStatus;
+    pickupSchedule?: Date;
   };
   distribution?: {
     distributedBy: string;

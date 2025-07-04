@@ -1,7 +1,6 @@
 "use client"
 
 import { useConfig } from "@/hooks/use-config";
-import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -33,7 +32,6 @@ const RevenueBarChart = ({
 }: RevenueBarChartProps) => {
   const [config] = useConfig();
   const { isRtl } = config;
-  const t = useTranslations("AnalyticsDashboard");
   const { theme: mode } = useTheme();
   const options: any = {
     chart: {
@@ -71,7 +69,7 @@ const RevenueBarChart = ({
       },
     },
     title: {
-      text: `${t("revenue_report")}`,
+      text: "Laporan Pendapatan",
       align: "left",
       offsetY: 13,
       offsetX: isRtl ? "0%" : 0,
