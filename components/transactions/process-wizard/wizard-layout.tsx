@@ -204,15 +204,15 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <CardContent className="text-xs space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">PPL:</span>
-                      <span className="font-medium">{transaction.applicantData.bppOfficer}</span>
+                      <span className="font-medium">{transaction.bppOfficer.name}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Kelompok:</span>
-                      <span className="font-medium">{transaction.applicantData.farmerGroup}</span>
+                      <span className="font-medium">{transaction.farmerGroup.name}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Komoditas:</span>
-                      <span className="font-medium">{transaction.applicantData.commodity}</span>
+                      <span className="font-medium">{transaction.farmingDetails.commodity}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Total Item:</span>

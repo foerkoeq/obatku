@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import ReactDatePicker from "react-datepicker"
+import DatePicker from "react-datepicker"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Calendar as CalendarIcon, X } from "lucide-react"
@@ -12,19 +12,20 @@ import { Button } from "@/components/ui/button"
 import "react-datepicker/dist/react-datepicker.css"
 import "./date-picker-styles.css"
 
-interface DatePickerProps {
-  /** Current selected date - preferred prop */
-  value?: Date
-  /** Legacy alias of value */
-  selected?: Date
-  /** Change handler - preferred prop */
-  onChange?: (date: Date | undefined) => void
-  /** Legacy alias of onChange */
-  onSelect?: (date: Date | undefined) => void
+interface DateRange {
+  startDate: Date | null
+  endDate: Date | null
+}
+
+interface DateRangePickerProps {
+  /** Current selected date range */
+  value?: DateRange
+  /** Change handler */
+  onChange?: (range: DateRange) => void
   placeholder?: string
   disabled?: boolean
   className?: string
-  /** Allow clearing the selected date */
+  /** Allow clearing the selected dates */
   allowClear?: boolean
   /** Size variant */
   size?: "sm" | "default" | "lg"
@@ -34,8 +35,6 @@ interface DatePickerProps {
   minDate?: Date
   /** Max date */
   maxDate?: Date
-  /** Show time picker */
-  showTimeSelect?: boolean
   /** Custom date format for picker */
   dateFormat?: string
   /** Show year dropdown */
@@ -48,14 +47,14 @@ interface DatePickerProps {
   yearDropdownItemNumber?: number
   /** Portal ID for better z-index management */
   portalId?: string
+  /** Number of months to show */
+  monthsShown?: number
 }
 
-export function DatePicker({
-  value,
-  selected,
+export function DateRangePicker({
+  value = { startDate: null, endDate: null },
   onChange,
-  onSelect,
-  placeholder = "Pilih tanggal",
+  placeholder = "Pilih rentang tanggal",
   disabled = false,
   className,
   allowClear = true,
@@ -63,41 +62,54 @@ export function DatePicker({
   displayFormat = "dd/MM/yyyy",
   minDate,
   maxDate,
-  showTimeSelect = false,
   dateFormat,
   showYearDropdown = true,
   showMonthDropdown = true,
   scrollableYearDropdown = true,
   yearDropdownItemNumber = 15,
   portalId,
+  monthsShown = 2,
   ...props
-}: DatePickerProps) {
-  // Backward-compatible prop resolution
-  const resolvedValue = value ?? selected
-  const resolvedOnChange = onChange ?? onSelect
-
+}: DateRangePickerProps) {
   const sizeClasses = {
     sm: "h-8 text-xs px-2",
     default: "h-9 px-3", 
     lg: "h-10 px-4 text-base"
   }
 
-  const formatForDisplay = (date: Date | undefined): string => {
-    if (!date) return ""
+  const formatForDisplay = (range: DateRange): string => {
+    const { startDate, endDate } = range
+    if (!startDate && !endDate) return ""
+    
     try {
-      return format(date, displayFormat)
+      if (startDate && endDate) {
+        return `${format(startDate, displayFormat)} - ${format(endDate, displayFormat)}`
+      } else if (startDate) {
+        return `${format(startDate, displayFormat)} - ...`
+      }
+      return ""
     } catch {
-      return date.toLocaleDateString("id-ID")
+      if (startDate && endDate) {
+        return `${startDate.toLocaleDateString("id-ID")} - ${endDate.toLocaleDateString("id-ID")}`
+      } else if (startDate) {
+        return `${startDate.toLocaleDateString("id-ID")} - ...`
+      }
+      return ""
     }
   }
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    resolvedOnChange?.(undefined)
+    onChange?.({ startDate: null, endDate: null })
   }
 
-  // Custom input component dengan styling yang lebih baik
+  const handleDateChange = (dates: [Date | null, Date | null]) => {
+    const [start, end] = dates
+    onChange?.({ startDate: start, endDate: end })
+  }
+
+  // Custom input component
   const CustomInput = React.forwardRef<
     HTMLButtonElement,
     React.ButtonHTMLAttributes<HTMLButtonElement> & { value?: string }
@@ -112,19 +124,19 @@ export function DatePicker({
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         "group relative",
         sizeClasses[size],
-        !resolvedValue && "text-muted-foreground",
+        !value.startDate && !value.endDate && "text-muted-foreground",
         disabled && "cursor-not-allowed opacity-50 hover:bg-background",
         className
       )}
       disabled={disabled}
       onClick={onClick}
-      {...(inputProps as any)}
+      {...inputProps}
     >
       <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0 text-muted-foreground" />
       <span className="flex-1 truncate text-left">
-        {resolvedValue ? formatForDisplay(resolvedValue) : placeholder}
+        {formatForDisplay(value) || placeholder}
       </span>
-      {allowClear && resolvedValue && !disabled && (
+      {allowClear && (value.startDate || value.endDate) && !disabled && (
         <X 
           className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive" 
           onClick={handleClear}
@@ -137,14 +149,17 @@ export function DatePicker({
 
   return (
     <div className="w-full">
-      <ReactDatePicker
-        selected={resolvedValue}
-        onChange={(date) => resolvedOnChange?.(date || undefined)}
+      <DatePicker
+        selected={value.startDate}
+        onChange={handleDateChange}
+        startDate={value.startDate}
+        endDate={value.endDate}
+        selectsRange
         customInput={<CustomInput />}
-        dateFormat={dateFormat || (showTimeSelect ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy")}
+        dateFormat={dateFormat || "dd/MM/yyyy"}
         minDate={minDate}
         maxDate={maxDate}
-        showTimeSelect={showTimeSelect}
+        monthsShown={monthsShown}
         showYearDropdown={showYearDropdown}
         showMonthDropdown={showMonthDropdown}
         scrollableYearDropdown={scrollableYearDropdown}
@@ -156,7 +171,7 @@ export function DatePicker({
         popperClassName="react-datepicker-popper"
         popperPlacement="bottom-start"
         popperProps={{
-          strategy: "fixed" as const,
+          strategy: "fixed",
         }}
         // Better UX options
         todayButton="Hari ini"
@@ -167,12 +182,12 @@ export function DatePicker({
         autoComplete="off"
         // Portal support for better z-index management
         portalId={portalId}
-        {...(props as any)}
+        {...props}
       />
     </div>
   )
 }
 
-DatePicker.displayName = "DatePicker"
+DateRangePicker.displayName = "DateRangePicker"
 
-export { DatePicker as default } 
+export { DateRangePicker as default } 

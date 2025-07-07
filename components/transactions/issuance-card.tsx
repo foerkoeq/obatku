@@ -21,7 +21,7 @@ interface IssuanceCardProps {
 
 const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
   const router = useRouter();
-  const { applicantData, submissionDate, priority, status } = transaction;
+  const { submissionDate, priority, status, farmerGroup, bppOfficer, farmingDetails } = transaction;
 
   // Calculate time since submission
   const timeSince = (date: Date) => {
@@ -60,7 +60,7 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg font-semibold leading-tight">
-            {applicantData.farmerGroup}
+            {farmerGroup.name}
           </CardTitle>
           <Badge
             className={cn(
@@ -73,7 +73,7 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
           </Badge>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {applicantData.district} - {applicantData.commodity}
+          {farmerGroup.district} - {farmingDetails.commodity}
         </p>
       </CardHeader>
       
@@ -81,15 +81,15 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
             <AvatarImage 
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicantData.bppOfficer}`} 
-              alt={applicantData.bppOfficer} 
+              src={`https://api.dicebear.com/7.x/initials/svg?seed=${bppOfficer.name}`} 
+              alt={bppOfficer.name} 
             />
             <AvatarFallback>
-              {applicantData.bppOfficer.substring(0, 2).toUpperCase()}
+              {bppOfficer.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-sm">{applicantData.bppOfficer}</p>
+            <p className="font-semibold text-sm">{bppOfficer.name}</p>
             <p className="text-xs text-gray-500">
               Diajukan {timeSince(submissionDate)}
             </p>
@@ -103,12 +103,12 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
           </div>
           <div className="flex items-center">
             <Icon icon="lucide:bug" className="w-4 h-4 mr-2 text-gray-500" />
-            <span>Jenis OPT: <strong>{applicantData.pestType}</strong></span>
+            <span>Jenis OPT: <strong>{farmingDetails.pestType.join(', ')}</strong></span>
           </div>
           <div className="flex items-center">
             <Icon icon="lucide:clipboard-list" className="w-4 h-4 mr-2 text-gray-500" />
             <span>Status: </span>
-            <Badge variant="outline" className="ml-1 capitalize text-xs">
+            <Badge className="ml-1 capitalize text-xs border border-gray-300">
               {status.replace("_", " ")}
             </Badge>
           </div>
@@ -135,7 +135,7 @@ const IssuanceCard = ({ transaction }: IssuanceCardProps) => {
       
       <CardFooter>
         <Button 
-          className="w-full" 
+          className="whitespace-normal break-words text-sm h-auto" 
           onClick={handleStartProcess}
           size="lg"
         >
