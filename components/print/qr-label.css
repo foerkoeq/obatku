@@ -1,0 +1,220 @@
+/* QR Label Template Styles */
+/* Ukuran berdasarkan spesifikasi stiker label no 121 */
+
+@page {
+  size: 17.58cm 22.27cm;
+  margin: 0.7cm 0.51cm 1.27cm 0.77cm;
+}
+
+.qr-label-template {
+  width: 17.58cm;
+  height: 22.27cm;
+  position: relative;
+  background: white;
+  font-family: Arial, sans-serif;
+}
+
+.qr-label-template.show-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 1cm 1cm;
+}
+
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 7.44cm);
+  grid-template-rows: repeat(6, 3.36cm);
+  gap: 0.42cm;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.label-slot {
+  width: 7.44cm;
+  height: 3.36cm;
+  position: relative;
+  overflow: hidden;
+}
+
+.qr-label {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #ddd;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  font-size: 8pt;
+  line-height: 1.2;
+  position: relative;
+}
+
+.qr-label-content {
+  display: flex;
+  flex: 1;
+  padding: 4pt;
+  gap: 4pt;
+}
+
+.qr-label-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2pt;
+  overflow: hidden;
+}
+
+.medicine-name {
+  font-weight: bold;
+  font-size: 9pt;
+  line-height: 1.1;
+  max-height: 22pt;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.medicine-producer {
+  font-size: 7pt;
+  color: #444;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.medicine-ingredient {
+  font-size: 7pt;
+  color: #666;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.medicine-source {
+  font-size: 7pt;
+  color: #888;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-top: auto;
+}
+
+.qr-label-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80pt;
+  gap: 2pt;
+}
+
+.qr-code-image {
+  width: 70pt;
+  height: 70pt;
+  object-fit: contain;
+}
+
+.qr-id {
+  font-size: 6pt;
+  color: #666;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qr-label-footer {
+  padding: 0 4pt 4pt 4pt;
+}
+
+.footer-divider {
+  width: 100%;
+  height: 1px;
+  background: #333;
+  margin-bottom: 3pt;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 6pt;
+  line-height: 1.1;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1pt;
+}
+
+.footer-right {
+  text-align: right;
+  max-width: 60pt;
+  word-wrap: break-word;
+}
+
+.entry-date, .expiry-date {
+  color: #444;
+}
+
+.location {
+  color: #444;
+  font-weight: 500;
+}
+
+.empty-label {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed #ccc;
+  background: #f9f9f9;
+}
+
+/* Print styles */
+@media print {
+  .qr-label-template {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .qr-label {
+    border: 0.5pt solid #000;
+    page-break-inside: avoid;
+  }
+  
+  .footer-divider {
+    background: #000 !important;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Utilities untuk debugging */
+.debug .qr-label {
+  border: 1px solid red;
+}
+
+.debug .qr-label-content {
+  border: 1px solid blue;
+}
+
+.debug .qr-label-info {
+  border: 1px solid green;
+}
+
+.debug .qr-label-qr {
+  border: 1px solid orange;
+}
+
+.debug .qr-label-footer {
+  border: 1px solid purple;
+}
