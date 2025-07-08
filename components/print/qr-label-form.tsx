@@ -117,19 +117,19 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
 
   return (
     <div className="qr-label-form" style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-      <h3>Input Data Obat untuk Label QR</h3>
+      <h3>Input Data Pestisida/Obat Pertanian untuk Label QR</h3>
       
       {/* Form Input */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            ID Obat:
+            ID Pestisida:
           </label>
           <input
             type="text"
             value={currentMedicine.id}
             onChange={(e) => handleInputChange('id', e.target.value)}
-            placeholder="MED001"
+            placeholder="PEST001"
             style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         </div>
@@ -142,7 +142,7 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
             type="text"
             value={currentMedicine.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="Paracetamol 500mg"
+            placeholder="Herbisida Roundup 200ml"
             style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         </div>
@@ -155,7 +155,7 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
             type="text"
             value={currentMedicine.producer}
             onChange={(e) => handleInputChange('producer', e.target.value)}
-            placeholder="PT. Kimia Farma"
+            placeholder="PT. Syngenta Indonesia"
             style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         </div>
@@ -168,7 +168,7 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
             type="text"
             value={currentMedicine.activeIngredient}
             onChange={(e) => handleInputChange('activeIngredient', e.target.value)}
-            placeholder="Paracetamol"
+            placeholder="Glifosat"
             style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         </div>
@@ -249,7 +249,7 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
             cursor: 'pointer'
           }}
         >
-          {editingIndex >= 0 ? 'Update Obat' : 'Tambah Obat'}
+          {editingIndex >= 0 ? 'Update Pestisida' : 'Tambah Pestisida'}
         </button>
 
         {editingIndex >= 0 && (
@@ -300,7 +300,7 @@ const QRLabelForm: React.FC<QRLabelFormProps> = ({
       {/* Medicine List */}
       {medicines.length > 0 && (
         <div>
-          <h4>Daftar Obat ({medicines.length} item):</h4>
+          <h4>Daftar Pestisida ({medicines.length} item):</h4>
           <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '4px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: '#f5f5f5', position: 'sticky', top: 0 }}>

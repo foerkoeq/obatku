@@ -1,11 +1,11 @@
 import { MedicineData } from './qr-label-template';
 
 /**
- * Utility functions untuk QR Label Template
+ * Utility functions untuk QR Label Template (Pestisida/Obat Pertanian)
  */
 
 /**
- * Generate QR code data string from medicine
+ * Generate QR code data string from agriculture medicine/pesticide
  */
 export const generateQRData = (medicine: MedicineData): string => {
   return JSON.stringify({
@@ -18,13 +18,13 @@ export const generateQRData = (medicine: MedicineData): string => {
 };
 
 /**
- * Validate medicine data
+ * Validate agriculture medicine/pesticide data
  */
 export const validateMedicineData = (medicine: MedicineData): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  if (!medicine.id.trim()) errors.push('ID obat harus diisi');
-  if (!medicine.name.trim()) errors.push('Nama obat harus diisi');
+  if (!medicine.id.trim()) errors.push('ID pestisida harus diisi');
+  if (!medicine.name.trim()) errors.push('Nama pestisida harus diisi');
   if (!medicine.producer.trim()) errors.push('Nama produsen harus diisi');
   if (!medicine.activeIngredient.trim()) errors.push('Kandungan aktif harus diisi');
   if (!medicine.source.trim()) errors.push('Sumber harus diisi');
@@ -94,7 +94,7 @@ export const chunkMedicinesForPages = (medicines: MedicineData[]): MedicineData[
 };
 
 /**
- * Convert medicine data from API/database format
+ * Convert agriculture medicine/pesticide data from API/database format
  */
 export const convertToMedicineData = (rawData: any): MedicineData => {
   return {
@@ -110,26 +110,26 @@ export const convertToMedicineData = (rawData: any): MedicineData => {
 };
 
 /**
- * Generate batch of medicine data for testing
+ * Generate batch of agriculture medicine/pesticide data for testing
  */
 export const generateTestMedicines = (count: number = 12): MedicineData[] => {
   const medicines: MedicineData[] = [];
   const sampleNames = [
-    'Paracetamol 500mg',
-    'Amoxicillin 250mg',
-    'Vitamin C 1000mg',
-    'Ibuprofen 400mg',
-    'Cetirizine 10mg',
-    'Omeprazole 20mg'
+    'Herbisida Roundup 200ml',
+    'Insektisida Decis 100ml',
+    'Fungisida Antracol 250g',
+    'Pupuk NPK 16-16-16 1kg',
+    'ZPT Atonik 100ml',
+    'Bakterisida Agrept 200g'
   ];
   const sampleProducers = [
-    'PT. Kimia Farma',
-    'PT. Indofarma',
-    'PT. Kalbe Farma',
-    'PT. Sanbe Farma',
-    'PT. Dexa Medica'
+    'PT. Syngenta Indonesia',
+    'PT. Bayer Indonesia', 
+    'PT. BASF Indonesia',
+    'PT. Pupuk Kujang',
+    'PT. Petrokimia Gresik'
   ];
-  const sampleSources = ['APBN-2024', 'APBD-2024', 'CSR PT. A-2024'];
+  const sampleSources = ['APBN-2024', 'APBD-2024', 'CSR PT. Agro-2024'];
 
   for (let i = 0; i < count; i++) {
     medicines.push({

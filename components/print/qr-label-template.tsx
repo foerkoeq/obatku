@@ -4,7 +4,7 @@ import React from 'react';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 
-// Tipe data untuk medicine/obat
+// Tipe data untuk pestisida/obat pertanian
 export interface MedicineData {
   id: string;
   name: string;
@@ -75,7 +75,7 @@ const QRLabel: React.FC<QRLabelProps> = ({ medicine, qrCodeDataUrl }) => {
     <div className="qr-label">
       {/* Main Content Area */}
       <div className="qr-label-content">
-        {/* Left Section - Medicine Info */}
+        {/* Left Section - Pesticide/Agriculture Medicine Info */}
         <div className="qr-label-info">
           <div className="medicine-name">{medicine.name}</div>
           <div className="medicine-producer">{medicine.producer}</div>

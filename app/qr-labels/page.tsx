@@ -23,7 +23,7 @@ const QRLabelPage: React.FC = () => {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
         <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
           <h1 style={{ color: '#333', marginBottom: '0.5rem' }}>
-            Generator Label QR Code Obat
+            Generator Label QR Code Pestisida/Obat Pertanian
           </h1>
           <p style={{ color: '#666', fontSize: '1.1rem' }}>
             Template siap cetak untuk stiker label no 121 (17.58cm × 22.27cm)
@@ -42,7 +42,7 @@ const QRLabelPage: React.FC = () => {
         {medicines.length > 0 && (
           <section>
             <h2 style={{ marginBottom: '1rem', color: '#333' }}>
-              Preview Label ({medicines.length} obat)
+              Preview Label ({medicines.length} pestisida)
             </h2>
             <QRLabelPreview 
               medicines={medicines}
@@ -63,7 +63,7 @@ const QRLabelPage: React.FC = () => {
             Petunjuk Penggunaan:
           </h3>
           <ol style={{ color: '#666', lineHeight: '1.6' }}>
-            <li>Isi data obat menggunakan form di atas</li>
+            <li>            Isi data pestisida menggunakan form di atas</li>
             <li>Gunakan tombol "Load Test Data" untuk contoh data</li>
             <li>Preview label akan muncul setelah data diisi</li>
             <li>Gunakan "Show Grid" untuk melihat panduan grid layout</li>
@@ -82,8 +82,8 @@ const QRLabelPage: React.FC = () => {
             <strong style={{ color: '#1976d2' }}>Tips:</strong>
             <ul style={{ marginTop: '0.5rem', color: '#1565c0' }}>
               <li>Satu halaman dapat memuat maksimal 12 label (2 kolom × 6 baris)</li>
-              <li>Jika lebih dari 12 obat, akan otomatis ke halaman berikutnya</li>
-              <li>QR Code berisi ID obat yang dapat di-scan untuk tracking</li>
+              <li>Jika lebih dari 12 pestisida, akan otomatis ke halaman berikutnya</li>
+              <li>QR Code berisi ID pestisida yang dapat di-scan untuk tracking</li>
               <li>Font dan ukuran sudah dioptimalkan untuk keterbacaan</li>
             </ul>
           </div>
