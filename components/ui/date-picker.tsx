@@ -46,6 +46,8 @@ interface DatePickerProps {
   scrollableYearDropdown?: boolean
   /** Year dropdown item number */
   yearDropdownItemNumber?: number
+  /** Year range for dropdown (from current year minus this value) */
+  yearRange?: number
   /** Portal ID for better z-index management */
   portalId?: string
 }
@@ -68,13 +70,19 @@ export function DatePicker({
   showYearDropdown = true,
   showMonthDropdown = true,
   scrollableYearDropdown = true,
-  yearDropdownItemNumber = 15,
+  yearDropdownItemNumber = 100,  // Much larger range - show more years at once
+  yearRange = 120,  // Extended range for better coverage
   portalId,
   ...props
 }: DatePickerProps) {
   // Backward-compatible prop resolution
   const resolvedValue = value ?? selected
   const resolvedOnChange = onChange ?? onSelect
+
+  // Calculate year range for better birth date selection
+  const currentYear = new Date().getFullYear()
+  const minYear = currentYear - yearRange
+  const maxYear = currentYear + 10  // Allow future dates
 
   const sizeClasses = {
     sm: "h-8 text-xs px-2",
@@ -142,8 +150,8 @@ export function DatePicker({
         onChange={(date) => resolvedOnChange?.(date || undefined)}
         customInput={<CustomInput />}
         dateFormat={dateFormat || (showTimeSelect ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy")}
-        minDate={minDate}
-        maxDate={maxDate}
+        minDate={minDate || new Date(minYear, 0, 1)}  // Set min date to support year range
+        maxDate={maxDate || new Date(maxYear, 11, 31)}  // Set max date
         showTimeSelect={showTimeSelect}
         showYearDropdown={showYearDropdown}
         showMonthDropdown={showMonthDropdown}

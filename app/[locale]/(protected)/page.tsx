@@ -35,9 +35,9 @@ type UserRole = 'admin' | 'ppl' | 'dinas' | 'popt';
 
 // Mock user - in real implementation, get from auth context/session
 const MOCK_USER = {
-  role: 'admin' as UserRole, // Change this to test different roles: 'admin', 'ppl', 'dinas', 'popt'
+  role: 'dinas' as UserRole, // Change this to test different roles: 'admin', 'ppl', 'dinas', 'popt'
   name: 'Admin User',
-  district: 'Kabupaten Sragen'
+  district: 'Kabupaten Tuban'
 };
 
 const DashboardPage = () => {

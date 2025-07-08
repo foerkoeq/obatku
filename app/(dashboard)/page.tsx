@@ -30,7 +30,7 @@ type UserRole = 'admin' | 'ppl' | 'dinas' | 'popt';
 const MOCK_USER = {
   role: 'admin' as UserRole,
   name: 'Admin User',
-  district: 'Kabupaten Sragen'
+  district: 'Kabupaten Tuban'
 };
 
 export default function DashboardPage() {

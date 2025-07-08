@@ -21,7 +21,7 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Header styles */
+/* Header styles - Improved layout for dropdowns */
 .react-datepicker__header {
   background-color: hsl(var(--muted));
   border-bottom: 1px solid hsl(var(--border));
@@ -35,6 +35,15 @@
   font-weight: 600;
   font-size: 0.875rem;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.react-datepicker__current-month .react-datepicker__month-dropdown-container,
+.react-datepicker__current-month .react-datepicker__year-dropdown-container {
+  position: relative;
 }
 
 /* Navigation buttons */
@@ -179,34 +188,57 @@
   background-color: transparent;
 }
 
-/* Dropdown styles */
+/* Dropdown styles - Improved sizing and visibility */
 .react-datepicker__month-dropdown,
 .react-datepicker__year-dropdown {
   background-color: hsl(var(--popover));
   border: 1px solid hsl(var(--border));
   border-radius: calc(var(--radius) - 2px);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   color: hsl(var(--popover-foreground));
-  max-height: 200px;
+  max-height: 400px; /* Increased height for more years visible */
+  min-width: 120px;
+  width: auto;
   overflow-y: auto;
   z-index: 10000;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+}
+
+.react-datepicker__year-dropdown {
+  min-width: 90px; /* Slightly wider for 4-digit years */
+  max-height: 500px; /* Even larger for year dropdown */
+  right: 0;
+  left: auto;
 }
 
 .react-datepicker__month-dropdown-container,
 .react-datepicker__year-dropdown-container {
   position: relative;
+  display: inline-block;
 }
 
 .react-datepicker__month-read-view,
 .react-datepicker__year-read-view {
   border: 1px solid hsl(var(--border));
   border-radius: calc(var(--radius) - 4px);
-  padding: 4px 8px;
+  padding: 6px 12px;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.react-datepicker__year-read-view {
+  min-width: 50px;
 }
 
 .react-datepicker__month-read-view:hover,
@@ -215,13 +247,28 @@
   color: hsl(var(--accent-foreground));
 }
 
+.react-datepicker__month-read-view:focus,
+.react-datepicker__year-read-view:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 .react-datepicker__month-option,
 .react-datepicker__year-option {
   color: hsl(var(--foreground));
-  padding: 8px 12px;
+  padding: 10px 16px;
   transition: all 0.2s ease;
   cursor: pointer;
   font-size: 0.875rem;
+  font-weight: 400;
+  white-space: nowrap;
+  text-align: left;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.react-datepicker__month-option:last-child,
+.react-datepicker__year-option:last-child {
+  border-bottom: none;
 }
 
 .react-datepicker__month-option:hover,
@@ -235,6 +282,12 @@
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   font-weight: 600;
+}
+
+.react-datepicker__month-option--selected:hover,
+.react-datepicker__year-option--selected:hover {
+  background-color: hsl(var(--primary));
+  opacity: 0.9;
 }
 
 /* Today button */
@@ -372,6 +425,37 @@
     width: 36px;
     line-height: 36px;
   }
+  
+  /* Enhanced mobile dropdown visibility */
+  .react-datepicker__month-dropdown,
+  .react-datepicker__year-dropdown {
+    min-width: 140px;
+    max-height: 400px; /* Larger mobile dropdown for better year navigation */
+  }
+  
+  .react-datepicker__year-dropdown {
+    max-height: 450px; /* Even larger for year selection on mobile */
+  }
+  
+  .react-datepicker__month-read-view,
+  .react-datepicker__year-read-view {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .react-datepicker__month-option,
+  .react-datepicker__year-option {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+
+  /* Mobile scroll button improvements */
+  .react-datepicker__year-scroll-button,
+  .react-datepicker__month-scroll-button {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    margin: 2px;
+  }
 }
 
 /* Dark mode specific adjustments */
@@ -396,4 +480,183 @@
 
 .react-datepicker-popper[data-placement^="top"] .react-datepicker__triangle {
   border-top-color: hsl(var(--border));
-} 
+}
+
+/* Additional dropdown improvements */
+.react-datepicker__month-read-view--down-arrow::after,
+.react-datepicker__year-read-view--down-arrow::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid hsl(var(--muted-foreground));
+  transition: transform 0.2s ease;
+}
+
+.react-datepicker__month-read-view--down-arrow,
+.react-datepicker__year-read-view--down-arrow {
+  position: relative;
+  padding-right: 28px;
+}
+
+/* Ensure dropdowns don't get cut off */
+.react-datepicker__header {
+  overflow: visible;
+  z-index: 10001;
+}
+
+.react-datepicker__month-dropdown-container,
+.react-datepicker__year-dropdown-container {
+  z-index: 10002;
+}
+
+/* Improved visibility states */
+.react-datepicker__month-dropdown--scrollable,
+.react-datepicker__year-dropdown--scrollable {
+  height: auto;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* Fix for year dropdown positioning */
+.react-datepicker__year-dropdown {
+  right: 0;
+  left: auto;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Improved scroll buttons for year/month dropdown */
+.react-datepicker__year-dropdown-container .react-datepicker__year-dropdown {
+  max-height: 500px; /* Much larger height to show ~25-30 years at once */
+}
+
+.react-datepicker__month-dropdown-container .react-datepicker__month-dropdown {
+  max-height: 300px; /* Larger for months too */
+}
+
+/* Style for scroll/more buttons in dropdowns */
+.react-datepicker__navigation-dropdown,
+.react-datepicker__year-dropdown .react-datepicker__navigation,
+.react-datepicker__month-dropdown .react-datepicker__navigation {
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 4px);
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.react-datepicker__navigation-dropdown:hover,
+.react-datepicker__year-dropdown .react-datepicker__navigation:hover,
+.react-datepicker__month-dropdown .react-datepicker__navigation:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Fix for invisible scroll buttons in dropdowns - Make them visible and clear */
+.react-datepicker__year-dropdown-container .react-datepicker__year-dropdown .react-datepicker__year-option:last-child + div,
+.react-datepicker__month-dropdown-container .react-datepicker__month-dropdown .react-datepicker__month-option:last-child + div {
+  background-color: hsl(var(--muted));
+  border-top: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.react-datepicker__year-dropdown-container .react-datepicker__year-dropdown .react-datepicker__year-option:last-child + div:hover,
+.react-datepicker__month-dropdown-container .react-datepicker__month-dropdown .react-datepicker__month-option:last-child + div:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Add content to empty scroll buttons */
+.react-datepicker__year-dropdown-container .react-datepicker__year-dropdown .react-datepicker__year-option:last-child + div::before {
+  content: "⋯ Lihat tahun lainnya";
+  white-space: nowrap;
+}
+
+.react-datepicker__month-dropdown-container .react-datepicker__month-dropdown .react-datepicker__month-option:last-child + div::before {
+  content: "⋯ Lihat bulan lainnya";
+  white-space: nowrap;
+}
+
+/* Alternative approach: Style any empty clickable area in dropdowns */
+.react-datepicker__year-dropdown > div:empty,
+.react-datepicker__month-dropdown > div:empty {
+  background-color: hsl(var(--muted));
+  border-top: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.react-datepicker__year-dropdown > div:empty::before {
+  content: "📅 Tahun lainnya";
+}
+
+.react-datepicker__month-dropdown > div:empty::before {
+  content: "📅 Bulan lainnya";
+}
+
+.react-datepicker__year-dropdown > div:empty:hover,
+.react-datepicker__month-dropdown > div:empty:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Generic fix for any invisible clickable elements in dropdowns */
+.react-datepicker__year-dropdown > *:not(.react-datepicker__year-option),
+.react-datepicker__month-dropdown > *:not(.react-datepicker__month-option) {
+  background-color: hsl(var(--muted)) !important;
+  border-top: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  cursor: pointer !important;
+  padding: 8px 12px !important;
+  font-size: 0.75rem !important;
+  text-align: center !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.react-datepicker__year-dropdown > *:not(.react-datepicker__year-option):hover,
+.react-datepicker__month-dropdown > *:not(.react-datepicker__month-option):hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+/* Add icons and text to navigation elements */
+.react-datepicker__year-dropdown > *:not(.react-datepicker__year-option):empty::before {
+  content: "⬆️ Tahun sebelumnya";
+  font-size: 0.7rem;
+}
+
+.react-datepicker__month-dropdown > *:not(.react-datepicker__month-option):empty::before {
+  content: "⬆️ Bulan lainnya";
+  font-size: 0.7rem;
+}

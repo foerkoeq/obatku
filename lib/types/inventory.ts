@@ -23,6 +23,7 @@ export interface DrugInventory {
   storageLocation: string;
   notes?: string;
   barcode?: string;
+  batchNumber?: string;
   status: StockStatus;
   lastUpdated: Date;
   createdBy: string;

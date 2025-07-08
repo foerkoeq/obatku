@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SimpleDateInput } from "@/components/ui/simple-date-input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Form,
   FormControl,
@@ -521,7 +521,7 @@ const AddMedicinePage: React.FC = () => {
                       <FormItem>
                         <FormLabel>Tanggal Masuk *</FormLabel>
                         <FormControl>
-                          <SimpleDateInput
+                          <DatePicker
                             value={field.value}
                             onChange={field.onChange}
                             placeholder="Pilih tanggal masuk"
@@ -542,16 +542,13 @@ const AddMedicinePage: React.FC = () => {
                       <FormItem>
                         <FormLabel>Tanggal Expired *</FormLabel>
                         <FormControl>
-                          <SimpleDateInput
+                          <DatePicker
                             value={field.value}
                             onChange={field.onChange}
                             placeholder="Pilih tanggal expired"
                             allowClear
                             displayFormat="dd/MM/yyyy"
-                            min={form.getValues('entryDate') ? 
-                              format(form.getValues('entryDate'), 'yyyy-MM-dd') : 
-                              undefined
-                            }
+                            minDate={form.getValues('entryDate')}
                           />
                         </FormControl>
                         <FormMessage />

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { userSchema } from "@/lib/validations/user";
 import { cn } from "@/lib/utils";
-import { SimpleDateInput } from "@/components/ui/simple-date-input";
+import DatePicker from "@/components/ui/date-picker";
 
 type AddUserModalProps = {
   open: boolean;
@@ -109,13 +109,13 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
                 <FormItem className="flex flex-col">
                   <FormLabel>Date of birth</FormLabel>
                   <FormControl>
-                    <SimpleDateInput
+                    <DatePicker
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select date of birth"
                       allowClear={true}
                       displayFormat="dd/MM/yyyy"
-                      max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                      maxDate={new Date()} // Prevent future dates
                     />
                   </FormControl>
                   <FormMessage />
