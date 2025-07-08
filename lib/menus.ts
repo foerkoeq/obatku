@@ -230,6 +230,45 @@ export function getHorizontalMenuList(pathname: string): Group[] {
       ],
     },
     {
+      groupLabel: "Dokumen",
+      id: "documents",
+      menus: [
+        {
+          id: "berita-acara",
+          href: "/berita-acara",
+          label: "Berita Acara",
+          active: pathname.includes("/berita-acara"),
+          icon: "heroicons-outline:document-text",
+          submenus: [
+            {
+              href: "/berita-acara",
+              label: "Buat Berita Acara",
+              active: pathname === "/berita-acara",
+              icon: "heroicons-outline:document-plus",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/berita-acara/settings",
+              label: "Pengaturan Template",
+              active: pathname.includes("/berita-acara/settings"),
+              icon: "heroicons-outline:cog-6-tooth",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/berita-acara/test",
+              label: "Test & Preview",
+              active: pathname.includes("/berita-acara/test"),
+              icon: "heroicons-outline:eye",
+              submenus: [],
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
       groupLabel: "Pengguna",
       id: "users",
       menus: [
