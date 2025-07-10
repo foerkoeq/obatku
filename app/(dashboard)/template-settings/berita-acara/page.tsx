@@ -246,7 +246,7 @@ export default function BeritaAcaraSettingsPage() {
                       <div>
                         <h4 className="font-medium flex items-center gap-2">
                           {template.name}
-                          {template.isDefault && <Badge variant="secondary">Default</Badge>}
+                          {template.isDefault && <Badge>Default</Badge>}
                         </h4>
                         <p className="text-sm text-muted-foreground">{template.description}</p>
                       </div>

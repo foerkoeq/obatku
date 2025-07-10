@@ -1,0 +1,287 @@
+/* QR Print Modal Specific Styles */
+
+/* Print-specific styles */
+@media print {
+  /* Hide everything except the print content */
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-page,
+  .print-page * {
+    visibility: visible;
+  }
+  
+  .print-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .print-page {
+    page-break-after: always;
+  }
+  
+  .print-page:last-child {
+    page-break-after: avoid;
+  }
+  
+  /* Hide modal overlay and other UI elements during print */
+  .modal-overlay,
+  .dialog-overlay,
+  [data-radix-popper-content-wrapper],
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+}
+
+/* Preview container styling */
+.qr-preview-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.qr-preview-page {
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin: 0 auto;
+  transform-origin: top left;
+  transition: transform 0.2s ease-in-out;
+}
+
+.qr-preview-page:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Zoom controls styling */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-badge {
+  min-width: 60px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Modal step indicators */
+.modal-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.step-indicator.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.step-indicator.completed {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  transition: all 0.2s;
+}
+
+.step-connector.completed {
+  background: #10b981;
+}
+
+/* Range configurator styling */
+.range-configurator {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.range-summary {
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  padding: 12px;
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.range-summary.warning {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.range-summary.error {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+/* Settings card styling */
+.settings-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.settings-card:hover {
+  border-color: #d1d5db;
+}
+
+.settings-card-header {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.settings-card-content {
+  padding: 16px;
+}
+
+/* Print options styling */
+.print-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.print-option:hover {
+  background: #f3f4f6;
+}
+
+.print-option input[type="radio"],
+.print-option input[type="checkbox"] {
+  margin: 0;
+}
+
+.print-option label {
+  margin: 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Statistics display */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stat-value.primary { color: #3b82f6; }
+.stat-value.success { color: #10b981; }
+.stat-value.warning { color: #f59e0b; }
+.stat-value.danger { color: #ef4444; }
+
+/* Loading states */
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.loading-spinner svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .settings-card {
+    margin-bottom: 16px;
+  }
+  
+  .zoom-controls {
+    padding: 6px 8px;
+  }
+  
+  .zoom-badge {
+    min-width: 50px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 640px) {
+  .qr-preview-page {
+    margin: 0;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

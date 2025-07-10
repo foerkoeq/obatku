@@ -2,7 +2,7 @@
 // Purpose: Generate and print Berita Acara serah terima obat with mobile-friendly interface
 // Features: PDF generation, print preview, mobile-optimized printing, download option
 // Props: transaction, wizardState, onNext, onPrev, onUpdateState
-// Dependencies: PDF generation library (jsPDF or similar), print utilities
+// Dependencies: Berita Acara template component, print utilities
 
 "use client";
 
@@ -18,6 +18,9 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Transaction } from "@/lib/types/transaction";
 import { WizardState } from "@/app/(dashboard)/transactions/outgoing/process/[id]/page";
+import { BeritaAcaraTemplate } from "@/components/berita-acara/berita-acara-template";
+import { BeritaAcaraData } from "@/lib/types/berita-acara";
+import Link from "next/link";
 
 interface Step3DocumentGenerationProps {
   transaction: Transaction;
@@ -54,8 +57,6 @@ export const Step3DocumentGeneration: React.FC<Step3DocumentGenerationProps> = (
   onUpdateState,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [printCompleted, setPrintCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,49 +66,101 @@ export const Step3DocumentGeneration: React.FC<Step3DocumentGenerationProps> = (
     transactionId: transaction.id,
     letterNumber: transaction.letterNumber,
     date: format(new Date(), 'dd MMMM yyyy', { locale: id }),
-    pplOfficer: transaction.applicantData.bppOfficer,
-    farmerGroup: transaction.applicantData.farmerGroup,
-    commodity: transaction.applicantData.commodity,
-    pestType: transaction.applicantData.pestType,
+    pplOfficer: transaction.bppOfficer.name,
+    farmerGroup: transaction.farmerGroup.name,
+    commodity: transaction.farmingDetails.commodity,
+    pestType: transaction.farmingDetails.pestType.join(', '),
     approvedDrugs: transaction.approval?.approvedDrugs?.map(drug => ({
       name: drug.drugName,
       quantity: drug.approvedQuantity,
       unit: drug.unit,
-      manufacturer: drug.manufacturer
+      manufacturer: drug.condition || 'N/A' // Using condition field as manufacturer placeholder
     })) || [],
     staffName: 'Staff Gudang', // In real app, get from auth context
     witnessName: '',
-    notes: transaction.approval?.notes || ''
+    notes: transaction.approval?.noteToWarehouse || ''
   };
 
-  // Generate PDF document
+  // Convert transaction data to BeritaAcaraData format
+  const createBeritaAcaraData = (): BeritaAcaraData => {
+    const today = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    return {
+      kopSurat: {
+        namaInstansi: 'PEMERINTAH KABUPATEN TUBAN',
+        namaDinas: 'DINAS KETAHANAN PANGAN, PERTANIAN DAN PERIKANAN',
+        alamat: 'Jalan Mastrip No. 5, Sidorejo, Tuban, Jawa Timur 62315',
+        telepon: '(0356) 322086',
+        laman: 'www.tubankab.go.id',
+        email: 'pertanian@tubankab.go.id',
+      },
+      nomorSurat: transaction.letterNumber,
+      namaHari: days[today.getDay()],
+      tanggal: today.getDate().toString(),
+      bulan: months[today.getMonth()],
+      tahun: today.getFullYear().toString(),
+      pihakPertama: {
+        nama: documentData.staffName,
+        nip: '197501012005011001', // Mock NIP
+        jabatan: 'Kepala Bidang Sarana dan Prasarana Pertanian',
+        instansi: 'Dinas Pertanian dan Ketahanan Pangan Kabupaten Tuban',
+      },
+      pihakKedua: {
+        nama: documentData.pplOfficer,
+        jabatan: 'Koordinator Penyuluh',
+        instansi: 'BPP Kecamatan Tuban',
+        namaKecamatan: 'Tuban',
+        nip: '198203152010012002', // Mock NIP
+      },
+      kategoriObat: 'pestisida',
+      daftarBarang: documentData.approvedDrugs.map((drug, index) => ({
+        nomor: index + 1,
+        kategoriObat: drug.name.includes('Insektisida') ? 'Insektisida' : 
+                      drug.name.includes('Fungisida') ? 'Fungisida' : 
+                      drug.name.includes('Herbisida') ? 'Herbisida' : 'Pestisida',
+        opt: documentData.pestType,
+        merekDagang: drug.name,
+        jumlah: `${drug.quantity} ${drug.unit}`,
+        keterangan: 'Kondisi baik',
+      })),
+      suratPermintaan: {
+        nomor: transaction.letterNumber,
+        tanggal: format(today, 'dd MMMM yyyy', { locale: id }),
+      },
+      kelompokTani: {
+        nama: documentData.farmerGroup,
+        namaKetua: 'Bapak Sutrisno', // Mock data
+        lokasiLahan: 'Desa Sidorejo, Kecamatan Tuban',
+        luasLahanTerserang: '5,2 Ha', // Mock data
+        jenisKomoditas: documentData.commodity,
+        jenisOPT: documentData.pestType,
+      },
+      customNarrative: {
+        pembukaan: 'Pada hari ini, [Nama Hari], tanggal [penyebutan tanggal bukan angka] bulan [Nama Bulan] tahun Dua Ribu Dua Puluh Lima, Kabupaten Tuban, kami yang bertanda tangan di bawah ini:',
+        penutup: 'Dengan ditandatanganinya berita acara ini, PIHAK KEDUA menyatakan telah menerima seluruh bantuan tersebut dalam kondisi baik dan jumlah yang sesuai. Bantuan ini akan segera disalurkan oleh PIHAK KEDUA kepada kelompok tani yang terdampak bencana untuk dimanfaatkan sesuai peruntukannya dan tidak untuk diperjualbelikan. Sejak saat ini, tanggung jawab atas pengelolaan, penyimpanan, dan penyaluran bantuan beralih sepenuhnya kepada PIHAK KEDUA.',
+        keterangan: 'Demikian Berita Acara Serah Terima ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.',
+      },
+    };
+  };
+
+  // Generate PDF document using template
   const generatePDF = useCallback(async () => {
     try {
       setIsGenerating(true);
       setError(null);
 
-      // Simulate PDF generation (replace with actual PDF library like jsPDF)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Create mock PDF content
-      const pdfContent = createPDFContent(documentData);
-      
-      // In real implementation, use jsPDF or similar:
-      // const pdf = new jsPDF();
-      // pdf.text(pdfContent, 10, 10);
-      // const blob = pdf.output('blob');
-
-      // For demo, create a text blob
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-
-      setPdfBlob(blob);
-      setPdfUrl(url);
-      
-      // Update wizard state
+      // Mark as generated (using template component for display)
       onUpdateState({
         documentGeneration: {
-          pdfBlob: blob,
+          pdfBlob: null, // We'll use the template component directly
           printed: false,
           timestamp: new Date()
         }
@@ -121,68 +174,34 @@ export const Step3DocumentGeneration: React.FC<Step3DocumentGenerationProps> = (
     } finally {
       setIsGenerating(false);
     }
-  }, [documentData, onUpdateState]);
+  }, [onUpdateState]);
 
-  // Handle print
+  // Handle print using template
   const handlePrint = useCallback(async () => {
-    if (!pdfUrl) {
-      toast.error('Dokumen belum tersedia untuk dicetak');
-      return;
-    }
-
     try {
       setIsPrinting(true);
 
-      // Open print dialog
-      if (window.print) {
-        // For mobile-friendly printing, open in new window
-        const printWindow = window.open(pdfUrl, '_blank');
-        if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print();
-            printWindow.onafterprint = () => {
-              setPrintCompleted(true);
-              onUpdateState({
-                documentGeneration: {
-                  ...wizardState.documentGeneration,
-                  printed: true,
-                  timestamp: new Date()
-                }
-              });
-              toast.success('Dokumen berhasil dicetak');
-              printWindow.close();
-            };
-          };
-        } else {
-          throw new Error('Tidak dapat membuka dialog print');
+      // Use window.print() with the template component
+      window.print();
+      
+      // Mark as printed
+      setPrintCompleted(true);
+      onUpdateState({
+        documentGeneration: {
+          ...wizardState.documentGeneration,
+          printed: true,
+          timestamp: new Date()
         }
-      } else {
-        throw new Error('Browser tidak mendukung fungsi print');
-      }
+      });
+
+      toast.success('Dokumen berhasil dicetak');
     } catch (err) {
       console.error('Print failed:', err);
       toast.error('Gagal mencetak dokumen');
     } finally {
       setIsPrinting(false);
     }
-  }, [pdfUrl, wizardState.documentGeneration, onUpdateState]);
-
-  // Download PDF
-  const downloadPDF = useCallback(() => {
-    if (!pdfBlob || !pdfUrl) {
-      toast.error('Dokumen belum tersedia untuk diunduh');
-      return;
-    }
-
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = `Berita-Acara-${transaction.letterNumber}-${format(new Date(), 'yyyyMMdd')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('Dokumen berhasil diunduh');
-  }, [pdfBlob, pdfUrl, transaction.letterNumber]);
+  }, [wizardState.documentGeneration, onUpdateState]);
 
   // Handle next step
   const handleNext = () => {
@@ -194,61 +213,15 @@ export const Step3DocumentGeneration: React.FC<Step3DocumentGenerationProps> = (
     onNext();
   };
 
-  // Create PDF content (text format for demo)
-  const createPDFContent = (data: DocumentData): string => {
-    return `
-BERITA ACARA SERAH TERIMA OBAT PERTANIAN
-
-No. Surat: ${data.letterNumber}
-Tanggal: ${data.date}
-
-Yang bertanda tangan di bawah ini:
-1. Nama: ${data.staffName}
-   Jabatan: Staff Gudang
-   (Pihak Penyerah)
-
-2. Nama: ${data.pplOfficer}
-   Jabatan: PPL (Penyuluh Pertanian Lapangan)
-   Kelompok Tani: ${data.farmerGroup}
-   (Pihak Penerima)
-
-Dengan ini menyatakan bahwa telah dilakukan serah terima obat pertanian untuk:
-- Komoditas: ${data.commodity}
-- Jenis OPT: ${data.pestType}
-
-DAFTAR OBAT YANG DISERAHKAN:
-${data.approvedDrugs.map((drug, index) => 
-  `${index + 1}. ${drug.name} - ${drug.quantity} ${drug.unit}${drug.manufacturer ? ` (${drug.manufacturer})` : ''}`
-).join('\n')}
-
-CATATAN:
-${data.notes || 'Tidak ada catatan khusus'}
-
-Serah terima dilakukan pada hari ini dan obat telah diterima dalam kondisi baik.
-
-Pihak Penyerah,                    Pihak Penerima,
-
-
-${data.staffName}                  ${data.pplOfficer}
-Staff Gudang                       PPL
-
-${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
-    `;
-  };
-
-  // Cleanup URLs on unmount
-  useEffect(() => {
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-    };
-  }, [pdfUrl]);
-
   return (
     <div className="space-y-6">
-      {/* Document Generation Card */}
-      <Card>
+      {/* Berita Acara Template - Hidden in normal view, shown when printing */}
+      <div className="print-only">
+        <BeritaAcaraTemplate data={createBeritaAcaraData()} />
+      </div>
+
+      {/* Document Generation Card - Hidden when printing */}
+      <Card className="no-print">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Icon icon="lucide:file-text" className="w-5 h-5" />
@@ -297,7 +270,7 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
                 {documentData.approvedDrugs.map((drug, index) => (
                   <div key={index} className="flex justify-between items-center py-1">
                     <span className="text-sm">{drug.name}</span>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge color="secondary" className="text-xs">
                       {drug.quantity} {drug.unit}
                     </Badge>
                   </div>
@@ -307,7 +280,7 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
           </div>
 
           {/* Generate Button */}
-          {!pdfBlob && (
+          {!wizardState.documentGeneration?.timestamp && (
             <div className="text-center py-6">
               <Icon icon="lucide:file-plus" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -326,16 +299,75 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
               </Button>
             </div>
           )}
+
+          {/* Document Actions */}
+          {wizardState.documentGeneration?.timestamp && (
+            <div className="space-y-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Icon icon="lucide:check-circle" className="w-5 h-5 text-green-500" />
+                  <span className="font-medium text-green-700 dark:text-green-300">
+                    Berita Acara Siap
+                  </span>
+                </div>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Dokumen telah dibuat dan siap untuk dicetak. 
+                  Gunakan tombol "Cetak Dokumen" untuk mencetak.
+                </p>
+              </div>
+
+              {/* Preview */}
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium">Preview Berita Acara</h4>
+                  <Link href="/template-settings/berita-acara" target="_blank">
+                    <Button variant="outline" size="sm">
+                      <Icon icon="lucide:settings" className="w-4 h-4 mr-2" />
+                      Pengaturan Template
+                    </Button>
+                  </Link>
+                </div>
+                <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', height: '400px', overflow: 'hidden' }}>
+                  <BeritaAcaraTemplate data={createBeritaAcaraData()} isPreview={true} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={handlePrint}
+                  disabled={isPrinting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isPrinting && (
+                    <Icon icon="lucide:loader-2" className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  <Icon icon="lucide:printer" className="w-4 h-4 mr-2" />
+                  {isPrinting ? 'Mencetak...' : 'Cetak Dokumen'}
+                </Button>
+
+                {printCompleted && (
+                  <Alert>
+                    <Icon icon="lucide:check-circle" className="h-4 w-4" />
+                    <AlertDescription>
+                      Dokumen telah dicetak. Pastikan dokumen ditandatangani oleh kedua belah pihak 
+                      sebelum melanjutkan ke langkah berikutnya.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* PDF Actions Card */}
-      {pdfBlob && (
-        <Card>
+      {wizardState.documentGeneration?.timestamp && (
+        <Card className="no-print">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Dokumen Siap</span>
-              <Badge variant={printCompleted ? "default" : "outline"}>
+              <span>Status Dokumen</span>
+              <Badge color={printCompleted ? "success" : "secondary"}>
                 {printCompleted ? "Sudah Dicetak" : "Belum Dicetak"}
               </Badge>
             </CardTitle>
@@ -351,21 +383,13 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={downloadPDF}
-                className="w-full"
-              >
-                <Icon icon="lucide:download" className="w-4 h-4 mr-2" />
-                Unduh PDF
-              </Button>
-
+            {/* Print Button */}
+            <div className="space-y-3">
               <Button
                 onClick={handlePrint}
                 disabled={isPrinting}
                 className="w-full"
+                size="lg"
               >
                 {isPrinting && (
                   <Icon icon="lucide:loader-2" className="w-4 h-4 mr-2 animate-spin" />
@@ -409,7 +433,7 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
               <div>
                 <p className="font-medium">PPL (Penerima)</p>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Tanda tangan ${documentData.pplOfficer} sebagai penerima
+                  Tanda tangan {documentData.pplOfficer} sebagai penerima
                 </p>
               </div>
             </div>
@@ -447,6 +471,31 @@ ${data.witnessName ? `Saksi:\n\n${data.witnessName}` : ''}
           <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-2" />
         </Button>
       </div>
+
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          .print-only {
+            display: block !important;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+        @media screen {
+          .print-only {
+            display: none;
+          }
+        }
+      `}</style>
     </div>
   );
 };

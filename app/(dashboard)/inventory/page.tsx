@@ -19,6 +19,7 @@ import InventoryTable from "@/components/inventory/inventory-table";
 import MedicineDetailModal from "@/components/inventory/medicine-detail-modal";
 import InventorySearch from "@/components/inventory/inventory-search";
 import ExportModal from "@/components/inventory/export-modal";
+import QRPrintModal from "@/components/inventory/qr-print-modal";
 
 // Import types
 import {
@@ -143,6 +144,7 @@ const InventoryPage: React.FC = () => {
   // Modals state
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSelectedExportModal, setShowSelectedExportModal] = useState(false);
+  const [showQRPrintModal, setShowQRPrintModal] = useState(false);
 
   // Selection state
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -341,9 +343,8 @@ const InventoryPage: React.FC = () => {
       return;
     }
     
-    // Navigate to QR code print page with selected items
-    const selectedItemsParam = selectedItems.join(',');
-    router.push(`/qr-labels?items=${selectedItemsParam}`);
+    // Open QR Print Modal instead of navigating to a page
+    setShowQRPrintModal(true);
   };
 
   const handleExportSelected = async (options: ExportOptions) => {
@@ -565,6 +566,13 @@ const InventoryPage: React.FC = () => {
         currentPageRecords={selectedItems.length}
         title="Export Data Terpilih"
         description={`Export ${selectedItems.length} item yang dipilih`}
+      />
+
+      <QRPrintModal
+        isOpen={showQRPrintModal}
+        onClose={() => setShowQRPrintModal(false)}
+        selectedItems={selectedItems}
+        inventoryData={data}
       />
     </div>
   );
