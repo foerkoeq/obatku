@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,8 @@ interface InventoryTableProps {
   userRole: UserRole;
   loading?: boolean;
   className?: string;
+  selectedItems?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
 const InventoryTable: React.FC<InventoryTableProps> = ({
@@ -60,13 +63,55 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   userRole,
   loading = false,
   className,
+  selectedItems = [],
+  onSelectionChange,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const canEdit = userRole !== 'ppl';
   const canDelete = userRole === 'admin' || userRole === 'popt';
 
+  // Handle selection
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange?.(data.map(item => item.id));
+    } else {
+      onSelectionChange?.([]);
+    }
+  };
+
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange?.([...selectedItems, itemId]);
+    } else {
+      onSelectionChange?.(selectedItems.filter(id => id !== itemId));
+    }
+  };
+
+  const isAllSelected = data.length > 0 && selectedItems.length === data.length;
+  const isIndeterminate = selectedItems.length > 0 && selectedItems.length < data.length;
+
   const columns: ColumnDef<DrugInventory>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={isAllSelected}
+          onCheckedChange={handleSelectAll}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedItems.includes(row.original.id)}
+          onCheckedChange={(checked) => handleSelectItem(row.original.id, checked as boolean)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "name",
       header: ({ column }) => (
@@ -310,7 +355,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="cursor-pointer hover:bg-default-50"
+                className={cn(
+                  "cursor-pointer hover:bg-default-50",
+                  selectedItems.includes(row.original.id) && "bg-blue-50"
+                )}
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (

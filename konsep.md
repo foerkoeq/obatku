@@ -58,9 +58,9 @@ o Status indicator (stok normal/hampir habis/expired)
 • Export Data: Button untuk export ke PDF, Excel, Print,CSV. Jika di klik muncul modal pilihan 
 data yang akan diexport, data yang saat ini tampil saja atau seluruh data atau data 
 berdasarkan filter. 
-• Cetak Barcode : cetak barcode sesuai data yang terpilih atau sesuai data berdasarkan filter. 
-Ada 2 tipe barcode, barcode untuk pack besar seperti kardus dll. dan barcode per item. 
-• Filter Sidebar: Filter berdasarkan kategori, supplier, status 
+• Cetak QR code : cetak barcode sesuai data yang terpilih atau sesuai data berdasarkan filter. 
+Ada 2 tipe QR code, QR code untuk pack besar seperti kardus dll. dan barcode per item. 
+
 
 4. HALAMAN TAMBAH OBAT (/inventory/add) 
 • Form Input dengan field: 

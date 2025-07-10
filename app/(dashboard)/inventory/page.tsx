@@ -16,10 +16,9 @@ import { toast } from "sonner";
 
 // Import inventory components
 import InventoryTable from "@/components/inventory/inventory-table";
+import MedicineDetailModal from "@/components/inventory/medicine-detail-modal";
 import InventorySearch from "@/components/inventory/inventory-search";
-import InventoryDetailModal from "@/components/inventory/inventory-detail-modal";
 import ExportModal from "@/components/inventory/export-modal";
-import BarcodeModal from "@/components/inventory/barcode-modal";
 
 // Import types
 import {
@@ -27,7 +26,6 @@ import {
   InventoryFilters,
   PaginationConfig,
   ExportOptions,
-  BarcodeOptions,
   UserRole,
   DrugCategory,
   Supplier,
@@ -143,10 +141,11 @@ const InventoryPage: React.FC = () => {
   });
 
   // Modals state
-  const [selectedItem, setSelectedItem] = useState<DrugInventory | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showSelectedExportModal, setShowSelectedExportModal] = useState(false);
+
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   const router = useRouter();
 
@@ -228,6 +227,8 @@ const InventoryPage: React.FC = () => {
   // Apply filters when dependencies change
   useEffect(() => {
     applyFilters();
+    // Reset selection when filters change
+    setSelectedItems([]);
   }, [applyFilters]);
 
   // Get paginated data
@@ -259,9 +260,37 @@ const InventoryPage: React.FC = () => {
     });
   }, []);
 
+  // State for detail modal
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<DrugInventory | null>(null);
+
   const handleRowClick = (item: DrugInventory) => {
-    setSelectedItem(item);
-    setShowDetailModal(true);
+    setSelectedMedicine(item);
+    setDetailModalOpen(true);
+  };
+
+  // Modal action handlers
+  const [deleting, setDeleting] = useState(false);
+  const handleModalEdit = () => {
+    if (selectedMedicine) {
+      router.push(`/inventory/${selectedMedicine.id}/edit`);
+      setDetailModalOpen(false);
+    }
+  };
+  const handleModalDelete = async () => {
+    if (!selectedMedicine) return;
+    if (confirm(`Apakah Anda yakin ingin menghapus ${selectedMedicine.name}?`)) {
+      setDeleting(true);
+      // In real app, make API call to delete
+      setData(prev => prev.filter(d => d.id !== selectedMedicine.id));
+      toast.success('Data obat berhasil dihapus');
+      setDetailModalOpen(false);
+      setDeleting(false);
+    }
+  };
+  const handleModalBack = () => setDetailModalOpen(false);
+  const handleModalViewBarcode = () => {
+    if (selectedMedicine) router.push(`/inventory/${selectedMedicine.id}/barcode`);
   };
 
   const handleEdit = (item: DrugInventory) => {
@@ -293,27 +322,43 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-  const handlePrintBarcode = async (options: BarcodeOptions) => {
-    try {
-      setLoading(true);
-      // In real app, make API call to generate and print barcode
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      toast.success(`Barcode ${options.type} berhasil dicetak`);
-      setShowBarcodeModal(false);
-    } catch (error) {
-      toast.error('Gagal mencetak barcode');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleViewBarcode = (item: DrugInventory) => {
-    setSelectedItem(item);
-    setShowBarcodeModal(true);
+    // Navigate to barcode page
+    router.push(`/inventory/${item.id}/barcode`);
   };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
+  };
+
+  const handleSelectionChange = (selectedIds: string[]) => {
+    setSelectedItems(selectedIds);
+  };
+
+  const handlePrintQRCodes = () => {
+    if (selectedItems.length === 0) {
+      toast.error('Pilih item terlebih dahulu');
+      return;
+    }
+    
+    // Navigate to QR code print page with selected items
+    const selectedItemsParam = selectedItems.join(',');
+    router.push(`/qr-labels?items=${selectedItemsParam}`);
+  };
+
+  const handleExportSelected = async (options: ExportOptions) => {
+    try {
+      setLoading(true);
+      const selectedData = data.filter(item => selectedItems.includes(item.id));
+      // In real app, make API call to export selected data
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      toast.success(`${selectedData.length} data terpilih berhasil diexport dalam format ${options.format.toUpperCase()}`);
+      setShowSelectedExportModal(false);
+    } catch (error) {
+      toast.error('Gagal mengexport data terpilih');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const canAddNew = userRole !== 'ppl';
@@ -331,6 +376,11 @@ const InventoryPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-default-900">Data Stok Obat</h1>
               <p className="text-default-600 mt-1">
                 Kelola dan pantau stok obat pertanian
+                {selectedItems.length > 0 && (
+                  <span className="ml-2 text-blue-600 font-medium">
+                    • {selectedItems.length} item dipilih
+                  </span>
+                )}
               </p>
             </div>
             
@@ -352,14 +402,47 @@ const InventoryPage: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Mobile Filter Button */}
+              {/* Selected items actions */}
+              {selectedItems.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handlePrintQRCodes}
+                    size="sm"
+                    className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Icon icon="heroicons:qr-code" className="w-4 h-4 mr-2" />
+                    Cetak QR ({selectedItems.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSelectedExportModal(true)}
+                    size="sm"
+                    className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  >
+                    <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4 mr-2" />
+                    Export Terpilih ({selectedItems.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedItems([])}
+                    size="sm"
+                    className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                  >
+                    <Icon icon="heroicons:x-mark" className="w-4 h-4 mr-2" />
+                    Batal Pilih
+                  </Button>
+                </>
+              )}
+              
+              {/* Export all button */}
               <Button
                 variant="outline"
                 onClick={() => setShowExportModal(true)}
                 size="sm"
               >
                 <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4 mr-2" />
-                Export
+                Export Semua
               </Button>
             </div>
           </div>
@@ -403,9 +486,25 @@ const InventoryPage: React.FC = () => {
                 onViewBarcode={handleViewBarcode}
                 userRole={userRole}
                 loading={loading}
+                selectedItems={selectedItems}
+                onSelectionChange={handleSelectionChange}
               />
             </CardContent>
           </Card>
+          {/* Modal Detail Obat */}
+          <MedicineDetailModal
+            open={detailModalOpen}
+            onOpenChange={setDetailModalOpen}
+            medicine={selectedMedicine}
+            loading={false}
+            deleting={deleting}
+            canEdit={userRole !== 'ppl'}
+            canDelete={userRole === 'admin' || userRole === 'dinas'}
+            onEdit={handleModalEdit}
+            onDelete={handleModalDelete}
+            onBack={handleModalBack}
+            onViewBarcode={handleModalViewBarcode}
+          />
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -448,15 +547,6 @@ const InventoryPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <InventoryDetailModal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        item={selectedItem}
-        onEdit={handleEdit}
-        onViewBarcode={handleViewBarcode}
-        userRole={userRole}
-      />
-
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -466,11 +556,15 @@ const InventoryPage: React.FC = () => {
         currentPageRecords={paginatedData.length}
       />
 
-      <BarcodeModal
-        isOpen={showBarcodeModal}
-        onClose={() => setShowBarcodeModal(false)}
-        item={selectedItem}
-        onPrint={handlePrintBarcode}
+      <ExportModal
+        isOpen={showSelectedExportModal}
+        onClose={() => setShowSelectedExportModal(false)}
+        onExport={handleExportSelected}
+        totalRecords={selectedItems.length}
+        filteredRecords={selectedItems.length}
+        currentPageRecords={selectedItems.length}
+        title="Export Data Terpilih"
+        description={`Export ${selectedItems.length} item yang dipilih`}
       />
     </div>
   );

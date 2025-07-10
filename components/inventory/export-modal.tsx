@@ -21,6 +21,8 @@ interface ExportModalProps {
   totalRecords: number;
   filteredRecords: number;
   currentPageRecords: number;
+  title?: string;
+  description?: string;
 }
 
 const exportFormats = [
@@ -74,7 +76,9 @@ const ExportModal: React.FC<ExportModalProps> = ({
   onExport,
   totalRecords,
   filteredRecords,
-  currentPageRecords
+  currentPageRecords,
+  title = "Export Data",
+  description = "Pilih format dan scope export data inventory"
 }) => {
   const [selectedFormat, setSelectedFormat] = useState<ExportOptions['format']>('pdf');
   const [selectedScope, setSelectedScope] = useState<ExportOptions['scope']>('current');
@@ -104,8 +108,9 @@ const ExportModal: React.FC<ExportModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon icon="heroicons:arrow-down-tray" className="w-5 h-5" />
-            Export Data Stok Obat
+            {title}
           </DialogTitle>
+          <p className="text-sm text-default-600">{description}</p>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
