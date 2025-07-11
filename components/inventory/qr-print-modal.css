@@ -2,6 +2,13 @@
 
 /* Print-specific styles */
 @media print {
+  /* Reset all elements first */
+  * {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
   /* Hide everything except the print content */
   body * {
     visibility: hidden;
@@ -12,15 +19,26 @@
     visibility: visible;
   }
   
+ /* Position print content at exact page position */
   .print-page {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
     height: 100% !important;
     transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
+  /* Ensure QR template takes full page */
+  .print-page .qr-label-template {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+  }
+
   /* Ensure proper page breaks */
   .print-page {
     page-break-after: always;
@@ -35,7 +53,8 @@
   .dialog-overlay,
   [data-radix-popper-content-wrapper],
   .fixed,
-  .sticky {
+  .sticky,
+  .no-print {
     display: none !important;
   }
 }

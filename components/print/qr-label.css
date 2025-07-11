@@ -7,11 +7,13 @@
 }
 
 .qr-label-template {
-  width: 17.58cm;
-  height: 22.27cm;
+  width: 17.58cm !important;
+  height: 22.27cm !important;
   position: relative;
   background: white;
   font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 .qr-label-template.show-grid {
@@ -30,6 +32,9 @@
   height: 100%;
   margin: 0;
   padding: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .label-slot {
@@ -178,11 +183,26 @@
 
 /* Print styles */
 @media print {
+  @page {
+    size: 17.58cm 22.27cm;
+    margin: 0.7cm 0.51cm 1.27cm 0.77cm;
+  }
+
   .qr-label-template {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    width: 17.58cm !important;
+    height: 22.27cm !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
+  .label-grid {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
   .qr-label {
     border: 0.5pt solid #000;
     page-break-inside: avoid;
@@ -192,13 +212,20 @@
     background: #000 !important;
   }
   
-  body {
-    margin: 0;
-    padding: 0;
+  /* Hide screen-only elements */
+  .print-only {
+    display: block !important;
   }
   
-  * {
-    box-sizing: border-box;
+  .no-print {
+    display: none !important;
+  }
+}
+  
+/* Screen styles */
+@media screen {
+  .print-only {
+    display: none !important;
   }
 }
 

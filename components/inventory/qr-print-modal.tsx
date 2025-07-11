@@ -69,10 +69,11 @@ const QRPrintModal: React.FC<QRPrintModalProps> = ({
     if (!printOptions) return;
 
     try {
-      // Trigger browser print
-      window.print();
-      toast.success("Dokumen QR code siap dicetak");
-      onClose();
+      // Add delay to ensure DOM is ready
+      setTimeout(() => {
+        window.print();
+        toast.success("Dokumen QR code siap dicetak");
+      }, 100);
     } catch (error) {
       toast.error("Gagal mencetak QR code");
     }
@@ -110,9 +111,9 @@ const QRPrintModal: React.FC<QRPrintModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Icon icon="heroicons:qr-code" className="w-5 h-5" />
             {getModalTitle()}
           </DialogTitle>
@@ -123,7 +124,7 @@ const QRPrintModal: React.FC<QRPrintModalProps> = ({
           )}
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden px-6 py-4">
           {currentStep === "settings" && (
             <QRPrintSettings
               selectedMedicines={selectedMedicines}
@@ -134,41 +135,15 @@ const QRPrintModal: React.FC<QRPrintModalProps> = ({
           )}
 
           {currentStep === "preview" && printOptions && (
-            <QRPrintPreview
-              medicines={selectedMedicines}
-              options={printOptions}
-              onBack={handleBackToSettings}
-              onPrint={handlePrint}
-            />
+            <div className="h-full overflow-y-auto">
+              <QRPrintPreview
+                medicines={selectedMedicines}
+                options={printOptions}
+                onBack={handleBackToSettings}
+                onPrint={handlePrint}
+              />
+            </div>
           )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            {currentStep === "settings" && `${selectedItems.length} item dipilih`}
-            {currentStep === "preview" && printOptions && (
-              `Akan mencetak ${printOptions.totalLabels} label QR code`
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isGenerating}
-            >
-              <Icon icon="heroicons:arrow-left" className="w-4 h-4 mr-2" />
-              {currentStep === "preview" ? "Kembali" : "Batal"}
-            </Button>
-            
-            {currentStep === "preview" && (
-              <Button onClick={handlePrint}>
-                <Icon icon="heroicons:printer" className="w-4 h-4 mr-2" />
-                Cetak Sekarang
-              </Button>
-            )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>

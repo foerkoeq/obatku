@@ -26,7 +26,7 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
   onPrint,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [previewScale, setPreviewScale] = useState(0.7);
+  const [previewScale, setPreviewScale] = useState(0.6);
 
   // Filter medicines based on range settings
   const filteredMedicines = useMemo(() => {
@@ -78,7 +78,7 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
       for (let i = 0; i < options.printSettings.labelsPerItem; i++) {
         result.push({
           ...medicine,
-          id: `${medicine.id}-${i + 1}`, // Unique ID for each copy
+          id: `${medicine.id}${i > 0 ? `-${i + 1}` : ''}`, // Only add suffix for duplicates
         });
       }
     });
@@ -102,13 +102,13 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
     // Simulate loading time for preview generation
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [medicinesForPrint]);
 
   const handleZoomIn = () => {
-    setPreviewScale(prev => Math.min(prev + 0.1, 1.5));
+    setPreviewScale(prev => Math.min(prev + 0.1, 1.2));
   };
 
   const handleZoomOut = () => {
@@ -116,7 +116,7 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
   };
 
   const handleResetZoom = () => {
-    setPreviewScale(0.7);
+    setPreviewScale(0.6);
   };
 
   if (isLoading) {
@@ -131,12 +131,12 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Preview Header */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <Icon icon="heroicons:eye" className="w-5 h-5" />
               Preview QR Code Labels
             </CardTitle>
@@ -151,14 +151,14 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
               >
                 <Icon icon="heroicons:minus" className="w-4 h-4" />
               </Button>
-              <Badge color="secondary" className="min-w-[60px]">
+              <Badge color="secondary" className="min-w-[50px] text-center">
                 {Math.round(previewScale * 100)}%
               </Badge>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleZoomIn}
-                disabled={previewScale >= 1.5}
+                disabled={previewScale >= 1.2}
               >
                 <Icon icon="heroicons:plus" className="w-4 h-4" />
               </Button>
@@ -173,24 +173,22 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div>
               <div className="text-lg font-bold text-primary">{filteredMedicines.length}</div>
-              <div className="text-sm text-muted-foreground">Item Obat</div>
+              <div className="text-xs text-muted-foreground">Item Obat</div>
             </div>
             <div>
               <div className="text-lg font-bold text-blue-600">{medicinesForPrint.length}</div>
-              <div className="text-sm text-muted-foreground">Total Label</div>
+              <div className="text-xs text-muted-foreground">Total Label</div>
             </div>
             <div>
               <div className="text-lg font-bold text-green-600">{medicinePages.length}</div>
-              <div className="text-sm text-muted-foreground">Halaman</div>
+              <div className="text-xs text-muted-foreground">Halaman</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-orange-600">
-                {options.printSettings.paperSize}
-              </div>
-              <div className="text-sm text-muted-foreground">Format Kertas</div>
+              <div className="text-lg font-bold text-orange-600">Label 121</div>
+              <div className="text-xs text-muted-foreground">Format Kertas</div>
             </div>
           </div>
         </CardContent>
@@ -198,11 +196,11 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
 
       {/* Print Settings Summary */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pengaturan Cetak</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Pengaturan Cetak</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
               <strong>Rentang:</strong>{" "}
               {options.rangeType === "all" && "Semua item"}
@@ -213,36 +211,31 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
             <div>
               <strong>Label per item:</strong> {options.printSettings.labelsPerItem}
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <strong>Informasi:</strong>{" "}
-              {[
-                options.printSettings.includeItemInfo && "Info obat",
-                options.printSettings.includeDates && "Tanggal",
-                options.printSettings.includeLocation && "Lokasi"
-              ].filter(Boolean).join(", ")}
-            </div>
-            <div>
-              <strong>Orientasi:</strong> {options.printSettings.orientation === "portrait" ? "Portrait" : "Landscape"}
+              {options.printSettings.includeItemInfo && "Info obat"}
+              {options.printSettings.includeDates && ", Tanggal"}
+              {options.printSettings.includeLocation && ", Lokasi"}
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Preview Pages */}
-      <div className="space-y-8">
+      <div className="space-y-4 no-print max-h-[calc(100vh-400px)] overflow-y-auto">
         {medicinePages.map((pageMedicines, pageIndex) => (
           <Card key={pageIndex} className="overflow-hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center justify-between">
                 <span>Halaman {pageIndex + 1}</span>
                 <Badge color="default">
                   {pageMedicines.length} / 12 label
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-2 sm:p-4 overflow-x-auto">
               <div 
-                className="transform-gpu transition-transform duration-200 origin-top-left print-page"
+                className="transform-gpu transition-transform duration-200 origin-top-left inline-block"
                 style={{ transform: `scale(${previewScale})` }}
               >
                 <QRLabelTemplate
@@ -255,13 +248,25 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
         ))}
       </div>
 
+      {/* Hidden Print Content - This is what actually gets printed */}
+      <div className="print-only" style={{ display: 'none' }}>
+        {medicinePages.map((pageMedicines, pageIndex) => (
+          <div key={pageIndex} className="print-page">
+            <QRLabelTemplate
+              medicines={pageMedicines}
+              showGrid={false}
+            />
+          </div>
+        ))}
+      </div>
+
       {/* Empty State */}
       {medicinePages.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 text-center">
             <Icon icon="heroicons:document-text" className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">Tidak Ada Data untuk Dicetak</h3>
-            <p className="text-muted-foreground mb-4">
+            <h3 className="text-base font-medium mb-2">Tidak Ada Data untuk Dicetak</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Tidak ada item yang sesuai dengan pengaturan rentang yang dipilih.
             </p>
             <Button variant="outline" onClick={onBack}>
@@ -274,18 +279,18 @@ const QRPrintPreview: React.FC<QRPrintPreviewProps> = ({
 
       {/* Print Action */}
       {medicinePages.length > 0 && (
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            Siap mencetak {medicinesForPrint.length} label QR code dalam {medicinePages.length} halaman
+        <div className="flex items-center justify-between pt-4 border-t sticky bottom-0 bg-background">
+          <div className="text-xs text-muted-foreground">
+            Siap mencetak {medicinesForPrint.length} label dalam {medicinePages.length} halaman
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" size="sm" onClick={onBack}>
               <Icon icon="heroicons:arrow-left" className="w-4 h-4 mr-2" />
               Ubah Pengaturan
             </Button>
             
-            <Button onClick={onPrint} className="bg-green-600 hover:bg-green-700">
+            <Button size="sm" onClick={onPrint} className="bg-green-600 hover:bg-green-700">
               <Icon icon="heroicons:printer" className="w-4 h-4 mr-2" />
               Cetak Sekarang
             </Button>
