@@ -27,8 +27,6 @@ export interface QRPrintOptions {
     includeItemInfo: boolean;
     includeDates: boolean;
     includeLocation: boolean;
-    paperSize: "A4" | "Letter";
-    orientation: "portrait" | "landscape";
   };
   totalLabels: number;
 }
@@ -53,8 +51,6 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
     includeItemInfo: true,
     includeDates: true,
     includeLocation: true,
-    paperSize: "A4",
-    orientation: "portrait",
   });
 
   // Calculate total labels based on current settings
@@ -116,11 +112,11 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto px-1">
       {/* Summary Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
             <Icon icon="heroicons:information-circle" className="w-5 h-5" />
             Ringkasan
           </CardTitle>
@@ -128,49 +124,49 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-primary">{selectedMedicines.length}</div>
-              <div className="text-sm text-muted-foreground">Item Dipilih</div>
+              <div className="text-xl font-bold text-primary">{selectedMedicines.length}</div>
+              <div className="text-xs text-muted-foreground">Item Dipilih</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">{totalLabels}</div>
-              <div className="text-sm text-muted-foreground">Total Label</div>
+              <div className="text-xl font-bold text-blue-600">{totalLabels}</div>
+              <div className="text-xs text-muted-foreground">Total Label</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-xl font-bold text-green-600">
                 {Math.ceil(totalLabels / 12)}
               </div>
-              <div className="text-sm text-muted-foreground">Halaman</div>
+              <div className="text-xs text-muted-foreground">Halaman</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Range Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
               <Icon icon="heroicons:adjustments-horizontal" className="w-5 h-5" />
               Pengaturan Rentang
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <RadioGroup value={rangeType} onValueChange={(value) => setRangeType(value as "all" | "date" | "id" | "custom")}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="all" id="all" />
-                <Label htmlFor="all">Cetak semua item yang dipilih</Label>
+                <Label htmlFor="all" className="text-sm">Cetak semua item yang dipilih</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="date" id="date" />
-                <Label htmlFor="date">Berdasarkan rentang tanggal masuk</Label>
+                <Label htmlFor="date" className="text-sm">Berdasarkan rentang tanggal masuk</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="id" id="id" />
-                <Label htmlFor="id">Berdasarkan rentang ID obat</Label>
+                <Label htmlFor="id" className="text-sm">Berdasarkan rentang ID obat</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="custom" id="custom" />
-                <Label htmlFor="custom">ID kustom (pisahkan dengan koma)</Label>
+                <Label htmlFor="custom" className="text-sm">ID kustom (pisahkan dengan koma)</Label>
               </div>
             </RadioGroup>
 
@@ -183,17 +179,17 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
           </CardContent>
         </Card>
 
-        {/* Print Settings */}
+        {/* Display Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Icon icon="heroicons:printer" className="w-5 h-5" />
-              Pengaturan Cetak
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon icon="heroicons:document-text" className="w-5 h-5" />
+              Pengaturan Label
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <div>
-              <Label htmlFor="labelsPerItem">Jumlah label per item</Label>
+              <Label htmlFor="labelsPerItem" className="text-sm">Jumlah label per item</Label>
               <Input
                 id="labelsPerItem"
                 type="number"
@@ -210,8 +206,8 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
 
             <Separator />
 
-            <div className="space-y-3">
-              <h4 className="font-medium">Informasi yang ditampilkan:</h4>
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Informasi yang ditampilkan:</h4>
               
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -219,7 +215,7 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
                   checked={printSettings.includeItemInfo}
                   onCheckedChange={(checked) => handlePrintSettingsChange("includeItemInfo", checked)}
                 />
-                <Label htmlFor="includeItemInfo">Info obat (nama, produsen, kandungan)</Label>
+                <Label htmlFor="includeItemInfo" className="text-sm">Info obat (nama, produsen, kandungan)</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -228,7 +224,7 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
                   checked={printSettings.includeDates}
                   onCheckedChange={(checked) => handlePrintSettingsChange("includeDates", checked)}
                 />
-                <Label htmlFor="includeDates">Tanggal masuk & kadaluarsa</Label>
+                <Label htmlFor="includeDates" className="text-sm">Tanggal masuk & kadaluarsa</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -237,49 +233,22 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
                   checked={printSettings.includeLocation}
                   onCheckedChange={(checked) => handlePrintSettingsChange("includeLocation", checked)}
                 />
-                <Label htmlFor="includeLocation">Lokasi penyimpanan</Label>
+                <Label htmlFor="includeLocation" className="text-sm">Lokasi penyimpanan</Label>
               </div>
             </div>
 
-            <Separator />
-
-            <div className="space-y-3">
-              <h4 className="font-medium">Format kertas:</h4>
-              
-              <RadioGroup
-                value={printSettings.paperSize}
-                onValueChange={(value) => handlePrintSettingsChange("paperSize", value as "A4" | "Letter")}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="A4" id="paperA4" />
-                  <Label htmlFor="paperA4">A4 (21 x 29.7 cm)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Letter" id="paperLetter" />
-                  <Label htmlFor="paperLetter">Letter (21.6 x 27.9 cm)</Label>
-                </div>
-              </RadioGroup>
-
-              <RadioGroup
-                value={printSettings.orientation}
-                onValueChange={(value) => handlePrintSettingsChange("orientation", value as "portrait" | "landscape")}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="portrait" id="portrait" />
-                  <Label htmlFor="portrait">Portrait (vertikal)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="landscape" id="landscape" />
-                  <Label htmlFor="landscape">Landscape (horizontal)</Label>
-                </div>
-              </RadioGroup>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-3">
+              <p className="text-xs text-blue-700">
+                <strong>Info:</strong> Label akan dicetak pada kertas stiker label no 121 
+                (17.58 × 22.27 cm) dengan layout 2 kolom × 6 baris per halaman.
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-4 sticky bottom-0 bg-background pb-1">
         <Button variant="outline" onClick={onCancel} disabled={isLoading}>
           <Icon icon="heroicons:x-mark" className="w-4 h-4 mr-2" />
           Batal
