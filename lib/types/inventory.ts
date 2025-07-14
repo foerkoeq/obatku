@@ -24,6 +24,12 @@ export interface DrugInventory {
   notes?: string;
   barcode?: string;
   batchNumber?: string;
+  dose?: {
+    amount: number;
+    unit: string;
+    area: number;
+    areaUnit: "ha";
+  };
   status: StockStatus;
   lastUpdated: Date;
   createdBy: string;

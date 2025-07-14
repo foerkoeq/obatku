@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Save, ArrowLeft, AlertCircle } from "lucide-react";
@@ -32,6 +32,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 // Custom Components
 import PageTitle from "@/components/page-title";
@@ -67,6 +68,12 @@ const addMedicineSchema = z.object({
   storageLocation: z.string().min(1, "Lokasi penyimpanan wajib diisi"),
   notes: z.string().optional(),
   images: z.array(z.any()).optional(),
+  dose: z.object({
+    amount: z.literal(1),
+    unit: z.string().min(1, "Satuan dosis wajib diisi"),
+    area: z.number().min(0.0001, "Luas lahan wajib diisi"),
+    areaUnit: z.literal("ha"),
+  }),
 }).refine((data) => data.expiryDate > data.entryDate, {
   message: "Tanggal expired harus lebih dari tanggal masuk",
   path: ["expiryDate"],
@@ -97,6 +104,131 @@ const unitOptions = [
 const largePackUnits = [
   'dus', 'box', 'karton', 'jerigen', 'drum', 'pack', 'bundle', 'krat'
 ];
+
+// Komponen input dosis dinamis
+
+type DosesRepeaterProps = {
+  control: any; // Bisa diganti UseFormReturn<AddMedicineFormData>["control"] jika ingin lebih strict
+  register: any;
+  errors: any;
+  units: string[];
+  onAddUnit: (newUnit: string) => void;
+};
+
+const DosesRepeater: React.FC<DosesRepeaterProps> = ({ control, register, errors, units, onAddUnit }) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "doses",
+  });
+  // Ambil nilai unit dari form utama
+  const unitStok = control._formValues?.unit || '';
+
+  return (
+    <div className="space-y-2">
+      {fields.map((item, index) => (
+        <div key={item.id} className="flex flex-col md:flex-row gap-2 items-end border p-3 rounded-md mb-2">
+          {/* Jumlah */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Jumlah</label>
+            {index === 0 ? (
+              <input
+                type="number"
+                value={1}
+                readOnly
+                className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+              />
+            ) : (
+              <input
+                type="number"
+                step="any"
+                min="0.0001"
+                {...register(`doses.${index}.amount`, { valueAsNumber: true })}
+                className="input input-bordered w-full"
+                placeholder="Contoh: 1"
+              />
+            )}
+            {errors?.doses?.[index]?.amount && (
+              <span className="text-xs text-red-500">{errors.doses[index].amount.message}</span>
+            )}
+          </div>
+          {/* Satuan */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Satuan</label>
+            {index === 0 ? (
+              <input
+                type="text"
+                value={unitStok}
+                readOnly
+                className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+              />
+            ) : (
+              <Controller
+                control={control}
+                name={`doses.${index}.unit`}
+                render={({ field }) => (
+                  <SelectWithOther
+                    options={units.map((unit: string) => ({ value: unit, label: unit }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onAddNew={onAddUnit}
+                    placeholder="Pilih satuan"
+                  />
+                )}
+              />
+            )}
+            {errors?.doses?.[index]?.unit && (
+              <span className="text-xs text-red-500">{errors.doses[index].unit.message}</span>
+            )}
+          </div>
+          {/* Luas Lahan */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Luas Lahan</label>
+            <input
+              type="number"
+              step="any"
+              min="0.0001"
+              {...register(`doses.${index}.area`, { valueAsNumber: true })}
+              className="input input-bordered w-full"
+              placeholder="Contoh: 1"
+            />
+            {errors?.doses?.[index]?.area && (
+              <span className="text-xs text-red-500">{errors.doses[index].area.message}</span>
+            )}
+          </div>
+          {/* Satuan Luas */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Satuan Luas</label>
+            <input
+              type="text"
+              value="ha"
+              readOnly
+              className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => remove(index)}
+            className="ml-2 text-red-600 hover:text-red-800"
+            disabled={fields.length === 1 && index === 0}
+            title="Hapus aturan dosis"
+          >
+            Hapus
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => append({ amount: 1, unit: '', area: 1, areaUnit: 'ha' })}
+        className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+      >
+        + Tambah Aturan Dosis
+      </button>
+      {errors?.doses && typeof errors.doses.message === 'string' && (
+        <span className="text-xs text-red-500">{errors.doses.message}</span>
+      )}
+    </div>
+  );
+};
 
 const AddMedicinePage: React.FC = () => {
   const router = useRouter();
@@ -141,6 +273,12 @@ const AddMedicinePage: React.FC = () => {
       storageLocation: '',
       notes: '',
       images: [],
+      dose: {
+        amount: 1,
+        unit: '',
+        area: 1,
+        areaUnit: 'ha',
+      },
     },
   });
 
@@ -558,6 +696,98 @@ const AddMedicinePage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dosis Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Aturan Dosis Penggunaan</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Jumlah */}
+                  <FormField
+                    control={form.control}
+                    name="dose.amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Jumlah</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            value={1}
+                            readOnly
+                            className="bg-gray-100 cursor-not-allowed"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Satuan */}
+                  <FormField
+                    control={form.control}
+                    name="dose.unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Satuan</FormLabel>
+                        <FormControl>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                type="text"
+                                value={form.watch('unit')}
+                                readOnly
+                                className="bg-gray-100 cursor-not-allowed"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              Silakan isi satuan di bagian Informasi Stok
+                            </TooltipContent>
+                          </Tooltip>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Luas Lahan */}
+                  <FormField
+                    control={form.control}
+                    name="dose.area"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Luas Lahan</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="any"
+                            min="0.0001"
+                            placeholder="Contoh: 1"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Satuan Luas */}
+                  <FormField
+                    control={form.control}
+                    name="dose.areaUnit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Satuan Luas</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            value="ha"
+                            readOnly
+                            className="bg-gray-100 cursor-not-allowed"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+
               {/* Additional Information Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Informasi Tambahan</h3>
@@ -599,6 +829,7 @@ const AddMedicinePage: React.FC = () => {
                     )}
                   />
                 </div>
+
 
                 {/* Notes */}
                 <FormField
@@ -648,6 +879,8 @@ const AddMedicinePage: React.FC = () => {
                   )}
                 />
               </div>
+
+              
 
               {/* Form Actions */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">

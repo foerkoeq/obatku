@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -55,6 +55,13 @@ interface TransactionTableProps {
   className?: string;
 }
 
+// Ganti TableIcon component dengan:
+const TableIcon: React.FC<{ icon: string; className?: string }> = ({ icon, className }) => (
+  <span suppressHydrationWarning>
+    <Icon icon={icon} className={className} />
+  </span>
+);
+
 const TransactionTable: React.FC<TransactionTableProps> = ({
   data,
   onSort,
@@ -71,7 +78,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [sorting, setSorting] = useState<SortingState>([]);
   const permissions = getRolePermissions(userRole);
 
-  const columns: ColumnDef<Transaction>[] = [
+  const columns: ColumnDef<Transaction>[] = useMemo(() => [
     {
       accessorKey: "letterNumber",
       header: ({ column }) => (
@@ -81,18 +88,16 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           className="h-auto p-0 font-medium hover:bg-transparent"
         >
           No. Surat
-          <HydrationSafe fallback={<div className="ml-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-            <Icon
-              icon={
-                column.getIsSorted() === "asc"
-                  ? "heroicons:chevron-up"
-                  : column.getIsSorted() === "desc"
-                  ? "heroicons:chevron-down"
-                  : "heroicons:chevron-up-down"
-              }
-              className="ml-2 h-4 w-4"
-            />
-          </HydrationSafe>
+          <TableIcon
+            icon={
+              column.getIsSorted() === "asc"
+                ? "heroicons:chevron-up"
+                : column.getIsSorted() === "desc"
+                ? "heroicons:chevron-down"
+                : "heroicons:chevron-up-down"
+            }
+            className="ml-2 h-4 w-4"
+          />
         </Button>
       ),
       cell: ({ row }) => (
@@ -171,9 +176,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             />
             {needsAction && (
               <Badge className="text-xs text-red-600 border border-red-200 bg-red-50">
-                <HydrationSafe fallback={<div className="h-3 w-3 mr-1 bg-current opacity-50 rounded-sm" />}>
-                  <Icon icon="heroicons:exclamation-triangle" className="h-3 w-3 mr-1" />
-                </HydrationSafe>
+                <TableIcon icon="heroicons:exclamation-triangle" className="h-3 w-3 mr-1" />
                 Butuh Tindakan
               </Badge>
             )}
@@ -226,9 +229,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     needsAction && "bg-red-50 hover:bg-red-100 text-red-600"
                   )}
                 >
-                  <HydrationSafe fallback={<div className="h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                    <Icon icon="heroicons:ellipsis-vertical" className="h-4 w-4" />
-                  </HydrationSafe>
+                  <TableIcon icon="heroicons:ellipsis-vertical" className="h-4 w-4" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -237,9 +238,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   onClick={() => onViewDetails?.(row.original)}
                   className="cursor-pointer"
                 >
-                  <HydrationSafe fallback={<div className="mr-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                    <Icon icon="heroicons:eye" className="mr-2 h-4 w-4" />
-                  </HydrationSafe>
+                  <TableIcon icon="heroicons:eye" className="mr-2 h-4 w-4" />
                   Lihat Detail
                 </DropdownMenuItem>
 
@@ -250,9 +249,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       onClick={() => onApprove?.(row.original)}
                       className="cursor-pointer text-green-600 focus:text-green-600"
                     >
-                      <HydrationSafe fallback={<div className="mr-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                        <Icon icon="heroicons:check-circle" className="mr-2 h-4 w-4" />
-                      </HydrationSafe>
+                      <TableIcon icon="heroicons:check-circle" className="mr-2 h-4 w-4" />
                       Setujui Pengajuan
                     </DropdownMenuItem>
                   </>
@@ -265,9 +262,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       onClick={() => onDistribute?.(row.original)}
                       className="cursor-pointer text-blue-600 focus:text-blue-600"
                     >
-                      <HydrationSafe fallback={<div className="mr-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                        <Icon icon="heroicons:truck" className="mr-2 h-4 w-4" />
-                      </HydrationSafe>
+                      <TableIcon icon="heroicons:truck" className="mr-2 h-4 w-4" />
                       Distribusi Obat
                     </DropdownMenuItem>
                   </>
@@ -280,9 +275,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       onClick={() => onEdit(row.original)}
                       className="cursor-pointer"
                     >
-                      <HydrationSafe fallback={<div className="mr-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                        <Icon icon="heroicons:pencil" className="mr-2 h-4 w-4" />
-                      </HydrationSafe>
+                      <TableIcon icon="heroicons:pencil" className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
                   </>
@@ -295,9 +288,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       onClick={() => onDelete(row.original)}
                       className="cursor-pointer text-destructive focus:text-destructive"
                     >
-                      <HydrationSafe fallback={<div className="mr-2 h-4 w-4 bg-current opacity-50 rounded-sm" />}>
-                        <Icon icon="heroicons:trash" className="mr-2 h-4 w-4" />
-                      </HydrationSafe>
+                      <TableIcon icon="heroicons:trash" className="mr-2 h-4 w-4" />
                       Hapus
                     </DropdownMenuItem>
                   </>
@@ -308,7 +299,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         );
       },
     },
-  ];
+  ], [userRole, permissions, onViewDetails, onApprove, onDistribute, onEdit, onDelete]);
 
   const table = useReactTable({
     data,
@@ -399,12 +390,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 className="h-24 text-center"
               >
                 <div className="flex flex-col items-center justify-center py-8">
-                  <HydrationSafe fallback={<div className="h-12 w-12 bg-current opacity-50 rounded-sm mb-4" />}>
-                    <Icon 
-                      icon="heroicons:inbox" 
-                      className="h-12 w-12 text-default-400 mb-4" 
-                    />
-                  </HydrationSafe>
+                  <TableIcon 
+                    icon="heroicons:inbox" 
+                    className="h-12 w-12 text-default-400 mb-4" 
+                  />
                   <p className="text-default-500">Tidak ada transaksi ditemukan</p>
                 </div>
               </TableCell>
@@ -418,4 +407,4 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
 export default TransactionTable;
 
-// # END OF Transaction Table Component 
+// # END OF Transaction Table Component

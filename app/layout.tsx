@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import DirectionProvider from "@/providers/direction-provider";
 import AuthProvider from "@/providers/auth.provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,7 +28,9 @@ export default function RootLayout({
           <ThemeProvider>
             <MountedProvider>
               <DirectionProvider direction="ltr">
-                {children}
+                <TooltipProvider>
+                  {children}
+                </TooltipProvider>
               </DirectionProvider>
             </MountedProvider>
             <Toaster />
