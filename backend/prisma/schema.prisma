@@ -1,0 +1,306 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================================
+// USER MANAGEMENT
+// ================================================
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String?   @unique
+  nip          String    @unique
+  phone        String
+  passwordHash String    @map("password_hash")
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  birthDate    DateTime  @map("birth_date")
+  avatarUrl    String?   @map("avatar_url")
+  lastLogin    DateTime? @map("last_login")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by")
+
+  // Relations
+  createdMedicines     Medicine[]     @relation("MedicineCreator")
+  submissions          Submission[]   @relation("SubmissionCreator")
+  reviewedSubmissions  Submission[]   @relation("SubmissionReviewer")
+  distributedSubmissions Submission[] @relation("SubmissionDistributor")
+  processedTransactions Transaction[] @relation("TransactionProcessor")
+  verifiedTransactions Transaction[]  @relation("TransactionVerifier")
+  activityLogs         ActivityLog[]
+
+  @@map("users")
+  @@index([role])
+  @@index([status])
+  @@index([nip])
+}
+
+enum UserRole {
+  ADMIN
+  PPL
+  DINAS
+  POPT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ================================================
+// INVENTORY MANAGEMENT
+// ================================================
+
+model Medicine {
+  id                String  @id @default(cuid())
+  name              String
+  producer          String?
+  activeIngredient  String? @map("active_ingredient") @db.Text
+  category          String
+  supplier          String?
+  unit              String
+  packUnit          String? @map("pack_unit")
+  quantityPerPack   Int?    @map("quantity_per_pack")
+  pricePerUnit      Decimal? @map("price_per_unit") @db.Decimal(15, 2)
+  pestTypes         Json?   @map("pest_types")
+  storageLocation   String? @map("storage_location")
+  description       String? @db.Text
+  qrCode            String? @unique @map("qr_code")
+  status            MedicineStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+
+  // Relations
+  creator         User              @relation("MedicineCreator", fields: [createdBy], references: [id])
+  stocks          MedicineStock[]
+  submissionItems SubmissionItem[]
+
+  @@map("medicines")
+  @@index([category])
+  @@index([supplier])
+  @@index([status])
+}
+
+enum MedicineStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model MedicineStock {
+  id           String   @id @default(cuid())
+  medicineId   String   @map("medicine_id")
+  batchNumber  String?  @map("batch_number")
+  currentStock Decimal  @default(0) @map("current_stock") @db.Decimal(10, 2)
+  initialStock Decimal  @map("initial_stock") @db.Decimal(10, 2)
+  minStock     Decimal  @default(10) @map("min_stock") @db.Decimal(10, 2)
+  entryDate    DateTime @map("entry_date")
+  expiryDate   DateTime @map("expiry_date")
+  supplier     String?
+  notes        String?  @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  medicine         Medicine          @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  transactionItems TransactionItem[]
+
+  @@map("medicine_stocks")
+  @@index([medicineId])
+  @@index([expiryDate])
+  @@index([currentStock])
+}
+
+// ================================================
+// SUBMISSION MANAGEMENT
+// ================================================
+
+model Submission {
+  id              String           @id @default(cuid())
+  submissionNumber String          @unique @map("submission_number")
+  district        String
+  village         String
+  farmerGroup     String           @map("farmer_group")
+  groupLeader     String           @map("group_leader")
+  commodity       String
+  totalArea       Decimal          @map("total_area") @db.Decimal(10, 2)
+  affectedArea    Decimal          @map("affected_area") @db.Decimal(10, 2)
+  pestTypes       Json             @map("pest_types")
+  letterNumber    String           @map("letter_number")
+  letterDate      DateTime         @map("letter_date")
+  letterFileUrl   String           @map("letter_file_url")
+  status          SubmissionStatus @default(PENDING)
+  priority        SubmissionPriority @default(MEDIUM)
+  
+  submitterId     String           @map("submitter_id")
+  reviewerId      String?          @map("reviewer_id")
+  reviewedAt      DateTime?        @map("reviewed_at")
+  reviewerNotes   String?          @map("reviewer_notes") @db.Text
+  distributorId   String?          @map("distributor_id")
+  distributedAt   DateTime?        @map("distributed_at")
+  completionNotes String?          @map("completion_notes") @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  submitter    User             @relation("SubmissionCreator", fields: [submitterId], references: [id])
+  reviewer     User?            @relation("SubmissionReviewer", fields: [reviewerId], references: [id])
+  distributor  User?            @relation("SubmissionDistributor", fields: [distributorId], references: [id])
+  items        SubmissionItem[]
+  transactions Transaction[]
+
+  @@map("submissions")
+  @@index([status])
+  @@index([submitterId])
+  @@index([district])
+  @@index([createdAt])
+}
+
+enum SubmissionStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  DISTRIBUTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum SubmissionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model SubmissionItem {
+  id                  String  @id @default(cuid())
+  submissionId        String  @map("submission_id")
+  medicineId          String  @map("medicine_id")
+  requestedQuantity   Decimal @map("requested_quantity") @db.Decimal(10, 2)
+  approvedQuantity    Decimal @default(0) @map("approved_quantity") @db.Decimal(10, 2)
+  distributedQuantity Decimal @default(0) @map("distributed_quantity") @db.Decimal(10, 2)
+  unit                String
+  notes               String? @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  medicine   Medicine   @relation(fields: [medicineId], references: [id])
+
+  @@map("submission_items")
+  @@index([submissionId])
+  @@index([medicineId])
+}
+
+// ================================================
+// TRANSACTION MANAGEMENT
+// ================================================
+
+model Transaction {
+  id                String            @id @default(cuid())
+  transactionNumber String            @unique @map("transaction_number")
+  type              TransactionType
+  submissionId      String?           @map("submission_id")
+  referenceNumber   String?           @map("reference_number")
+  description       String?           @db.Text
+  totalItems        Int               @default(0) @map("total_items")
+  totalValue        Decimal           @default(0) @map("total_value") @db.Decimal(15, 2)
+  status            TransactionStatus @default(PENDING)
+  
+  processedBy String   @map("processed_by")
+  processedAt DateTime @default(now()) @map("processed_at")
+  verifiedBy  String?  @map("verified_by")
+  verifiedAt  DateTime? @map("verified_at")
+  notes       String?  @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  submission Submission?       @relation(fields: [submissionId], references: [id])
+  processor  User              @relation("TransactionProcessor", fields: [processedBy], references: [id])
+  verifier   User?             @relation("TransactionVerifier", fields: [verifiedBy], references: [id])
+  items      TransactionItem[]
+
+  @@map("transactions")
+  @@index([type])
+  @@index([status])
+  @@index([processedAt])
+  @@index([transactionNumber])
+}
+
+enum TransactionType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model TransactionItem {
+  id              String  @id @default(cuid())
+  transactionId   String  @map("transaction_id")
+  medicineStockId String  @map("medicine_stock_id")
+  quantity        Decimal @map("quantity") @db.Decimal(10, 2)
+  unitPrice       Decimal? @map("unit_price") @db.Decimal(15, 2)
+  totalPrice      Decimal? @map("total_price") @db.Decimal(15, 2)
+  notes           String? @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  medicineStock MedicineStock @relation(fields: [medicineStockId], references: [id])
+
+  @@map("transaction_items")
+  @@index([transactionId])
+  @@index([medicineStockId])
+}
+
+// ================================================
+// ACTIVITY LOGGING
+// ================================================
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  details      Json?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent") @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType])
+  @@index([createdAt])
+}

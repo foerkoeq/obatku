@@ -1,7 +1,7 @@
 import { config } from '../src/core/config/app.config';
 
 // Setup test environment
-process.env.NODE_ENV = 'test';
+(process.env as any).NODE_ENV = 'test';
 process.env.DATABASE_URL = config.database.testUrl;
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
@@ -59,13 +59,9 @@ const testUtils = {
 };
 
 // Global setup
-beforeAll(async () => {
-  console.log('🧪 Setting up test environment');
-});
+console.log('🧪 Setting up test environment');
 
-afterAll(async () => {
-  console.log('🧪 Cleaning up test environment');
-});
+// Global teardown will be handled by Jest automatically
 
 // Export test utilities
 export { testUtils };
