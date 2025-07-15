@@ -6,7 +6,7 @@ const config: DocsThemeConfig = {
   logo: (
     <span className=" inline-flex gap-2.5 items-center">
       <DashCodeLogo className="  text-default-900 h-8 w-8 [&>path:nth-child(3)]:text-background [&>path:nth-child(2)]:text-background" />
-      <span className="  text-lg font-bold text-default ">Dashcode</span>
+      <span className="  text-lg font-bold text-default ">FoerKoeq</span>
     </span>
   ),
   project: {
@@ -16,7 +16,7 @@ const config: DocsThemeConfig = {
     key: "1.0-release",
     text: (
       <a href="/dashboard" target="_blank">
-        🎉 Dashcode
+        🎉 FoerKoeq
       </a>
     ),
   },
@@ -42,7 +42,7 @@ const config: DocsThemeConfig = {
   },
   useNextSeoProps() {
     return {
-      titleTemplate: "%s – Dashcode",
+      titleTemplate: "%s – FoerKoeq",
     };
   },
 };

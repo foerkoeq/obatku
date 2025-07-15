@@ -105,43 +105,8 @@ export function getMenuList(pathname: string): Group[] {
         },
       ],
     },
-    {
-      groupLabel: "Dokumen",
-      id: "documents",
-      menus: [
-        {
-          id: "berita-acara",
-          href: "/berita-acara",
-          label: "Berita Acara",
-          active: pathname.includes("/berita-acara"),
-          icon: "heroicons-outline:document-text",
-          submenus: [
-            {
-              href: "/berita-acara",
-              label: "Buat Berita Acara",
-              active: pathname === "/berita-acara",
-              icon: "heroicons-outline:document-plus",
-              submenus: [],
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      groupLabel: "Pengguna",
-      id: "users",
-      menus: [
-        {
-          id: "users",
-          href: "/users",
-          label: "Manajemen Pengguna",
-          active: pathname.includes("/users"),
-          icon: "heroicons-outline:user-group",
-          submenus: [],
-        },
-      ],
-    },
+    
+    
     {
       groupLabel: "Pengaturan Template",
       id: "template-settings",
@@ -166,6 +131,90 @@ export function getMenuList(pathname: string): Group[] {
               label: "Berita Acara",
               active: pathname.includes("/template-settings/berita-acara"),
               icon: "heroicons-outline:document-text",
+              submenus: [],
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: "Pengguna",
+      id: "users",
+      menus: [
+        {
+          id: "users",
+          href: "/users",
+          label: "Manajemen Pengguna",
+          active: pathname.includes("/users"),
+          icon: "heroicons-outline:user-group",
+          submenus: [],
+        },
+      ],
+    },
+    {
+      groupLabel: "Manajemen Data",
+      id: "data-management",
+      menus: [
+        {
+          id: "data-management",
+          href: "/data-management",
+          label: "Manajemen Data",
+          active: pathname.includes("/data-management"),
+          icon: "heroicons-outline:archive-box",
+          submenus: [
+            {
+              href: "/data-management/history",
+              label: "History Data",
+              active: pathname.includes("/data-management/history"),
+              icon: "heroicons-outline:clock",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/data-management/backup",
+              label: "Backup & Restore",
+              active: pathname.includes("/data-management/backup"),
+              icon: "heroicons-outline:server",
+              submenus: [],
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: "Manajemen Sistem",
+      id: "system-management",
+      menus: [
+        {
+          id: "system-management",
+          href: "/system-management",
+          label: "Manajemen Sistem",
+          active: pathname.includes("/system-management"),
+          icon: "heroicons-outline:cpu-chip",
+          submenus: [
+            {
+              href: "/system-management/features",
+              label: "Kontrol Fitur",
+              active: pathname.includes("/system-management/features"),
+              icon: "heroicons-outline:squares-plus",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/system-management/maintenance",
+              label: "Mode Maintenance",
+              active: pathname.includes("/system-management/maintenance"),
+              icon: "heroicons-outline:wrench-screwdriver",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/system-management/system-pages",
+              label: "Halaman Sistem",
+              active: pathname.includes("/system-management/system-pages"),
+              icon: "heroicons-outline:document-duplicate",
               submenus: [],
               children: [],
             },
@@ -268,21 +317,68 @@ export function getHorizontalMenuList(pathname: string): Group[] {
       ],
     },
     {
-      groupLabel: "Dokumen",
-      id: "documents",
+      groupLabel: "Manajemen Data",
+      id: "data-management",
       menus: [
         {
-          id: "berita-acara",
-          href: "/berita-acara",
-          label: "Berita Acara",
-          active: pathname.includes("/berita-acara"),
-          icon: "heroicons-outline:document-text",
+          id: "data-management",
+          href: "/data-management",
+          label: "Manajemen Data",
+          active: pathname.includes("/data-management"),
+          icon: "heroicons-outline:archive-box",
           submenus: [
             {
-              href: "/berita-acara",
-              label: "Buat Berita Acara",
-              active: pathname === "/berita-acara",
-              icon: "heroicons-outline:document-plus",
+              href: "/data-management/history",
+              label: "History Data",
+              active: pathname.includes("/data-management/history"),
+              icon: "heroicons-outline:clock",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/data-management/backup",
+              label: "Backup & Restore",
+              active: pathname.includes("/data-management/backup"),
+              icon: "heroicons-outline:server",
+              submenus: [],
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      groupLabel: "Manajemen Sistem",
+      id: "system-management",
+      menus: [
+        {
+          id: "system-management",
+          href: "/system-management",
+          label: "Manajemen Sistem",
+          active: pathname.includes("/system-management"),
+          icon: "heroicons-outline:cpu-chip",
+          submenus: [
+            {
+              href: "/system-management/features",
+              label: "Kontrol Fitur",
+              active: pathname.includes("/system-management/features"),
+              icon: "heroicons-outline:squares-plus",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/system-management/maintenance",
+              label: "Mode Maintenance",
+              active: pathname.includes("/system-management/maintenance"),
+              icon: "heroicons-outline:wrench-screwdriver",
+              submenus: [],
+              children: [],
+            },
+            {
+              href: "/system-management/system-pages",
+              label: "Halaman Sistem",
+              active: pathname.includes("/system-management/system-pages"),
+              icon: "heroicons-outline:document-duplicate",
               submenus: [],
               children: [],
             },

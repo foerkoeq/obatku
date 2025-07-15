@@ -25,7 +25,7 @@ const LockScreen = () => {
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
-          defaultValue="dashcode@gmail.com"
+          defaultValue="foerkoeq@gmail.com"
           {...register("example")}
           className="h-[48px] text-sm text-default-900 "
         />

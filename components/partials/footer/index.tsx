@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const DashCodeFooter = () => {
+const FoerKoeqFooter = () => {
   const pathname = usePathname();
   const menuList = getMenuList(pathname);
 
@@ -83,4 +83,4 @@ const DashCodeFooter = () => {
   );
 };
 
-export default DashCodeFooter;
+export default FoerKoeqFooter;

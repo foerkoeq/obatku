@@ -10,7 +10,7 @@ import HorizontalMenu from "./horizontal-menu"
 import HeaderLogo from "./header-logo"
 import { useMediaQuery } from '@/hooks/use-media-query'
 
-const DashCodeHeader = () => {
+const FoerKoeqHeader = () => {
     const isMobile = useMediaQuery("(max-width: 768px)")
     
     return (
@@ -32,4 +32,4 @@ const DashCodeHeader = () => {
     )
 }
 
-export default DashCodeHeader
+export default FoerKoeqHeader

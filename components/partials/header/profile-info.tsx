@@ -21,7 +21,7 @@ const ProfileInfo = () => {
           <div className=" flex items-center gap-3  text-default-800 ">
           <Image
               src="/images/avatar/av-1.jpg"
-              alt="dashcode"
+              alt="foerkoeq"
               width={36}
               height={36}
               className="rounded-full"
@@ -40,7 +40,7 @@ const ProfileInfo = () => {
 
             <Image
               src="/images/avatar/av-1.jpg"
-              alt="dashcode"
+              alt="foerkoeq"
               width={36}
               height={36}
               className="rounded-full"

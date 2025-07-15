@@ -58,8 +58,8 @@ o Status indicator (stok normal/hampir habis/expired)
 • Export Data: Button untuk export ke PDF, Excel, Print,CSV. Jika di klik muncul modal pilihan 
 data yang akan diexport, data yang saat ini tampil saja atau seluruh data atau data 
 berdasarkan filter. 
-• Cetak QR code : cetak barcode sesuai data yang terpilih atau sesuai data berdasarkan filter. 
-Ada 2 tipe QR code, QR code untuk pack besar seperti kardus dll. dan barcode per item. 
+• Cetak QR code : cetak qr code sesuai data yang terpilih atau sesuai data berdasarkan filter. 
+Ada 2 tipe QR code, QR code untuk pack besar seperti kardus dll. dan  qr code per item. 
 
 
 4. HALAMAN TAMBAH OBAT (/inventory/add) 
