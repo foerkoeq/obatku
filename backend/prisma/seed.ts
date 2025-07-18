@@ -318,6 +318,221 @@ async function main() {
 
   console.log('✅ Activity logs seeded successfully');
 
+  // ================================================
+  // SEED QR CODE MASTERS
+  // ================================================
+  console.log('🔢 Seeding QR code masters...');
+
+  // Funding Source Codes
+  const fundingSources = [
+    { code: '1', name: 'APBN' },
+    { code: '2', name: 'APBD Provinsi' },
+    { code: '3', name: 'APBD Kabupaten' },
+    { code: '4', name: 'CSR/Bantuan Swasta' },
+  ];
+
+  // Medicine Type Codes
+  const medicineTypes = [
+    { code: 'F', name: 'Fungisida' },
+    { code: 'I', name: 'Insektisida' },
+    { code: 'H', name: 'Herbisida' },
+    { code: 'A', name: 'Agen Hayati Antagonis' },
+    { code: 'B', name: 'Bakterisida' },
+    { code: 'N', name: 'Nematisida' },
+  ];
+
+  // Active Ingredient Codes
+  const activeIngredients = [
+    { code: '111', name: 'Mankozeb' },
+    { code: '112', name: 'Karbendazim' },
+    { code: '113', name: 'Difenokonazol' },
+    { code: '201', name: 'Klorprifos' },
+    { code: '202', name: 'Deltametrin' },
+    { code: '203', name: 'Imidakloprid' },
+    { code: '301', name: 'Glifosat' },
+    { code: '302', name: 'Parakuat' },
+    { code: '303', name: 'Atrazin' },
+  ];
+
+  // Producer Codes
+  const producers = [
+    { code: 'A', name: 'Syngenta' },
+    { code: 'B', name: 'Bayer' },
+    { code: 'C', name: 'BASF' },
+    { code: 'D', name: 'Dow AgroSciences' },
+    { code: 'E', name: 'Nufarm' },
+    { code: 'F', name: 'PT. Petrokimia Gresik' },
+    { code: 'G', name: 'PT. Pupuk Kalimantan Timur' },
+  ];
+
+  // Package Type Codes
+  const packageTypes = [
+    { code: 'I', name: 'Item' },
+    { code: 'B', name: 'Box' },
+    { code: 'K', name: 'Karton' },
+    { code: 'S', name: 'Sak' },
+    { code: 'J', name: 'Jerigen' },
+    { code: 'D', name: 'Dus' },
+  ];
+
+  // Create QR Code Masters (sample combinations)
+  const qrCodeMasters = [
+    // APBN - Fungisida - Mankozeb - Syngenta
+    {
+      fundingSourceCode: '1',
+      fundingSourceName: 'APBN',
+      medicineTypeCode: 'F',
+      medicineTypeName: 'Fungisida',
+      activeIngredientCode: '111',
+      activeIngredientName: 'Mankozeb',
+      producerCode: 'A',
+      producerName: 'Syngenta',
+      packageTypeCode: 'I', // I = Individual item
+      packageTypeName: 'Item',
+    },
+    // APBN - Fungisida - Mankozeb - Syngenta - Box
+    {
+      fundingSourceCode: '1',
+      fundingSourceName: 'APBN',
+      medicineTypeCode: 'F',
+      medicineTypeName: 'Fungisida',
+      activeIngredientCode: '111',
+      activeIngredientName: 'Mankozeb',
+      producerCode: 'A',
+      producerName: 'Syngenta',
+      packageTypeCode: 'B',
+      packageTypeName: 'Box',
+    },
+    // APBN - Insektisida - Klorprifos - Bayer
+    {
+      fundingSourceCode: '1',
+      fundingSourceName: 'APBN',
+      medicineTypeCode: 'I',
+      medicineTypeName: 'Insektisida',
+      activeIngredientCode: '201',
+      activeIngredientName: 'Klorprifos',
+      producerCode: 'B',
+      producerName: 'Bayer',
+      packageTypeCode: 'I',
+      packageTypeName: 'Item',
+    },
+    // APBN - Herbisida - Glifosat - Syngenta
+    {
+      fundingSourceCode: '1',
+      fundingSourceName: 'APBN',
+      medicineTypeCode: 'H',
+      medicineTypeName: 'Herbisida',
+      activeIngredientCode: '301',
+      activeIngredientName: 'Glifosat',
+      producerCode: 'A',
+      producerName: 'Syngenta',
+      packageTypeCode: 'I',
+      packageTypeName: 'Item',
+    },
+    // APBD Provinsi - Fungisida - Mankozeb - Syngenta
+    {
+      fundingSourceCode: '2',
+      fundingSourceName: 'APBD Provinsi',
+      medicineTypeCode: 'F',
+      medicineTypeName: 'Fungisida',
+      activeIngredientCode: '111',
+      activeIngredientName: 'Mankozeb',
+      producerCode: 'A',
+      producerName: 'Syngenta',
+      packageTypeCode: 'I',
+      packageTypeName: 'Item',
+    },
+    // CSR - Insektisida - Imidakloprid - BASF
+    {
+      fundingSourceCode: '4',
+      fundingSourceName: 'CSR/Bantuan Swasta',
+      medicineTypeCode: 'I',
+      medicineTypeName: 'Insektisida',
+      activeIngredientCode: '203',
+      activeIngredientName: 'Imidakloprid',
+      producerCode: 'C',
+      producerName: 'BASF',
+      packageTypeCode: 'I',
+      packageTypeName: 'Item',
+    },
+  ];
+
+  for (const masterData of qrCodeMasters) {
+    await prisma.qRCodeMaster.upsert({
+      where: {
+        unique_master_code: {
+          fundingSourceCode: masterData.fundingSourceCode,
+          medicineTypeCode: masterData.medicineTypeCode,
+          activeIngredientCode: masterData.activeIngredientCode,
+          producerCode: masterData.producerCode,
+          packageTypeCode: masterData.packageTypeCode,
+        },
+      },
+      update: {},
+      create: {
+        ...masterData,
+        status: 'ACTIVE',
+        createdBy: adminUser.id,
+      },
+    });
+  }
+
+  console.log('✅ QR code masters seeded successfully');
+
+  // ================================================
+  // SEED SAMPLE QR CODE SEQUENCES
+  // ================================================
+  console.log('🔢 Seeding sample QR code sequences...');
+
+  const currentYear = new Date().getFullYear().toString().slice(-2); // 25 for 2025
+  const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0'); // 01-12
+
+  // Sample sequences for current year/month
+  const sampleSequences = [
+    {
+      year: currentYear,
+      month: currentMonth,
+      fundingSourceCode: '1',
+      medicineTypeCode: 'F',
+      activeIngredientCode: '111',
+      producerCode: 'A',
+      packageTypeCode: 'I',
+      currentSequence: '0001',
+      sequenceType: 'NUMERIC' as const,
+    },
+    {
+      year: currentYear,
+      month: currentMonth,
+      fundingSourceCode: '1',
+      medicineTypeCode: 'I',
+      activeIngredientCode: '201',
+      producerCode: 'B',
+      packageTypeCode: 'I',
+      currentSequence: '0001',
+      sequenceType: 'NUMERIC' as const,
+    },
+  ];
+
+  for (const seqData of sampleSequences) {
+    await prisma.qRCodeSequence.upsert({
+      where: {
+        unique_sequence: {
+          year: seqData.year,
+          month: seqData.month,
+          fundingSourceCode: seqData.fundingSourceCode,
+          medicineTypeCode: seqData.medicineTypeCode,
+          activeIngredientCode: seqData.activeIngredientCode,
+          producerCode: seqData.producerCode,
+          packageTypeCode: seqData.packageTypeCode,
+        },
+      },
+      update: {},
+      create: seqData,
+    });
+  }
+
+  console.log('✅ QR code sequences seeded successfully');
+
   console.log('\n🎉 Database seeding completed successfully!');
   console.log('\n📋 Summary:');
   console.log('✅ 4 Users created (Admin, PPL, Dinas, POPT)');
@@ -326,6 +541,8 @@ async function main() {
   console.log('✅ 1 Sample submission created');
   console.log('✅ 2 Submission items created');
   console.log('✅ 2 Activity logs created');
+  console.log('✅ 6 QR code masters created');
+  console.log('✅ 2 QR code sequences created');
   console.log('\n🔑 Default login credentials:');
   console.log('Admin: admin@obatku.local / password123');
   console.log('PPL: budi@obatku.local / password123');

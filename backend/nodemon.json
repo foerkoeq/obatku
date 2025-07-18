@@ -1,0 +1,10 @@
+{
+  "watch": ["src"],
+  "ext": "ts,js,json",
+  "exec": "ts-node -r tsconfig-paths/register -r dotenv/config src/main.ts",
+  "ignore": ["node_modules", "dist", "logs", "uploads"],
+  "env": {
+    "NODE_ENV": "development",
+    "DOTENV_CONFIG_PATH": ".env.local"
+  }
+}

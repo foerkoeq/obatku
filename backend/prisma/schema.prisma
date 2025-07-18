@@ -39,6 +39,7 @@ model User {
   processedTransactions Transaction[] @relation("TransactionProcessor")
   verifiedTransactions Transaction[]  @relation("TransactionVerifier")
   activityLogs         ActivityLog[]
+  createdQRCodeMasters QRCodeMaster[] @relation("QRCodeMasterCreator")
 
   @@map("users")
   @@index([role])
@@ -303,4 +304,74 @@ model ActivityLog {
   @@index([action])
   @@index([resourceType])
   @@index([createdAt])
+}
+
+// ================================================
+// QR CODE MANAGEMENT
+// ================================================
+
+model QRCodeMaster {
+  id                    String  @id @default(cuid())
+  fundingSourceCode     String  @map("funding_source_code") @db.VarChar(1)
+  fundingSourceName     String  @map("funding_source_name") @db.VarChar(100)
+  medicineTypeCode      String  @map("medicine_type_code") @db.VarChar(1)
+  medicineTypeName      String  @map("medicine_type_name") @db.VarChar(100)
+  activeIngredientCode  String  @map("active_ingredient_code") @db.VarChar(3)
+  activeIngredientName  String  @map("active_ingredient_name") @db.VarChar(255)
+  producerCode          String  @map("producer_code") @db.VarChar(1)
+  producerName          String  @map("producer_name") @db.VarChar(255)
+  packageTypeCode       String? @map("package_type_code") @db.VarChar(1)
+  packageTypeName       String? @map("package_type_name") @db.VarChar(100)
+  status                QRCodeStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+
+  // Relations
+  creator   User              @relation("QRCodeMasterCreator", fields: [createdBy], references: [id])
+  sequences QRCodeSequence[]
+
+  @@map("qr_code_masters")
+  @@unique([fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode, packageTypeCode], name: "unique_master_code")
+  @@index([fundingSourceCode])
+  @@index([medicineTypeCode])
+  @@index([activeIngredientCode])
+  @@index([producerCode])
+  @@index([packageTypeCode])
+  @@index([status])
+}
+
+enum QRCodeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model QRCodeSequence {
+  id                    String  @id @default(cuid())
+  year                  String  @db.VarChar(2)
+  month                 String  @db.VarChar(2)
+  fundingSourceCode     String  @map("funding_source_code") @db.VarChar(1)
+  medicineTypeCode      String  @map("medicine_type_code") @db.VarChar(1)
+  activeIngredientCode  String  @map("active_ingredient_code") @db.VarChar(3)
+  producerCode          String  @map("producer_code") @db.VarChar(1)
+  packageTypeCode       String? @map("package_type_code") @db.VarChar(1)
+  currentSequence       String  @default("0001") @map("current_sequence") @db.VarChar(4)
+  sequenceType          SequenceType @default(NUMERIC) @map("sequence_type")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  master QRCodeMaster? @relation(fields: [fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode, packageTypeCode], references: [fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode, packageTypeCode])
+
+  @@map("qr_code_sequences")
+  @@unique([year, month, fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode, packageTypeCode], name: "unique_sequence")
+  @@index([year, month, fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode])
+}
+
+enum SequenceType {
+  NUMERIC
+  ALPHA_SUFFIX
+  ALPHA_PREFIX
 }

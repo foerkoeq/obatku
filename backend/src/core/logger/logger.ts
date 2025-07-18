@@ -155,4 +155,11 @@ export const logSecurityEvent = (event: string, details: any) => {
   });
 };
 
+// Create a stream object with a 'write' function for Morgan
+export const morganStream = {
+  write: (message: string) => {
+    logger.info(message.trim());
+  },
+};
+
 export default logger;

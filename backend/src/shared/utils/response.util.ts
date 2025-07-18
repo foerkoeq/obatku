@@ -161,6 +161,87 @@ export class ResponseUtil {
   ): Response<SuccessResponse<T>> {
     return this.success(res, data, message, 202);
   }
+
+  /**
+   * Send unauthenticated response
+   */
+  static unauthenticated(
+    res: Response,
+    message = 'Authentication required'
+  ): Response<ErrorResponse> {
+    return this.error(res, 'UNAUTHENTICATED', message, null, 401);
+  }
+
+  /**
+   * Send duplicate entry response
+   */
+  static duplicateEntry(
+    res: Response,
+    resource: string,
+    identifier: string
+  ): Response<ErrorResponse> {
+    return this.error(
+      res, 
+      'DUPLICATE_ENTRY', 
+      `${resource} with identifier '${identifier}' already exists`, 
+      null, 
+      409
+    );
+  }
+
+  /**
+   * Send business logic error response
+   */
+  static businessLogicError(
+    res: Response,
+    message: string,
+    details?: any
+  ): Response<ErrorResponse> {
+    return this.error(res, 'BUSINESS_LOGIC_ERROR', message, details, 422);
+  }
+
+  /**
+   * Send deleted response
+   */
+  static deleted(
+    res: Response,
+    message = 'Resource deleted successfully'
+  ): Response<SuccessResponse<null>> {
+    return this.success(res, null, message, 200);
+  }
+
+  /**
+   * Send bulk operation response
+   */
+  static bulkOperation<T>(
+    res: Response,
+    data: T[],
+    total: number,
+    successful: number,
+    failed: number,
+    errors?: Array<{ index: number; error: string }>,
+    message?: string
+  ): Response<SuccessResponse<{ 
+    data: T[], 
+    summary: { 
+      total: number, 
+      successful: number, 
+      failed: number,
+      errors?: Array<{ index: number; error: string }>
+    } 
+  }>> {
+    const defaultMessage = `Bulk operation completed: ${successful} successful, ${failed} failed`;
+    
+    return this.success(res, {
+      data,
+      summary: {
+        total,
+        successful,
+        failed,
+        errors
+      }
+    }, message || defaultMessage, 200);
+  }
 }
 
 /**
@@ -201,4 +282,28 @@ export const parsePaginationParams = (query: any) => {
     search,
     skip: (page - 1) * limit
   };
+};
+
+/**
+ * Simple error response function (for middleware compatibility)
+ */
+export const sendErrorResponse = (
+  res: Response,
+  statusCode: number,
+  message: string,
+  errors?: string[]
+): Response<ErrorResponse> => {
+  const response: ErrorResponse = {
+    success: false,
+    error: {
+      code: `HTTP_${statusCode}`,
+      message,
+      details: errors ? { errors } : undefined
+    },
+    meta: {
+      timestamp: new Date().toISOString()
+    }
+  };
+
+  return res.status(statusCode).json(response);
 };

@@ -41,14 +41,14 @@ export interface ErrorResponse extends ApiResponse {
   };
 }
 
-// Pagination metadata
+// Enhanced Pagination metadata
 export interface PaginationMeta {
   page: number;
   limit: number;
   total: number;
-  pages: number;
+  totalPages: number;
   hasNext: boolean;
-  hasPrev: boolean;
+  hasPrevious: boolean;
 }
 
 // Pagination query parameters
@@ -85,6 +85,29 @@ export interface FilterOptions {
 export interface SortOptions {
   field: string;
   order: 'asc' | 'desc';
+}
+
+// Error types
+export enum ErrorCode {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  DUPLICATE_ENTRY = 'DUPLICATE_ENTRY',
+  BUSINESS_LOGIC_ERROR = 'BUSINESS_LOGIC_ERROR',
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+  RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
+  FILE_UPLOAD_ERROR = 'FILE_UPLOAD_ERROR'
+}
+
+// User context type (for authenticated requests)
+export interface UserContext {
+  id: string;
+  name: string;
+  email?: string;
+  role: string;
+  permissions: string[];
 }
 
 // Health check response

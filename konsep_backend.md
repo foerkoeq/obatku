@@ -15,6 +15,7 @@ Backend untuk aplikasi web manajemen obat pertanian yang terintegrasi dengan fro
 • **ORM**: Prisma (with MySQL connector)
 • **Authentication**: JWT (JSON Web Token)
 • **File Upload**: Multer + Sharp (image processing)
+• **QR Code**: qrcode (generation) + qrcode-reader (scanning)
 • **Validation**: Zod
 • **Security**: Helmet, CORS, bcrypt
 • **Documentation**: Swagger/OpenAPI (optional)
@@ -54,6 +55,14 @@ backend/
 │   │   │   ├── inventory.validation.ts
 │   │   │   ├── inventory.routes.ts
 │   │   │   └── inventory.test.ts
+│   │   ├── qrcode/             # QR Code generation module
+│   │   │   ├── qrcode.controller.ts
+│   │   │   ├── qrcode.service.ts
+│   │   │   ├── qrcode.repository.ts
+│   │   │   ├── qrcode.types.ts
+│   │   │   ├── qrcode.validation.ts
+│   │   │   ├── qrcode.routes.ts
+│   │   │   └── qrcode.test.ts
 │   │   ├── submissions/        # Submission module
 │   │   │   ├── submissions.controller.ts
 │   │   │   ├── submissions.service.ts
@@ -200,6 +209,7 @@ CREATE TABLE medicines (
   INDEX idx_category (category),
   INDEX idx_supplier (supplier),
   INDEX idx_status (status),
+  INDEX idx_qr_code (qr_code),
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 ```
@@ -217,12 +227,62 @@ CREATE TABLE medicine_stocks (
   expiry_date DATE NOT NULL,
   supplier VARCHAR(255),
   notes TEXT,
+  qr_code VARCHAR(255) UNIQUE, -- QR code untuk batch/kemasan besar
+  is_bulk_package BOOLEAN DEFAULT FALSE, -- true untuk kemasan besar
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (medicine_id) REFERENCES medicines(id) ON DELETE CASCADE,
   INDEX idx_medicine_id (medicine_id),
   INDEX idx_expiry_date (expiry_date),
-  INDEX idx_current_stock (current_stock)
+  INDEX idx_current_stock (current_stock),
+  INDEX idx_qr_code (qr_code)
+);
+```
+
+### Tabel QR Code Masters (Master Data untuk QR Code)
+```sql
+CREATE TABLE qr_code_masters (
+  id VARCHAR(36) PRIMARY KEY,
+  funding_source_code VARCHAR(1) NOT NULL, -- 1=APBN, 2=APBD-Prov, 3=APBD-Kab, dst
+  funding_source_name VARCHAR(100) NOT NULL,
+  medicine_type_code VARCHAR(1) NOT NULL, -- F=Fungisida, I=Insektisida, H=Herbisida, dst
+  medicine_type_name VARCHAR(100) NOT NULL,
+  active_ingredient_code VARCHAR(3) NOT NULL, -- 111, 112, dst
+  active_ingredient_name VARCHAR(255) NOT NULL,
+  producer_code VARCHAR(1) NOT NULL, -- A, B, C, dst
+  producer_name VARCHAR(255) NOT NULL,
+  package_type_code VARCHAR(1) DEFAULT NULL, -- B=Box, K=Karton, S=Sak, dst (null untuk item satuan)
+  package_type_name VARCHAR(100) DEFAULT NULL,
+  status ENUM('active', 'inactive') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_by VARCHAR(36),
+  INDEX idx_funding_source (funding_source_code),
+  INDEX idx_medicine_type (medicine_type_code),
+  INDEX idx_active_ingredient (active_ingredient_code),
+  INDEX idx_producer (producer_code),
+  INDEX idx_package_type (package_type_code),
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+```
+
+### Tabel QR Code Sequences (Counter untuk QR Code)
+```sql
+CREATE TABLE qr_code_sequences (
+  id VARCHAR(36) PRIMARY KEY,
+  year VARCHAR(2) NOT NULL,
+  month VARCHAR(2) NOT NULL,
+  funding_source_code VARCHAR(1) NOT NULL,
+  medicine_type_code VARCHAR(1) NOT NULL,
+  active_ingredient_code VARCHAR(3) NOT NULL,
+  producer_code VARCHAR(1) NOT NULL,
+  package_type_code VARCHAR(1) DEFAULT NULL, -- null untuk item satuan
+  current_sequence VARCHAR(4) NOT NULL DEFAULT '0001', -- bisa 0001-9999, 000A-ZZZZ, 001A-dst
+  sequence_type ENUM('numeric', 'alpha_suffix', 'alpha_prefix') DEFAULT 'numeric',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_sequence (year, month, funding_source_code, medicine_type_code, active_ingredient_code, producer_code, package_type_code),
+  INDEX idx_sequence_lookup (year, month, funding_source_code, medicine_type_code, active_ingredient_code, producer_code)
 );
 ```
 
@@ -394,6 +454,20 @@ POST   /api/medicines/qr-generate   # Generate QR codes
 GET    /api/medicines/qr/:code      # Get medicine by QR code
 ```
 
+### QR Code Management Routes
+```
+GET    /api/qrcodes/masters         # Get all QR code masters
+POST   /api/qrcodes/masters         # Create QR code master
+PUT    /api/qrcodes/masters/:id     # Update QR code master
+DELETE /api/qrcodes/masters/:id     # Delete QR code master
+POST   /api/qrcodes/generate        # Generate new QR code for medicine/stock
+GET    /api/qrcodes/validate/:code  # Validate QR code format
+GET    /api/qrcodes/decode/:code    # Decode QR code information
+POST   /api/qrcodes/bulk-generate   # Bulk generate QR codes
+GET    /api/qrcodes/sequences       # Get sequence status
+POST   /api/qrcodes/sequences/reset # Reset sequence counter (admin only)
+```
+
 ### Submission Routes (PPL)
 ```
 GET    /api/submissions             # Get submissions (filtered by role)
@@ -453,6 +527,9 @@ DELETE /api/uploads/:filename       # Delete uploaded files
 | Medicine CRUD | ✅ | ❌ | ✅ | ✅ |
 | View Medicine | ✅ | ✅ | ✅ | ✅ |
 | Stock Management | ✅ | ❌ | ✅ | ✅ |
+| QR Code Generation | ✅ | ❌ | ✅ | ✅ |
+| QR Code Masters | ✅ | ❌ | ✅ | ❌ |
+| QR Code Scanning | ✅ | ✅ | ✅ | ✅ |
 | Create Submission | ✅ | ✅ | ❌ | ❌ |
 | View Own Submissions | ✅ | ✅ | ❌ | ❌ |
 | Approve Submissions | ✅ | ❌ | ✅ | ❌ |
@@ -523,6 +600,88 @@ Set Role Permissions →
 Access Protected Routes → 
 Token Refresh → 
 Activity Logging
+```
+
+### 4. QR Code Generation Flow
+```typescript
+// QR Code Generation Business Logic
+
+// Format per item: 25071F111B0001
+// 25 = tahun 2025
+// 07 = bulan juli
+// 1 = sumber (APBN, APBD-Prov, ...)
+// F = Jenis Obat (fungisida)
+// 111 = kandungan
+// B = produsen
+// 0001 = no urut
+
+// Format kemasan besar: 25071F111B-B0001
+// Additional B = jenis kemasan besar (box, dll)
+
+interface QRCodeComponents {
+  year: string;        // 2 digit tahun (25)
+  month: string;       // 2 digit bulan (07)
+  fundingSource: string;  // 1 digit sumber dana (1)
+  medicineType: string;   // 1 digit jenis obat (F)
+  activeIngredient: string; // 3 digit kandungan (111)
+  producer: string;       // 1 digit produsen (B)
+  packageType?: string;   // 1 digit kemasan (B) - optional untuk bulk
+  sequence: string;       // 4 digit urutan (0001)
+}
+
+// QR Code Generation Process:
+// 1. Validate medicine master data
+// 2. Get or create sequence counter
+// 3. Generate next sequence number
+// 4. Format QR code string
+// 5. Generate QR code image
+// 6. Save to database
+// 7. Update sequence counter
+
+// Sequence Number Logic:
+// 0001 → 9999 (numeric)
+// 000A → ZZZZ (alpha suffix)
+// 001A → 999Z (alpha prefix if needed)
+```
+
+### 5. QR Code Sequence Management
+```typescript
+// Sequence progression logic
+const generateNextSequence = (currentSequence: string, type: SequenceType): string => {
+  switch (type) {
+    case 'numeric':
+      // 0001 → 9999
+      const num = parseInt(currentSequence);
+      if (num < 9999) {
+        return String(num + 1).padStart(4, '0');
+      }
+      // Switch to alpha_suffix
+      return '000A';
+      
+    case 'alpha_suffix':
+      // 000A → ZZZZ
+      const prefix = currentSequence.substring(0, 3);
+      const suffix = currentSequence.substring(3);
+      const nextSuffix = incrementChar(suffix);
+      if (nextSuffix <= 'Z') {
+        return prefix + nextSuffix;
+      }
+      // Increment prefix
+      const nextPrefix = incrementNumericPrefix(prefix);
+      if (nextPrefix <= '999') {
+        return nextPrefix + 'A';
+      }
+      // Switch to alpha_prefix
+      return '001A';
+      
+    case 'alpha_prefix':
+      // 001A → 999Z
+      const numPart = currentSequence.substring(0, 3);
+      const alphaPart = currentSequence.substring(3);
+      // Continue logic...
+      break;
+  }
+};
 ```
 
 ## SECURITY IMPLEMENTATION
@@ -772,6 +931,7 @@ tests/
 npm init -y
 npm install express typescript prisma @prisma/client mysql2 bcrypt jsonwebtoken
 npm install zod multer sharp helmet cors express-rate-limit
+npm install qrcode qrcode-terminal @types/qrcode
 npm install -D @types/node @types/express @types/bcrypt @types/jsonwebtoken
 npm install -D @types/multer nodemon ts-node jest supertest @types/jest
 npm install -D eslint prettier typescript-eslint
@@ -811,6 +971,12 @@ UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=5242880
 ALLOWED_FILE_TYPES=jpg,jpeg,png,pdf
 
+# QR Code Configuration
+QR_CODE_IMAGE_SIZE=256
+QR_CODE_MARGIN=2
+QR_CODE_ERROR_CORRECTION=M
+QR_CODE_UPLOAD_DIR=./uploads/qrcodes
+
 # Security
 BCRYPT_ROUNDS=12
 RATE_LIMIT_WINDOW=15
@@ -841,7 +1007,27 @@ LOG_DIR=./logs
 }
 ```
 
-### 5. Production Deployment (VPS/Local Server)
+### 5. QR Code Master Data Seed
+```sql
+-- Insert funding source codes
+INSERT INTO qr_code_masters (id, funding_source_code, funding_source_name, medicine_type_code, medicine_type_name, active_ingredient_code, active_ingredient_name, producer_code, producer_name, status, created_by) VALUES
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'active', 'system'),
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '111', 'Mankozeb', 'B', 'Bayer', 'active', 'system'),
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '112', 'Karbendazim', 'A', 'Syngenta', 'active', 'system'),
+(UUID(), '1', 'APBN', 'I', 'Insektisida', '201', 'Klorprifos', 'A', 'Syngenta', 'active', 'system'),
+(UUID(), '1', 'APBN', 'I', 'Insektisida', '201', 'Klorprifos', 'B', 'Bayer', 'active', 'system'),
+(UUID(), '1', 'APBN', 'H', 'Herbisida', '301', 'Glifosat', 'A', 'Syngenta', 'active', 'system'),
+(UUID(), '2', 'APBD-Provinsi', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'active', 'system'),
+(UUID(), '3', 'APBD-Kabupaten', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'active', 'system');
+
+-- Insert package type codes
+INSERT INTO qr_code_masters (id, funding_source_code, funding_source_name, medicine_type_code, medicine_type_name, active_ingredient_code, active_ingredient_name, producer_code, producer_name, package_type_code, package_type_name, status, created_by) VALUES
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'B', 'Box', 'active', 'system'),
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'K', 'Karton', 'active', 'system'),
+(UUID(), '1', 'APBN', 'F', 'Fungisida', '111', 'Mankozeb', 'A', 'Syngenta', 'S', 'Sak', 'active', 'system');
+```
+
+### 6. Production Deployment (VPS/Local Server)
 ```bash
 # Option A: PM2 (Process Manager)
 npm install -g pm2
@@ -1011,12 +1197,21 @@ const corsOptions = {
    - Offline sync capabilities
    - QR code scanning integration
 
-4. **Third-party Integrations**
+4. **Enhanced QR Code Features**
+   - Batch QR code printing
+   - QR code analytics & tracking
+   - Dynamic QR codes with URLs
+   - QR code lifecycle management
+   - Custom QR code templates
+   - QR code expiration handling
+   - Mobile scanning optimization
+
+5. **Third-party Integrations**
    - ERP system integration
    - Government reporting APIs
    - Weather data integration
 
-5. **Advanced Security**
+6. **Advanced Security**
    - OAuth2 integration
    - Multi-factor authentication
    - Audit trail encryption
@@ -1160,40 +1355,50 @@ const inventoryModule: BackendModule = {
 ✅ Create seed data untuk development
 
 // ✅ 1.3 Core Infrastructure
-□ Setup Express.js server with TypeScript
-□ Configure middleware (CORS, Helmet, Morgan)
-□ Setup global error handling
-□ Create response utilities
-□ Setup logging system (Winston)
-□ Configure file upload handling (Multer)
+✅ Setup Express.js server with TypeScript
+✅ Configure middleware (CORS, Helmet, Morgan)
+✅ Setup global error handling
+✅ Create response utilities
+✅ Setup logging system (Winston)
+✅ Configure file upload handling (Multer)
 ```
 
 ### 🏗️ Phase 2: Core Features (Week 3-4)
 ```typescript
 // ✅ 2.1 User Management Module (Priority #1)
-□ Create users feature module structure
-□ Implement user CRUD operations
-□ Setup password hashing (bcrypt)
-□ Create user validation schemas (Zod)
-□ Implement user repository & service
-□ Create user routes & controller
-□ Write unit tests for user module
+✅ Create users feature module structure
+✅ Implement user CRUD operations
+✅ Setup password hashing (bcrypt)
+✅ Create user validation schemas (Zod)
+✅ Implement user repository & service
+✅ Create user routes & controller
+✅ Write unit tests for user module
 
 // ✅ 2.2 Inventory Management Module (Priority #2)
-□ Create inventory feature module structure
-□ Implement medicine CRUD operations
-□ Setup stock management system
-□ Create inventory validation schemas
-□ Implement search & filtering
-□ Create inventory routes & controller
-□ Write unit tests for inventory module
+✅ Create inventory feature module structure
+✅ Implement medicine CRUD operations
+✅ Setup stock management system
+✅ Create inventory validation schemas
+✅ Implement search & filtering
+✅ Create inventory routes & controller
+✅ Write unit tests for inventory module
 
-// ✅ 2.3 API Foundation
-□ Standardize API response format
-□ Implement pagination utilities
-□ Setup sorting & filtering helpers
-□ Create API documentation structure
-□ Implement basic security measures
+// ✅ 2.3 QR Code Management Module (Priority #2B)
+✅ Create QR code feature module structure
+✅ Setup QR code masters & sequences tables
+✅ Implement QR code generation algorithm
+✅ Create QR code validation schemas
+✅ Implement sequence management (0001-9999, 000A-ZZZZ)
+✅ Setup QR code image generation (qrcode library)
+✅ Create QR code routes & controller
+✅ Write unit tests for QR code module
+
+// ✅ 2.4 API Foundation
+✅ Standardize API response format
+✅ Implement pagination utilities
+✅ Setup sorting & filtering helpers
+✅ Create API documentation structure
+✅ Implement basic security measures
 ```
 
 ### 🔄 Phase 3: Business Logic (Week 5-6)
@@ -1283,11 +1488,21 @@ const inventoryModule: BackendModule = {
 ### 🎯 Development Priority Order:
 1. **Users** → Foundation untuk semua fitur
 2. **Inventory** → Core business logic
-3. **Submissions** → Business workflow
-4. **Approvals** → Workflow continuation
-5. **Transactions** → Stock management
-6. **Auth** → Security layer (LAST!)
-7. **Reports** → Analytics & insights
+3. **QR Code** → Tracking & identification system
+4. **Submissions** → Business workflow
+5. **Approvals** → Workflow continuation
+6. **Transactions** → Stock management
+7. **Auth** → Security layer (LAST!)
+8. **Reports** → Analytics & insights
+
+### 📋 QR Code System Features:
+- **Automatic ID Generation**: Format 25071F111B0001 (item) & 25071F111B-B0001 (bulk)
+- **Smart Sequence Management**: 0001→9999 → 000A→ZZZZ → 001A→999Z
+- **Master Data Management**: Funding source, medicine type, ingredient, producer codes
+- **Image Generation**: PNG QR code images with customizable size
+- **Validation & Decoding**: Format validation and component extraction
+- **Bulk Operations**: Generate multiple QR codes at once
+- **Integration**: Seamless integration with inventory & stock management
 
 ## FULL OFFLINE DEVELOPMENT WORKFLOW
 
@@ -1395,6 +1610,92 @@ describe('UserService', () => {
   // ... other tests
 });
 ```
+
+### 3. QR Code Module Example Implementation
+```typescript
+// qrcode.types.ts - QR Code type definitions
+export interface QRCodeComponents {
+  year: string;           // 25 (2025)
+  month: string;          // 07 (Juli)
+  fundingSource: string;  // 1 (APBN)
+  medicineType: string;   // F (Fungisida)
+  activeIngredient: string; // 111 (kandungan)
+  producer: string;       // B (produsen)
+  packageType?: string;   // B (Box) - optional untuk bulk
+  sequence: string;       // 0001 (urutan)
+}
+
+// qrcode.service.ts - Key methods
+export class QRCodeService {
+  async generateQRCode(medicineId: string, isBulkPackage: boolean = false): Promise<QRCodeData> {
+    // 1. Get medicine master data
+    // 2. Build QR code components (year, month, codes, sequence)
+    // 3. Format QR code string
+    // 4. Generate QR code image
+    // 5. Save to database
+  }
+  
+  private formatQRCode(components: QRCodeComponents, isBulkPackage: boolean): string {
+    const { year, month, fundingSource, medicineType, activeIngredient, producer, packageType, sequence } = components;
+    
+    if (isBulkPackage && packageType) {
+      // Format: 25071F111B-B0001
+      return `${year}${month}${fundingSource}${medicineType}${activeIngredient}${producer}-${packageType}${sequence}`;
+    } else {
+      // Format: 25071F111B0001  
+      return `${year}${month}${fundingSource}${medicineType}${activeIngredient}${producer}${sequence}`;
+    }
+  }
+  
+  private generateNextSequence(current: string, type: SequenceType): { sequence: string; type: SequenceType } {
+    switch (type) {
+      case 'numeric':
+        const num = parseInt(current);
+        if (num < 9999) {
+          return { sequence: String(num + 1).padStart(4, '0'), type: 'numeric' };
+        }
+        return { sequence: '000A', type: 'alpha_suffix' };
+        
+      case 'alpha_suffix':
+        // Logic untuk 000A → ZZZZ → 001A
+        return this.incrementAlphaSuffix(current);
+        
+      default:
+        throw new Error('Invalid sequence type');
+    }
+  }
+  
+  async decodeQRCode(code: string): Promise<QRCodeComponents> {
+    // Validate format & parse components
+    const isBulkPackage = code.includes('-');
+    
+    if (isBulkPackage) {
+      // Parse: 25071F111B-B0001
+      const [mainPart, packagePart] = code.split('-');
+      return {
+        year: mainPart.substring(0, 2),
+        month: mainPart.substring(2, 4),
+        fundingSource: mainPart.substring(4, 5),
+        medicineType: mainPart.substring(5, 6),
+        activeIngredient: mainPart.substring(6, 9),
+        producer: mainPart.substring(9, 10),
+        packageType: packagePart.substring(0, 1),
+        sequence: packagePart.substring(1, 5)
+      };
+    } else {
+      // Parse: 25071F111B0001
+      return {
+        year: code.substring(0, 2),
+        month: code.substring(2, 4),
+        fundingSource: code.substring(4, 5),
+        medicineType: code.substring(5, 6),
+        activeIngredient: code.substring(6, 9),
+        producer: code.substring(9, 10),
+        sequence: code.substring(10, 14)
+      };
+    }
+  }
+}
 
 ## COLLABORATION-READY DOCUMENTATION
 
@@ -1512,10 +1813,18 @@ Setiap feature harus mengikuti pattern:
 
 ### ✅ **Development Workflow: Auth-Last**
 1. **Foundation** (Week 1-2)
-2. **Core Features** (Week 3-4): Users → Inventory  
+2. **Core Features** (Week 3-4): Users → Inventory → QR Code
 3. **Business Logic** (Week 5-6): Submissions → Approvals → Transactions
 4. **Authentication** (Week 7): JWT + Role-based auth
 5. **Advanced Features** (Week 8+): Reports + optimizations
+
+### ✅ **QR Code System Integration**
+- **Format**: 25071F111B0001 (item) & 25071F111B-B0001 (bulk package)
+- **Components**: Year + Month + Funding + Medicine Type + Ingredient + Producer + Sequence
+- **Sequence Logic**: 0001→9999 → 000A→ZZZZ → 001A→999Z (automatic progression)
+- **Master Data**: Configurable codes for all components
+- **Integration**: Seamlessly integrated with inventory & stock management
+- **Image Generation**: PNG QR code images with customizable settings
 
 ### ✅ **Collaboration Ready**
 - Clear module boundaries
@@ -1529,9 +1838,19 @@ Setiap feature harus mengikuti pattern:
 ## 🚀 **NEXT STEPS**
 
 1. **✅ Konsep finalized** - Clear, modular, laptop-friendly
-2. **✅ Frontend review** - Kamu check frontend dulu
-3. **⏳ Foundation setup** - Setelah konsep clear
-4. **⏳ Development guide** - Detailed implementation steps
-5. **⏳ Frontend integration** - Connect backend to Next.js
+2. **✅ QR Code system added** - Complete automatic ID generation system
+3. **✅ Frontend review** - Kamu check frontend dulu
+4. **⏳ Foundation setup** - Setelah konsep clear
+5. **⏳ Development guide** - Detailed implementation steps
+6. **⏳ Frontend integration** - Connect backend to Next.js
 
-**Konsep ini sudah mature dan collaboration-ready!** 🎉
+**Konsep ini sudah mature dan collaboration-ready dengan QR Code system!** 🎉
+
+### 📋 **QR Code System Summary:**
+- ✅ **Format Definition**: 25071F111B0001 (item) & 25071F111B-B0001 (bulk)
+- ✅ **Database Schema**: qr_code_masters & qr_code_sequences tables
+- ✅ **API Endpoints**: Complete CRUD operations for QR codes
+- ✅ **Business Logic**: Smart sequence management & validation
+- ✅ **Implementation**: TypeScript service with example code
+- ✅ **Integration**: Seamless integration with inventory system
+- ✅ **Future Ready**: Extensible for advanced features
