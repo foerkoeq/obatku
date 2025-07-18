@@ -140,9 +140,18 @@ model Submission {
   totalArea       Decimal          @map("total_area") @db.Decimal(10, 2)
   affectedArea    Decimal          @map("affected_area") @db.Decimal(10, 2)
   pestTypes       Json             @map("pest_types")
-  letterNumber    String           @map("letter_number")
-  letterDate      DateTime         @map("letter_date")
-  letterFileUrl   String           @map("letter_file_url")
+  
+  // PPL-specific fields (optional for POPT submissions)
+  letterNumber    String?          @map("letter_number")
+  letterDate      DateTime?        @map("letter_date")
+  letterFileUrl   String?          @map("letter_file_url")
+  
+  // POPT-specific fields (optional for PPL submissions)
+  activityType    POPTActivityType? @map("activity_type")
+  urgencyReason   String?          @map("urgency_reason") @db.Text
+  requestedBy     String?          @map("requested_by")
+  activityDate    DateTime?        @map("activity_date")
+  
   status          SubmissionStatus @default(PENDING)
   priority        SubmissionPriority @default(MEDIUM)
   
@@ -188,6 +197,14 @@ enum SubmissionPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum POPTActivityType {
+  PEST_CONTROL
+  SURVEILLANCE
+  EMERGENCY_RESPONSE
+  TRAINING_DEMO
+  FIELD_INSPECTION
 }
 
 model SubmissionItem {

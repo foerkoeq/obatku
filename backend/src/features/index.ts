@@ -1,6 +1,8 @@
 // src/features/index.ts
 export * from './inventory';
 export * from './qrcode';
+export * from './submissions';
+export * from './users';
 
 // Feature integration types
 export interface FeatureIntegration {
