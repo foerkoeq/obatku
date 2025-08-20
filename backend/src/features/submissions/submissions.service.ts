@@ -19,8 +19,7 @@ import {
   SubmissionPriority,
   POPTActivityType,
   SubmissionError,
-  SubmissionErrorCode,
-  UploadedFile
+  SubmissionErrorCode
 } from './submissions.types';
 import {
   createSubmissionSchema,
@@ -101,13 +100,14 @@ export class SubmissionService {
       totalArea: validatedData.totalArea,
       affectedArea: validatedData.affectedArea,
       pestTypes: validatedData.pestTypes,
-      letterNumber: validatedData.letterNumber,
-      letterDate: validatedData.letterDate,
+      // Use validated data if available, otherwise fallback to request data
+      letterNumber: 'letterNumber' in validatedData ? validatedData.letterNumber : request.letterNumber,
+      letterDate: 'letterDate' in validatedData ? validatedData.letterDate : request.letterDate,
       letterFileUrl,
-      activityType: validatedData.activityType,
-      urgencyReason: validatedData.urgencyReason,
-      requestedBy: validatedData.requestedBy,
-      activityDate: validatedData.activityDate,
+      activityType: 'activityType' in validatedData ? validatedData.activityType : request.activityType,
+      urgencyReason: 'urgencyReason' in validatedData ? validatedData.urgencyReason : request.urgencyReason,
+      requestedBy: 'requestedBy' in validatedData ? validatedData.requestedBy : request.requestedBy,
+      activityDate: 'activityDate' in validatedData ? validatedData.activityDate : request.activityDate,
       priority,
       submitterId,
       items: validatedData.items
@@ -405,6 +405,9 @@ export class SubmissionService {
         'Cannot delete submission in current status'
       );
     }
+
+    // Log the deletion action for audit trail
+    console.log(`Submission ${id} deleted by user ${userId} (${userRole}) at ${new Date().toISOString()}`);
 
     return await this.submissionRepository.delete(id);
   }

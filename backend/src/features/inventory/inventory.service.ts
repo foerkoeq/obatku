@@ -1,5 +1,4 @@
 // src/features/inventory/inventory.service.ts
-import { PrismaClient } from '@prisma/client';
 import {
   MedicineStatus,
   CreateMedicineDto,
@@ -8,208 +7,99 @@ import {
   UpdateMedicineStockDto,
   MedicineQueryParams
 } from './inventory.types';
+import { InventoryRepository } from './inventory.repository';
 
 export class InventoryService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly inventoryRepository: InventoryRepository) {}
 
   // Medicine Service Methods
   async getAllMedicines(query: MedicineQueryParams) {
-    const page = query.page || 1;
-    const limit = query.limit || 20;
-    const skip = (page - 1) * limit;
-
-    const medicines = await this.prisma.medicine.findMany({
-      skip,
-      take: limit,
-      where: {
-        ...(query.search && {
-          OR: [
-            { name: { contains: query.search } },
-            { producer: { contains: query.search } },
-          ]
-        }),
-        ...(query.category && { category: query.category }),
-        ...(query.supplier && { supplier: query.supplier }),
-        ...(query.status && { status: query.status }),
-      },
-      orderBy: {
-        [query.sortBy || 'createdAt']: query.sortOrder || 'desc'
-      }
-    });
-
-    const total = await this.prisma.medicine.count({
-      where: {
-        ...(query.search && {
-          OR: [
-            { name: { contains: query.search } },
-            { producer: { contains: query.search } },
-          ]
-        }),
-        ...(query.category && { category: query.category }),
-        ...(query.supplier && { supplier: query.supplier }),
-        ...(query.status && { status: query.status }),
-      }
-    });
-
-    return {
-      medicines,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    };
+    return await this.inventoryRepository.findMedicines(query);
   }
 
   async getMedicineById(id: string) {
-    const medicine = await this.prisma.medicine.findUnique({
-      where: { id }
-    });
-
+    const medicine = await this.inventoryRepository.findMedicineById(id);
     if (!medicine) {
       throw new Error('Medicine not found');
     }
-
     return medicine;
   }
 
   async createMedicine(data: CreateMedicineDto, userId: string) {
-    return await this.prisma.medicine.create({
-      data: {
-        ...data,
-        createdBy: userId
-      }
-    });
+    return await this.inventoryRepository.createMedicine(data, userId);
   }
 
   async updateMedicine(id: string, data: UpdateMedicineDto, _userId: string) {
     // Validate medicine exists
     await this.getMedicineById(id);
     
-    return await this.prisma.medicine.update({
-      where: { id },
-      data
-    });
+    return await this.inventoryRepository.updateMedicine(id, data);
   }
 
   async deleteMedicine(id: string) {
     // Validate medicine exists
     await this.getMedicineById(id);
     
-    return await this.prisma.medicine.delete({
-      where: { id }
-    });
+    return await this.inventoryRepository.deleteMedicine(id);
   }
 
   async updateMedicineStatus(id: string, status: MedicineStatus, _userId: string) {
     // Validate medicine exists
     await this.getMedicineById(id);
     
-    return await this.prisma.medicine.update({
-      where: { id },
-      data: { status }
-    });
+    return await this.inventoryRepository.updateMedicine(id, { status });
   }
 
   // Stock Service Methods
   async getAllMedicineStocks(query: any) {
-    const page = query.page || 1;
-    const limit = query.limit || 20;
-    const skip = (page - 1) * limit;
-
-    const stocks = await this.prisma.medicineStock.findMany({
-      skip,
-      take: limit,
-      include: {
-        medicine: true
-      }
-    });
-
-    const total = await this.prisma.medicineStock.count();
-
-    return {
-      stocks,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      summary: {}
-    };
+    return await this.inventoryRepository.findMedicineStocks(query);
   }
 
   async getMedicineStockById(id: string) {
-    const stock = await this.prisma.medicineStock.findUnique({
-      where: { id },
-      include: {
-        medicine: true
-      }
-    });
-
+    const stock = await this.inventoryRepository.findMedicineStockById(id);
     if (!stock) {
       throw new Error('Medicine stock not found');
     }
-
     return stock;
   }
 
   async createMedicineStock(data: CreateMedicineStockDto, _userId: string) {
-    return await this.prisma.medicineStock.create({
-      data: {
-        ...data,
-        currentStock: data.initialStock
-      }
-    });
+    return await this.inventoryRepository.createMedicineStock(data);
   }
 
   async updateMedicineStock(id: string, data: UpdateMedicineStockDto, _userId: string) {
     // Validate stock exists
     await this.getMedicineStockById(id);
     
-    return await this.prisma.medicineStock.update({
-      where: { id },
-      data
-    });
+    return await this.inventoryRepository.updateMedicineStock(id, data);
   }
 
   async adjustStock(id: string, quantity: number, _reason: string, _userId: string, _notes?: string) {
     const stock = await this.getMedicineStockById(id);
+    const newQuantity = Number(stock.currentStock) + quantity;
     
-    return await this.prisma.medicineStock.update({
-      where: { id },
-      data: {
-        currentStock: stock.currentStock.toNumber() + quantity
-      }
-    });
+    return await this.inventoryRepository.adjustStock(id, newQuantity);
   }
 
   async reserveStock(id: string, quantity: number, _userId: string) {
     const stock = await this.getMedicineStockById(id);
+    const newQuantity = Number(stock.currentStock) - quantity;
     
-    return await this.prisma.medicineStock.update({
-      where: { id },
-      data: {
-        currentStock: stock.currentStock.toNumber() - quantity
-      }
-    });
+    return await this.inventoryRepository.adjustStock(id, newQuantity);
   }
 
   async releaseReservedStock(id: string, quantity: number, _userId: string) {
     const stock = await this.getMedicineStockById(id);
+    const newQuantity = Number(stock.currentStock) + quantity;
     
-    return await this.prisma.medicineStock.update({
-      where: { id },
-      data: {
-        currentStock: stock.currentStock.toNumber() + quantity
-      }
-    });
+    return await this.inventoryRepository.adjustStock(id, newQuantity);
   }
 
   async deleteStock(id: string) {
     // Validate stock exists
     await this.getMedicineStockById(id);
     
-    return await this.prisma.medicineStock.delete({
-      where: { id }
-    });
+    return await this.inventoryRepository.deleteMedicineStock(id);
   }
 
   // Mock methods for other features
@@ -250,24 +140,25 @@ export class InventoryService {
   }
 
   async getInventoryStatistics() {
-    return {};
+    return await this.inventoryRepository.getInventoryStatistics();
   }
 
   async getLowStockItems(_limit: number) {
-    return [];
+    return await this.inventoryRepository.getLowStockItems();
   }
 
-  async getExpiringSoonItems(_days: number, _limit: number) {
-    return [];
+  async getExpiringSoonItems(days: number, _limit: number) {
+    return await this.inventoryRepository.getExpiringSoonItems(days);
   }
 
   async getStockValueByCategory() {
-    return [];
+    return await this.inventoryRepository.getStockValueByCategory();
   }
 
-  async bulkUpdateMedicineStatus(_ids: string[], _status: MedicineStatus, _userId: string) {
+  async bulkUpdateMedicineStatus(ids: string[], status: MedicineStatus, _userId: string) {
+    const updated = await this.inventoryRepository.bulkUpdateMedicineStatus(ids, status);
     return {
-      updated: 0,
+      updated,
       errors: []
     };
   }

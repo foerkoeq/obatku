@@ -40,6 +40,11 @@ model User {
   verifiedTransactions Transaction[]  @relation("TransactionVerifier")
   activityLogs         ActivityLog[]
   createdQRCodeMasters QRCodeMaster[] @relation("QRCodeMasterCreator")
+  updatedQRCodeMasters QRCodeMaster[] @relation("QRCodeMasterUpdater")
+  generatedQRCodeData  QRCodeData[]   @relation("QRCodeGenerator")
+  printedQRCodeData    QRCodeData[]   @relation("QRCodePrinter")
+  lastScannedQRCodeData QRCodeData[]  @relation("QRCodeLastScanner")
+  scannedQRCodeLogs    QRCodeScanLog[] @relation("QRCodeScanner")
 
   @@map("users")
   @@index([role])
@@ -118,6 +123,7 @@ model MedicineStock {
   // Relations
   medicine         Medicine          @relation(fields: [medicineId], references: [id], onDelete: Cascade)
   transactionItems TransactionItem[]
+  qrCodeData       QRCodeData[]
 
   @@map("medicine_stocks")
   @@index([medicineId])
@@ -339,14 +345,16 @@ model QRCodeMaster {
   producerName          String  @map("producer_name") @db.VarChar(255)
   packageTypeCode       String? @map("package_type_code") @db.VarChar(1)
   packageTypeName       String? @map("package_type_name") @db.VarChar(100)
-  status                QRCodeStatus @default(ACTIVE)
+  status                QRMasterStatus @default(ACTIVE)
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
 
   // Relations
   creator   User              @relation("QRCodeMasterCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("QRCodeMasterUpdater", fields: [updatedBy], references: [id])
   sequences QRCodeSequence[]
 
   @@map("qr_code_masters")
@@ -359,9 +367,15 @@ model QRCodeMaster {
   @@index([status])
 }
 
-enum QRCodeStatus {
+enum QRMasterStatus {
   ACTIVE
   INACTIVE
+}
+
+enum SequenceType {
+  NUMERIC
+  ALPHA_SUFFIX
+  ALPHA_PREFIX
 }
 
 model QRCodeSequence {
@@ -375,6 +389,9 @@ model QRCodeSequence {
   packageTypeCode       String? @map("package_type_code") @db.VarChar(1)
   currentSequence       String  @default("0001") @map("current_sequence") @db.VarChar(4)
   sequenceType          SequenceType @default(NUMERIC) @map("sequence_type")
+  lastGenerated         DateTime? @map("last_generated")
+  totalGenerated        Int     @default(0) @map("total_generated")
+  status                SequenceStatus @default(ACTIVE)
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -387,8 +404,94 @@ model QRCodeSequence {
   @@index([year, month, fundingSourceCode, medicineTypeCode, activeIngredientCode, producerCode])
 }
 
-enum SequenceType {
-  NUMERIC
-  ALPHA_SUFFIX
-  ALPHA_PREFIX
+enum SequenceStatus {
+  ACTIVE
+  EXHAUSTED
+  INACTIVE
+}
+
+model QRCodeData {
+  id              String      @id @default(cuid())
+  qrCodeString    String      @unique @map("qr_code_string") @db.VarChar(50)
+  qrCodeImage     String?     @map("qr_code_image") @db.Text
+  medicineStockId String?     @map("medicine_stock_id")
+  isBulkPackage   Boolean     @default(false) @map("is_bulk_package")
+  components      Json
+  batchInfo       Json?       @map("batch_info")
+  generatedAt     DateTime    @default(now()) @map("generated_at")
+  generatedBy     String      @map("generated_by")
+  printedAt       DateTime?   @map("printed_at")
+  printedBy       String?     @map("printed_by")
+  scannedCount    Int         @default(0) @map("scanned_count")
+  lastScannedAt   DateTime?   @map("last_scanned_at")
+  lastScannedBy   String?     @map("last_scanned_by")
+  status          QRCodeDataStatus @default(GENERATED)
+  notes           String?     @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  medicineStock MedicineStock? @relation(fields: [medicineStockId], references: [id])
+  generator     User           @relation("QRCodeGenerator", fields: [generatedBy], references: [id])
+  printer       User?          @relation("QRCodePrinter", fields: [printedBy], references: [id])
+  lastScanner   User?          @relation("QRCodeLastScanner", fields: [lastScannedBy], references: [id])
+  scanLogs      QRCodeScanLog[]
+
+  @@map("qr_code_data")
+  @@index([qrCodeString])
+  @@index([medicineStockId])
+  @@index([generatedBy])
+  @@index([status])
+  @@index([generatedAt])
+}
+
+enum QRCodeDataStatus {
+  GENERATED
+  PRINTED
+  DISTRIBUTED
+  SCANNED
+  USED
+  EXPIRED
+  INVALID
+}
+
+model QRCodeScanLog {
+  id         String      @id @default(cuid())
+  qrCodeId   String      @map("qr_code_id")
+  scannedBy  String      @map("scanned_by")
+  scannedAt  DateTime    @default(now()) @map("scanned_at")
+  location   String?     @db.VarChar(255)
+  deviceInfo String?     @map("device_info") @db.Text
+  purpose    ScanPurpose
+  result     ScanResult
+  notes      String?     @db.Text
+
+  // Relations
+  qrCode    QRCodeData @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  scanner   User       @relation("QRCodeScanner", fields: [scannedBy], references: [id])
+
+  @@map("qr_code_scan_logs")
+  @@index([qrCodeId])
+  @@index([scannedBy])
+  @@index([scannedAt])
+  @@index([purpose])
+  @@index([result])
+}
+
+enum ScanPurpose {
+  VERIFICATION
+  DISTRIBUTION
+  INVENTORY_CHECK
+  TRANSACTION
+  AUDIT
+}
+
+enum ScanResult {
+  SUCCESS
+  INVALID_FORMAT
+  NOT_FOUND
+  EXPIRED
+  ALREADY_USED
+  ERROR
 }

@@ -12,12 +12,11 @@ import {
   QRCodeGenerationResult,
   QRCodeValidationResult,
   QRCodeScanResult,
+  PrismaQRCodeDataStatus,
+  PrismaScanResult,
   SequenceType,
   QRCodeStatus,
-  ScanPurpose,
   ScanResult,
-  QR_CODE_FORMATS,
-  SEQUENCE_CONFIGS
 } from './qrcode.types';
 import { QRCodeRepository } from './qrcode.repository';
 import QRCode from 'qrcode';
@@ -33,7 +32,7 @@ export class QRCodeService {
       data.medicineTypeCode,
       data.activeIngredientCode,
       data.producerCode,
-      data.packageTypeCode
+      data.packageTypeCode || undefined
     );
 
     if (exists) {
@@ -76,7 +75,7 @@ export class QRCodeService {
       master.medicineTypeCode,
       master.activeIngredientCode,
       master.producerCode,
-      master.packageTypeCode
+      master.packageTypeCode || undefined
     );
 
     if (hasQRCodes) {
@@ -123,7 +122,7 @@ export class QRCodeService {
             components,
             batchInfo: data.batchInfo,
             generatedBy: userId,
-            status: QRCodeStatus.GENERATED,
+            status: 'GENERATED' as PrismaQRCodeDataStatus,
             notes: data.notes
           });
 
@@ -131,14 +130,16 @@ export class QRCodeService {
           result.generated++;
         } catch (error) {
           result.failed++;
-          result.errors?.push(`Failed to generate QR code ${i + 1}: ${error.message}`);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          result.errors?.push(`Failed to generate QR code ${i + 1}: ${errorMessage}`);
         }
       }
 
       result.success = result.generated > 0;
       return result;
     } catch (error) {
-      result.errors?.push(error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      result.errors?.push(errorMessage);
       return result;
     }
   }
@@ -193,10 +194,11 @@ export class QRCodeService {
 
       result.success = result.generated > 0;
       return result;
-    } catch (error) {
-      result.errors?.push(error.message);
-      return result;
-    }
+         } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+       result.errors?.push(errorMessage);
+       return result;
+     }
   }
 
   // QR Code Scanning
@@ -211,7 +213,7 @@ export class QRCodeService {
             qrCodeString: data.qrCodeString,
             scannedBy: userId,
             purpose: data.purpose,
-            result: ScanResult.INVALID_FORMAT,
+            result: 'INVALID_FORMAT' as PrismaScanResult,
             location: data.location,
             deviceInfo: data.deviceInfo,
             notes: data.notes
@@ -282,22 +284,23 @@ export class QRCodeService {
         result: ScanResult.SUCCESS,
         message: 'QR code scanned successfully'
       };
-    } catch (error) {
-      return {
-        success: false,
-        scanLog: await this.qrCodeRepository.createScanLog({
-          qrCodeString: data.qrCodeString,
-          scannedBy: userId,
-          purpose: data.purpose,
-          result: ScanResult.ERROR,
-          location: data.location,
-          deviceInfo: data.deviceInfo,
-          notes: `Error: ${error.message}`
-        }),
-        result: ScanResult.ERROR,
-        message: `Scan failed: ${error.message}`
-      };
-    }
+         } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+       return {
+         success: false,
+         scanLog: await this.qrCodeRepository.createScanLog({
+           qrCodeString: data.qrCodeString,
+           scannedBy: userId,
+           purpose: data.purpose,
+           result: ScanResult.ERROR,
+           location: data.location,
+           deviceInfo: data.deviceInfo,
+           notes: `Error: ${errorMessage}`
+         }),
+         result: ScanResult.ERROR,
+         message: `Scan failed: ${errorMessage}`
+       };
+     }
   }
 
   // QR Code Validation
@@ -363,10 +366,11 @@ export class QRCodeService {
       result.isValid = result.errors.length === 0;
       result.components = components;
       return result;
-    } catch (error) {
-      result.errors.push(`Validation error: ${error.message}`);
-      return result;
-    }
+         } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+       result.errors.push(`Validation error: ${errorMessage}`);
+       return result;
+     }
   }
 
   // Helper Methods
@@ -564,9 +568,10 @@ export class QRCodeService {
 
       const qrCodeDataURL = await QRCode.toDataURL(qrCodeString, options);
       return qrCodeDataURL;
-    } catch (error) {
-      throw new Error(`Failed to generate QR code image: ${error.message}`);
-    }
+         } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+       throw new Error(`Failed to generate QR code image: ${errorMessage}`);
+     }
   }
 
   private isValidSequence(sequence: string): boolean {
@@ -606,7 +611,7 @@ export class QRCodeService {
     await this.qrCodeRepository.deleteQRCode(id);
   }
 
-  async updateQRCodeStatus(id: string, status: QRCodeStatus, userId: string): Promise<QRCodeData> {
+  async updateQRCodeStatus(id: string, status: PrismaQRCodeDataStatus, userId: string): Promise<QRCodeData> {
     const qrCode = await this.qrCodeRepository.findQRCodeById(id);
     if (!qrCode) {
       throw new Error('QR code not found');

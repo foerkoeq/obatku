@@ -124,6 +124,17 @@ export class ResponseUtil {
   }
 
   /**
+   * Send too many requests response
+   */
+  static tooManyRequests(
+    res: Response,
+    message = 'Too many requests',
+    details?: any
+  ): Response<ErrorResponse> {
+    return this.error(res, 'TOO_MANY_REQUESTS', message, details, 429);
+  }
+
+  /**
    * Send internal server error response
    */
   static internalError(

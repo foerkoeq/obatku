@@ -2,32 +2,86 @@
 // SUBMISSION ROUTES
 // ================================================
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { SubmissionController } from './submissions.controller';
-import { authMiddleware } from '../../middleware/auth.middleware';
-import { roleMiddleware } from '../../middleware/role.middleware';
-import { validateRequest } from '../../middleware/validation.middleware';
-import { rateLimitMiddleware } from '../../middleware/rate-limit.middleware';
-import { UserRole } from '@prisma/client';
+import { authenticateToken } from '../../middleware/auth.middleware';
+import { USER_ROLES } from '../../shared/constants/roles.constants';
+
+// ================================================
+// TYPE DEFINITIONS
+// ================================================
+
+// Note: User information is added by authenticateToken middleware
+// req.user will be available in all routes after authentication
+
+// ================================================
+// ROLE MIDDLEWARE
+// ================================================
+
+/**
+ * Role-based access middleware
+ */
+const requireRole = (allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required'
+          }
+        });
+        return;
+      }
+
+      const userRole = req.user.role;
+      
+      if (!allowedRoles.includes(userRole)) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Insufficient permissions for this action',
+            required: allowedRoles,
+            current: userRole
+          }
+        });
+        return;
+      }
+
+      next();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Role validation failed';
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: errorMessage
+        }
+      });
+    }
+  };
+};
 
 // ================================================
 // MULTER CONFIGURATION FOR FILE UPLOADS
 // ================================================
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req: any, _file: any, cb: any) => {
     cb(null, 'src/uploads/submissions/letters');
   },
-  filename: (req, file, cb) => {
+  filename: (_req: any, file: Express.Multer.File, cb: any) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, `letter-${uniqueSuffix}${ext}`);
   }
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Allow only specific file types
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
   
@@ -59,14 +113,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
   // ================================================
 
   // Apply authentication to all routes
-  router.use(authMiddleware);
-
-  // Apply rate limiting
-  router.use(rateLimitMiddleware({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // requests per window per IP
-    message: 'Too many requests from this IP, please try again later.'
-  }));
+  router.use(authenticateToken);
 
   // ================================================
   // CREATE ROUTES
@@ -80,9 +127,9 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.post(
     '/',
-    roleMiddleware([UserRole.PPL, UserRole.POPT, UserRole.DINAS, UserRole.ADMIN]),
+    requireRole([USER_ROLES.PPL, USER_ROLES.POPT, USER_ROLES.DINAS, USER_ROLES.ADMIN]),
     upload.single('letterFile'), // Handle file upload
-    submissionController.createSubmission
+    submissionController.createSubmission as any
   );
 
   // ================================================
@@ -97,7 +144,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/',
-    submissionController.getSubmissions
+    submissionController.getSubmissions as any
   );
 
   /**
@@ -108,7 +155,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/my',
-    submissionController.getUserSubmissions
+    submissionController.getUserSubmissions as any
   );
 
   /**
@@ -118,8 +165,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/pending-review',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    submissionController.getPendingReview
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    submissionController.getPendingReview as any
   );
 
   /**
@@ -129,8 +176,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/overdue',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    submissionController.getOverdueSubmissions
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    submissionController.getOverdueSubmissions as any
   );
 
   /**
@@ -141,8 +188,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/stats',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    submissionController.getSubmissionStats
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    submissionController.getSubmissionStats as any
   );
 
   /**
@@ -152,7 +199,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/my-stats',
-    submissionController.getUserSubmissionStats
+    submissionController.getUserSubmissionStats as any
   );
 
   /**
@@ -162,7 +209,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/types',
-    submissionController.getSubmissionTypes
+    submissionController.getSubmissionTypes as any
   );
 
   /**
@@ -173,7 +220,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/:id',
-    submissionController.getSubmissionById
+    submissionController.getSubmissionById as any
   );
 
   /**
@@ -184,7 +231,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/number/:submissionNumber',
-    submissionController.getSubmissionByNumber
+    submissionController.getSubmissionByNumber as any
   );
 
   // ================================================
@@ -200,7 +247,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.put(
     '/:id',
-    submissionController.updateSubmission
+    submissionController.updateSubmission as any
   );
 
   /**
@@ -212,8 +259,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.patch(
     '/:id/status',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN, UserRole.POPT]),
-    submissionController.updateSubmissionStatus
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN, USER_ROLES.POPT]),
+    submissionController.updateSubmissionStatus as any
   );
 
   /**
@@ -225,8 +272,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.patch(
     '/:id/approve',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    submissionController.approveSubmission
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    submissionController.approveSubmission as any
   );
 
   /**
@@ -238,8 +285,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.patch(
     '/:id/reject',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    submissionController.rejectSubmission
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    submissionController.rejectSubmission as any
   );
 
   /**
@@ -251,7 +298,7 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.patch(
     '/:id/cancel',
-    submissionController.cancelSubmission
+    submissionController.cancelSubmission as any
   );
 
   // ================================================
@@ -266,8 +313,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.delete(
     '/:id',
-    roleMiddleware([UserRole.ADMIN]),
-    submissionController.deleteSubmission
+    requireRole([USER_ROLES.ADMIN]),
+    submissionController.deleteSubmission as any
   );
 
   // ================================================
@@ -282,8 +329,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.post(
     '/bulk-approve',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    async (req, res, next) => {
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    async (_req: Request, res: Response, next: NextFunction) => {
       try {
         // TODO: Implement bulk approval
         res.status(501).json({
@@ -307,8 +354,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.post(
     '/bulk-reject',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    async (req, res, next) => {
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    async (_req: Request, res: Response, next: NextFunction) => {
       try {
         // TODO: Implement bulk rejection
         res.status(501).json({
@@ -336,8 +383,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/export/excel',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    async (req, res, next) => {
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    async (_req: Request, res: Response, next: NextFunction) => {
       try {
         // TODO: Implement Excel export
         res.status(501).json({
@@ -361,8 +408,8 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
    */
   router.get(
     '/export/pdf',
-    roleMiddleware([UserRole.DINAS, UserRole.ADMIN]),
-    async (req, res, next) => {
+    requireRole([USER_ROLES.DINAS, USER_ROLES.ADMIN]),
+    async (_req: Request, res: Response, next: NextFunction) => {
       try {
         // TODO: Implement PDF export
         res.status(501).json({
@@ -383,45 +430,49 @@ export const createSubmissionRoutes = (submissionController: SubmissionControlle
   // ================================================
 
   // Handle multer errors
-  router.use((error: any, req: any, res: any, next: any) => {
+  router.use((error: any, _req: Request, res: Response, next: NextFunction): void => {
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'FILE_TOO_LARGE',
             message: 'File size exceeds 5MB limit'
           }
         });
+        return;
       }
       if (error.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'TOO_MANY_FILES',
             message: 'Only one file is allowed'
           }
         });
+        return;
       }
       if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'UNEXPECTED_FILE',
             message: 'Unexpected file field'
           }
         });
+        return;
       }
     }
 
     if (error.message && error.message.includes('Invalid file type')) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_FILE_TYPE',
           message: error.message
         }
       });
+      return;
     }
 
     next(error);

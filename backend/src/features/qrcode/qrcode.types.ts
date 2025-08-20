@@ -1,6 +1,4 @@
 // src/features/qrcode/qrcode.types.ts
-import { z } from 'zod';
-
 // QR Code Master Data Types
 export interface QRCodeMaster {
   id: string;
@@ -12,13 +10,13 @@ export interface QRCodeMaster {
   activeIngredientName: string;
   producerCode: string;
   producerName: string;
-  packageTypeCode?: string;    // For bulk packages
-  packageTypeName?: string;    // For bulk packages
-  status: QRMasterStatus;
+  packageTypeCode: string | null;    // Matches Prisma schema
+  packageTypeName: string | null;    // Matches Prisma schema
+  status: PrismaQRMasterStatus;      // Use Prisma type
   createdAt: Date;
   updatedAt: Date;
   createdBy: string;
-  updatedBy?: string;
+  updatedBy: string | null;          // Matches Prisma schema
 }
 
 export interface QRCodeSequence {
@@ -29,11 +27,12 @@ export interface QRCodeSequence {
   medicineTypeCode: string;    // 1 character (F, I, H)
   activeIngredientCode: string; // 3 digits (111)
   producerCode: string;        // 1 character (A, B, C...)
-  packageTypeCode?: string;    // 1 character for bulk (B, K, S...)
+  packageTypeCode: string | null;    // Matches Prisma schema
   currentSequence: string;     // Current sequence (0001, 000A, etc)
-  lastGenerated: Date;
+  sequenceType: PrismaSequenceType;  // Use Prisma type
+  lastGenerated: Date | null;  // Matches Prisma schema
   totalGenerated: number;
-  status: SequenceStatus;
+  status: PrismaSequenceStatus;      // Use Prisma type
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,21 +40,21 @@ export interface QRCodeSequence {
 export interface QRCodeData {
   id: string;
   qrCodeString: string;        // Full QR code (25071F111B0001)
-  qrCodeImage?: string;        // Base64 or file path
-  medicineStockId?: string;    // Associated medicine stock
+  qrCodeImage: string | null;  // Matches Prisma schema
+  medicineStockId: string | null;    // Matches Prisma schema
   medicineStock?: any;         // Medicine stock reference
   isBulkPackage: boolean;
-  components: QRCodeComponents;
-  batchInfo?: QRBatchInfo;
+  components: any;             // Allow JSON from Prisma
+  batchInfo?: any;             // Allow JSON from Prisma
   generatedAt: Date;
   generatedBy: string;
-  printedAt?: Date;
-  printedBy?: string;
+  printedAt: Date | null;      // Matches Prisma schema
+  printedBy: string | null;    // Matches Prisma schema
   scannedCount: number;
-  lastScannedAt?: Date;
-  lastScannedBy?: string;
-  status: QRCodeStatus;
-  notes?: string;
+  lastScannedAt: Date | null;  // Matches Prisma schema
+  lastScannedBy: string | null; // Matches Prisma schema
+  status: PrismaQRCodeDataStatus;    // Use Prisma type
+  notes: string | null;        // Matches Prisma schema
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,7 +66,7 @@ export interface QRCodeComponents {
   medicineType: string;      // F
   activeIngredient: string;  // 111
   producer: string;          // B
-  packageType?: string;      // B (for bulk)
+  packageType?: string;      // B (for bulk) - keep as undefined for optional
   sequence: string;          // 0001
 }
 
@@ -85,56 +84,75 @@ export interface QRCodeScanLog {
   qrCode?: QRCodeData;
   scannedBy: string;
   scannedAt: Date;
-  location?: string;
-  deviceInfo?: string;
-  purpose: ScanPurpose;
-  result: ScanResult;
-  notes?: string;
+  location: string | null;   // Matches Prisma schema
+  deviceInfo: string | null; // Matches Prisma schema
+  purpose: PrismaScanPurpose; // Use Prisma type
+  result: PrismaScanResult;   // Use Prisma type
+  notes: string | null;      // Matches Prisma schema
 }
 
-// Enums
+// Enums - Updated to match Prisma schema exactly
 export enum QRMasterStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive'
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE'
 }
+
+// Type aliases for Prisma-generated enums
+export type PrismaQRMasterStatus = 'ACTIVE' | 'INACTIVE';
+export type PrismaSequenceType = 'NUMERIC' | 'ALPHA_SUFFIX' | 'ALPHA_PREFIX';
+export type PrismaSequenceStatus = 'ACTIVE' | 'EXHAUSTED' | 'INACTIVE';
+export type PrismaQRCodeDataStatus = 'GENERATED' | 'PRINTED' | 'DISTRIBUTED' | 'SCANNED' | 'USED' | 'EXPIRED' | 'INVALID';
+export type PrismaScanPurpose = 'VERIFICATION' | 'DISTRIBUTION' | 'INVENTORY_CHECK' | 'TRANSACTION' | 'AUDIT';
+export type PrismaScanResult = 'SUCCESS' | 'INVALID_FORMAT' | 'NOT_FOUND' | 'EXPIRED' | 'ALREADY_USED' | 'ERROR';
 
 export enum SequenceStatus {
-  ACTIVE = 'active',
-  EXHAUSTED = 'exhausted',
-  INACTIVE = 'inactive'
+  ACTIVE = 'ACTIVE',
+  EXHAUSTED = 'EXHAUSTED',
+  INACTIVE = 'INACTIVE'
 }
 
+export enum QRCodeDataStatus {  // Changed from QRCodeStatus to match Prisma
+  GENERATED = 'GENERATED',
+  PRINTED = 'PRINTED',
+  DISTRIBUTED = 'DISTRIBUTED',
+  SCANNED = 'SCANNED',
+  USED = 'USED',
+  EXPIRED = 'EXPIRED',
+  INVALID = 'INVALID'
+}
+
+// Keep QRCodeStatus for backward compatibility
 export enum QRCodeStatus {
-  GENERATED = 'generated',
-  PRINTED = 'printed',
-  DISTRIBUTED = 'distributed',
-  SCANNED = 'scanned',
-  USED = 'used',
-  EXPIRED = 'expired',
-  INVALID = 'invalid'
+  GENERATED = 'GENERATED',
+  PRINTED = 'PRINTED',
+  DISTRIBUTED = 'DISTRIBUTED',
+  SCANNED = 'SCANNED',
+  USED = 'USED',
+  EXPIRED = 'EXPIRED',
+  INVALID = 'INVALID'
 }
 
 export enum ScanPurpose {
-  VERIFICATION = 'verification',
-  DISTRIBUTION = 'distribution',
-  INVENTORY_CHECK = 'inventory_check',
-  TRANSACTION = 'transaction',
-  AUDIT = 'audit'
+  VERIFICATION = 'VERIFICATION',
+  DISTRIBUTION = 'DISTRIBUTION',
+  INVENTORY_CHECK = 'INVENTORY_CHECK',
+  TRANSACTION = 'TRANSACTION',
+  AUDIT = 'AUDIT'
 }
 
 export enum ScanResult {
-  SUCCESS = 'success',
-  INVALID_FORMAT = 'invalid_format',
-  NOT_FOUND = 'not_found',
-  EXPIRED = 'expired',
-  ALREADY_USED = 'already_used',
-  ERROR = 'error'
+  SUCCESS = 'SUCCESS',
+  INVALID_FORMAT = 'INVALID_FORMAT',
+  NOT_FOUND = 'NOT_FOUND',
+  EXPIRED = 'EXPIRED',
+  ALREADY_USED = 'ALREADY_USED',
+  ERROR = 'ERROR'
 }
 
 export enum SequenceType {
-  NUMERIC = 'numeric',        // 0001-9999
-  ALPHA_SUFFIX = 'alpha_suffix', // 000A-ZZZZ
-  ALPHA_PREFIX = 'alpha_prefix'  // 001A-999Z
+  NUMERIC = 'NUMERIC',        // 0001-9999
+  ALPHA_SUFFIX = 'ALPHA_SUFFIX', // 000A-ZZZZ
+  ALPHA_PREFIX = 'ALPHA_PREFIX'  // 001A-999Z
 }
 
 // Create/Update DTOs
@@ -157,7 +175,7 @@ export interface UpdateQRCodeMasterDto {
   activeIngredientName?: string;
   producerName?: string;
   packageTypeName?: string;
-  status?: QRMasterStatus;
+  status?: PrismaQRMasterStatus;
 }
 
 export interface GenerateQRCodeDto {
@@ -179,7 +197,7 @@ export interface BulkGenerateQRCodeDto {
 
 export interface ScanQRCodeDto {
   qrCodeString: string;
-  purpose: ScanPurpose;
+  purpose: PrismaScanPurpose;
   location?: string;
   deviceInfo?: string;
   notes?: string;
@@ -193,7 +211,7 @@ export interface QRCodeMasterQuery {
   activeIngredientCode?: string;
   producerCode?: string;
   packageTypeCode?: string;
-  status?: QRMasterStatus;
+  status?: PrismaQRMasterStatus;
   sortBy?: 'fundingSourceCode' | 'medicineTypeCode' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
   page?: number;
@@ -204,7 +222,7 @@ export interface QRCodeQuery {
   search?: string;
   medicineStockId?: string;
   isBulkPackage?: boolean;
-  status?: QRCodeStatus;
+  status?: PrismaQRCodeDataStatus;
   generatedBy?: string;
   dateFrom?: Date;
   dateTo?: Date;
@@ -221,8 +239,8 @@ export interface QRCodeQuery {
 export interface QRCodeScanQuery {
   qrCodeId?: string;
   scannedBy?: string;
-  purpose?: ScanPurpose;
-  result?: ScanResult;
+  purpose?: PrismaScanPurpose;
+  result?: PrismaScanResult;
   dateFrom?: Date;
   dateTo?: Date;
   sortBy?: 'scannedAt' | 'purpose' | 'result';

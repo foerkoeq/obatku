@@ -1,19 +1,11 @@
 // src/features/qrcode/qrcode.repository.ts
 import { PrismaClient } from '@prisma/client';
 import {
-  QRCodeMaster,
-  QRCodeData,
-  QRCodeSequence,
-  QRCodeScanLog,
   CreateQRCodeMasterDto,
   UpdateQRCodeMasterDto,
   QRCodeMasterQuery,
   QRCodeQuery,
-  QRCodeScanQuery,
-  QRMasterStatus,
-  QRCodeStatus,
-  ScanResult,
-  SequenceStatus
+  QRCodeScanQuery
 } from './qrcode.types';
 import { PaginationUtil } from '../../shared/utils/pagination.util';
 
@@ -27,14 +19,13 @@ export class QRCodeRepository {
 
     const where: any = {};
 
-    // Search across multiple fields
+    // Search in name fields
     if (query.search) {
       where.OR = [
         { fundingSourceName: { contains: query.search, mode: 'insensitive' } },
         { medicineTypeName: { contains: query.search, mode: 'insensitive' } },
         { activeIngredientName: { contains: query.search, mode: 'insensitive' } },
-        { producerName: { contains: query.search, mode: 'insensitive' } },
-        { packageTypeName: { contains: query.search, mode: 'insensitive' } }
+        { producerName: { contains: query.search, mode: 'insensitive' } }
       ];
     }
 
@@ -54,8 +45,6 @@ export class QRCodeRepository {
     if (query.packageTypeCode) {
       where.packageTypeCode = query.packageTypeCode;
     }
-
-    // Filter by status
     if (query.status) {
       where.status = query.status;
     }
@@ -69,10 +58,10 @@ export class QRCodeRepository {
     }
 
     // Get total count
-    const total = await this.prisma.qrCodeMaster.count({ where });
+    const total = await this.prisma.qRCodeMaster.count({ where });
 
     // Get masters with pagination
-    const masters = await this.prisma.qrCodeMaster.findMany({
+    const masters = await this.prisma.qRCodeMaster.findMany({
       where,
       orderBy,
       skip: offset,
@@ -84,8 +73,8 @@ export class QRCodeRepository {
     return { masters, meta };
   }
 
-  async findQRCodeMasterById(id: string): Promise<QRCodeMaster | null> {
-    return this.prisma.qrCodeMaster.findUnique({
+  async findQRCodeMasterById(id: string) {
+    return this.prisma.qRCodeMaster.findUnique({
       where: { id }
     });
   }
@@ -96,8 +85,8 @@ export class QRCodeRepository {
     activeIngredientCode: string,
     producerCode: string,
     packageTypeCode?: string
-  ): Promise<QRCodeMaster | null> {
-    return this.prisma.qrCodeMaster.findFirst({
+  ) {
+    return this.prisma.qRCodeMaster.findFirst({
       where: {
         fundingSourceCode,
         medicineTypeCode,
@@ -108,11 +97,11 @@ export class QRCodeRepository {
     });
   }
 
-  async createQRCodeMaster(data: CreateQRCodeMasterDto, userId: string): Promise<QRCodeMaster> {
-    return this.prisma.qrCodeMaster.create({
+  async createQRCodeMaster(data: CreateQRCodeMasterDto, userId: string) {
+    return this.prisma.qRCodeMaster.create({
       data: {
         ...data,
-        status: QRMasterStatus.ACTIVE,
+        status: 'ACTIVE',
         createdBy: userId
       }
     });
@@ -122,19 +111,26 @@ export class QRCodeRepository {
     id: string,
     data: UpdateQRCodeMasterDto,
     userId: string
-  ): Promise<QRCodeMaster> {
-    return this.prisma.qrCodeMaster.update({
+  ) {
+    const updateData: any = {
+      ...data,
+      updatedAt: new Date(),
+      updatedBy: userId
+    };
+    
+    // Remove status if it's not provided to avoid type conflicts
+    if (!data.status) {
+      delete updateData.status;
+    }
+    
+    return this.prisma.qRCodeMaster.update({
       where: { id },
-      data: {
-        ...data,
-        updatedBy: userId,
-        updatedAt: new Date()
-      }
+      data: updateData
     });
   }
 
   async deleteQRCodeMaster(id: string): Promise<void> {
-    await this.prisma.qrCodeMaster.delete({
+    await this.prisma.qRCodeMaster.delete({
       where: { id }
     });
   }
@@ -147,12 +143,17 @@ export class QRCodeRepository {
     packageTypeCode?: string
   ): Promise<boolean> {
     // Check QR codes by parsing the qrCodeString
-    const qrCodePattern = `%${fundingSourceCode}${medicineTypeCode}${activeIngredientCode}${producerCode}%`;
+    let qrCodePattern = `${fundingSourceCode}${medicineTypeCode}${activeIngredientCode}${producerCode}`;
     
-    const count = await this.prisma.qrCodeData.count({
+    // If packageTypeCode is provided, include it in the pattern for bulk packages
+    if (packageTypeCode && packageTypeCode.trim() !== '') {
+      qrCodePattern += `-${packageTypeCode}`;
+    }
+    
+    const count = await this.prisma.qRCodeData.count({
       where: {
         qrCodeString: {
-          contains: `${fundingSourceCode}${medicineTypeCode}${activeIngredientCode}${producerCode}`
+          contains: qrCodePattern
         }
       }
     });
@@ -169,8 +170,8 @@ export class QRCodeRepository {
     activeIngredientCode: string,
     producerCode: string,
     packageTypeCode?: string
-  ): Promise<QRCodeSequence | null> {
-    return this.prisma.qrCodeSequence.findFirst({
+  ) {
+    return this.prisma.qRCodeSequence.findFirst({
       where: {
         year,
         month,
@@ -178,33 +179,32 @@ export class QRCodeRepository {
         medicineTypeCode,
         activeIngredientCode,
         producerCode,
-        packageTypeCode: packageTypeCode || null,
-        status: SequenceStatus.ACTIVE
+        packageTypeCode: packageTypeCode || null
       }
     });
   }
 
-  async findSequenceById(id: string): Promise<QRCodeSequence | null> {
-    return this.prisma.qrCodeSequence.findUnique({
+  async findSequenceById(id: string) {
+    return this.prisma.qRCodeSequence.findUnique({
       where: { id }
     });
   }
 
-  async createSequence(data: Omit<QRCodeSequence, 'id' | 'createdAt' | 'updatedAt'>): Promise<QRCodeSequence> {
-    return this.prisma.qrCodeSequence.create({
+  async createSequence(data: any) {
+    return this.prisma.qRCodeSequence.create({
       data: {
         ...data,
-        status: SequenceStatus.ACTIVE,
-        lastGenerated: new Date()
+        packageTypeCode: data.packageTypeCode || null,
+        lastGenerated: data.lastGenerated || new Date()
       }
     });
   }
 
   async updateSequence(
     id: string,
-    data: Partial<Pick<QRCodeSequence, 'currentSequence' | 'totalGenerated' | 'lastGenerated' | 'status'>>
-  ): Promise<QRCodeSequence> {
-    return this.prisma.qrCodeSequence.update({
+    data: Partial<Pick<any, 'currentSequence' | 'totalGenerated' | 'lastGenerated'>>
+  ) {
+    return this.prisma.qRCodeSequence.update({
       where: { id },
       data: {
         ...data,
@@ -267,7 +267,6 @@ export class QRCodeRepository {
       };
     }
     if (query.fundingSource) {
-      // This would need more complex string matching
       where.qrCodeString = {
         ...where.qrCodeString,
         contains: query.fundingSource
@@ -289,10 +288,10 @@ export class QRCodeRepository {
     }
 
     // Get total count
-    const total = await this.prisma.qrCodeData.count({ where });
+    const total = await this.prisma.qRCodeData.count({ where });
 
     // Get QR codes with pagination
-    const qrCodes = await this.prisma.qrCodeData.findMany({
+    const qrCodes = await this.prisma.qRCodeData.findMany({
       where,
       orderBy,
       skip: offset,
@@ -304,8 +303,9 @@ export class QRCodeRepository {
               select: {
                 id: true,
                 name: true,
-                brand: true,
-                category: true
+                category: true,
+                activeIngredient: true,
+                producer: true
               }
             }
           }
@@ -318,8 +318,8 @@ export class QRCodeRepository {
     return { qrCodes, meta };
   }
 
-  async findQRCodeById(id: string): Promise<QRCodeData | null> {
-    return this.prisma.qrCodeData.findUnique({
+  async findQRCodeById(id: string) {
+    return this.prisma.qRCodeData.findUnique({
       where: { id },
       include: {
         medicineStock: {
@@ -335,8 +335,8 @@ export class QRCodeRepository {
     });
   }
 
-  async findQRCodeByString(qrCodeString: string): Promise<QRCodeData | null> {
-    return this.prisma.qrCodeData.findUnique({
+  async findQRCodeByString(qrCodeString: string) {
+    return this.prisma.qRCodeData.findUnique({
       where: { qrCodeString },
       include: {
         medicineStock: {
@@ -348,28 +348,35 @@ export class QRCodeRepository {
     });
   }
 
-  async createQRCode(data: Omit<QRCodeData, 'id' | 'createdAt' | 'updatedAt' | 'scannedCount' | 'lastScannedAt' | 'lastScannedBy'>): Promise<QRCodeData> {
-    return this.prisma.qrCodeData.create({
+  async createQRCode(data: any) {
+    return this.prisma.qRCodeData.create({
       data: {
         ...data,
+        qrCodeImage: data.qrCodeImage || null,
+        medicineStockId: data.medicineStockId || null,
+        printedAt: data.printedAt || null,
+        printedBy: data.printedBy || null,
+        batchInfo: data.batchInfo || null,
+        notes: data.notes || null,
+        components: data.components,
         scannedCount: 0,
         generatedAt: new Date()
       }
     });
   }
 
-  async updateQRCodeStatus(id: string, status: QRCodeStatus, userId: string): Promise<QRCodeData> {
-    return this.prisma.qrCodeData.update({
+  async updateQRCodeStatus(id: string, status: string, userId: string) {
+    return this.prisma.qRCodeData.update({
       where: { id },
       data: {
-        status,
+        status: status as any,
         updatedAt: new Date()
       }
     });
   }
 
-  async updateQRCodeScanInfo(id: string, userId: string): Promise<QRCodeData> {
-    return this.prisma.qrCodeData.update({
+  async updateQRCodeScanInfo(id: string, userId: string) {
+    return this.prisma.qRCodeData.update({
       where: { id },
       data: {
         scannedCount: { increment: 1 },
@@ -381,7 +388,7 @@ export class QRCodeRepository {
   }
 
   async deleteQRCode(id: string): Promise<void> {
-    await this.prisma.qrCodeData.delete({
+    await this.prisma.qRCodeData.delete({
       where: { id }
     });
   }
@@ -433,10 +440,10 @@ export class QRCodeRepository {
     }
 
     // Get total count
-    const total = await this.prisma.qrCodeScanLog.count({ where });
+    const total = await this.prisma.qRCodeScanLog.count({ where });
 
     // Get scan logs with pagination
-    const scans = await this.prisma.qrCodeScanLog.findMany({
+    const scans = await this.prisma.qRCodeScanLog.findMany({
       where,
       orderBy,
       skip: offset,
@@ -457,10 +464,13 @@ export class QRCodeRepository {
     return { scans, meta };
   }
 
-  async createScanLog(data: Omit<QRCodeScanLog, 'id'>): Promise<QRCodeScanLog> {
-    return this.prisma.qrCodeScanLog.create({
+  async createScanLog(data: any) {
+    return this.prisma.qRCodeScanLog.create({
       data: {
         ...data,
+        location: data.location || null,
+        deviceInfo: data.deviceInfo || null,
+        notes: data.notes || null,
         scannedAt: new Date()
       }
     });
@@ -475,13 +485,9 @@ export class QRCodeRepository {
           select: {
             id: true,
             name: true,
-            brand: true,
             category: true,
-            type: true,
             activeIngredient: true,
-            activeIngredientCode: true,
-            producer: true,
-            producerCode: true
+            producer: true
           }
         }
       }
@@ -490,37 +496,37 @@ export class QRCodeRepository {
 
   // Statistics Methods
   async getQRCodeStatistics() {
-    const totalGenerated = await this.prisma.qrCodeData.count();
+    const totalGenerated = await this.prisma.qRCodeData.count();
     
-    const totalPrinted = await this.prisma.qrCodeData.count({
+    const totalPrinted = await this.prisma.qRCodeData.count({
       where: { printedAt: { not: null } }
     });
 
-    const totalScanned = await this.prisma.qrCodeData.count({
+    const totalScanned = await this.prisma.qRCodeData.count({
       where: { scannedCount: { gt: 0 } }
     });
 
-    const totalUsed = await this.prisma.qrCodeData.count({
-      where: { status: QRCodeStatus.USED }
+    const totalUsed = await this.prisma.qRCodeData.count({
+      where: { status: 'USED' }
     });
 
     // Group by status
-    const byStatus = await this.prisma.qrCodeData.groupBy({
+    const byStatus = await this.prisma.qRCodeData.groupBy({
       by: ['status'],
       _count: { status: true }
     });
 
-    const statusCounts = byStatus.reduce((acc, item) => {
+    const statusCounts = byStatus.reduce((acc: Record<string, number>, item: any) => {
       acc[item.status] = item._count.status;
       return acc;
-    }, {} as Record<QRCodeStatus, number>);
+    }, {} as Record<string, number>);
 
     // Group by medicine type (parse from QR code string)
-    const allQRCodes = await this.prisma.qrCodeData.findMany({
+    const allQRCodes = await this.prisma.qRCodeData.findMany({
       select: { qrCodeString: true }
     });
 
-    const byMedicineType = allQRCodes.reduce((acc, qr) => {
+    const byMedicineType = allQRCodes.reduce((acc: Record<string, number>, qr: any) => {
       // Extract medicine type from position 5 (0-indexed)
       const medicineType = qr.qrCodeString.charAt(5);
       acc[medicineType] = (acc[medicineType] || 0) + 1;
@@ -531,14 +537,14 @@ export class QRCodeRepository {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentGeneration = await this.prisma.qrCodeData.count({
+    const recentGeneration = await this.prisma.qRCodeData.count({
       where: {
         generatedAt: { gte: thirtyDaysAgo }
       }
     });
 
     // Most scanned QR codes
-    const mostScanned = await this.prisma.qrCodeData.findMany({
+    const mostScanned = await this.prisma.qRCodeData.findMany({
       where: { scannedCount: { gt: 0 } },
       orderBy: { scannedCount: 'desc' },
       take: 10,
@@ -551,7 +557,7 @@ export class QRCodeRepository {
             medicine: {
               select: {
                 name: true,
-                brand: true
+                category: true
               }
             }
           }
@@ -560,10 +566,10 @@ export class QRCodeRepository {
     });
 
     // Scan statistics
-    const totalScanLogs = await this.prisma.qrCodeScanLog.count();
+    const totalScanLogs = await this.prisma.qRCodeScanLog.count();
     
-    const successfulScans = await this.prisma.qrCodeScanLog.count({
-      where: { result: ScanResult.SUCCESS }
+    const successfulScans = await this.prisma.qRCodeScanLog.count({
+      where: { result: 'SUCCESS' }
     });
 
     const failedScans = totalScanLogs - successfulScans;
@@ -589,11 +595,11 @@ export class QRCodeRepository {
   }
 
   // Bulk operations
-  async bulkUpdateQRCodeStatus(ids: string[], status: QRCodeStatus): Promise<number> {
-    const result = await this.prisma.qrCodeData.updateMany({
+  async bulkUpdateQRCodeStatus(ids: string[], status: string): Promise<number> {
+    const result = await this.prisma.qRCodeData.updateMany({
       where: { id: { in: ids } },
       data: { 
-        status,
+        status: status as any,
         updatedAt: new Date()
       }
     });
@@ -602,7 +608,7 @@ export class QRCodeRepository {
   }
 
   async bulkDeleteQRCodes(ids: string[]): Promise<number> {
-    const result = await this.prisma.qrCodeData.deleteMany({
+    const result = await this.prisma.qRCodeData.deleteMany({
       where: { id: { in: ids } }
     });
 
@@ -611,16 +617,16 @@ export class QRCodeRepository {
 
   // Health check for QR code system
   async getSystemHealth() {
-    const activeSequences = await this.prisma.qrCodeSequence.count({
-      where: { status: SequenceStatus.ACTIVE }
+    const activeSequences = await this.prisma.qRCodeSequence.count({
+      where: { status: 'ACTIVE' }
     });
 
-    const exhaustedSequences = await this.prisma.qrCodeSequence.count({
-      where: { status: SequenceStatus.EXHAUSTED }
+    const exhaustedSequences = await this.prisma.qRCodeSequence.count({
+      where: { status: 'EXHAUSTED' }
     });
 
-    const activeMasters = await this.prisma.qrCodeMaster.count({
-      where: { status: QRMasterStatus.ACTIVE }
+    const activeMasters = await this.prisma.qRCodeMaster.count({
+      where: { status: 'ACTIVE' }
     });
 
     return {

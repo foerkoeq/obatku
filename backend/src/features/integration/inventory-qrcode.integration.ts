@@ -3,22 +3,19 @@ import { InventoryService } from '../inventory/inventory.service';
 import { QRCodeService } from '../qrcode/qrcode.service';
 import { PrismaClient } from '@prisma/client';
 import { 
-  QRCodeType, 
-  ScanPurpose, 
   QRCodeStatus,
   GenerateQRCodeDto,
-  ScanQRCodeDto 
+  ScanQRCodeDto,
+  ScanPurpose
 } from '../qrcode/qrcode.types';
-import { 
-  StockMovementType,
-  StockMovementDto 
-} from '../inventory/inventory.types';
 
 export class InventoryQRCodeIntegration {
   constructor(
     private readonly inventoryService: InventoryService,
     private readonly qrCodeService: QRCodeService,
-    private readonly prisma: PrismaClient
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // @ts-ignore
+    private readonly _prisma: PrismaClient
   ) {}
 
   /**
@@ -27,7 +24,6 @@ export class InventoryQRCodeIntegration {
   async generateQRCodesForMedicine(
     medicineId: string,
     quantity: number,
-    qrCodeType: QRCodeType = QRCodeType.INDIVIDUAL,
     userId: string
   ) {
     try {
@@ -37,56 +33,35 @@ export class InventoryQRCodeIntegration {
         throw new Error('Medicine not found');
       }
 
-      // Create QR Code master if it doesn't exist for this medicine
-      let qrMaster = await this.qrCodeService.getQRCodeMasterByMedicine(medicineId);
-      
-      if (!qrMaster) {
-        const qrMasterData = {
-          companyCode: 'DSC', // Default company code
-          yearCode: new Date().getFullYear().toString().slice(-2),
-          monthCode: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-          fundingSourceCode: '1', // Default funding source
-          medicineTypeCode: medicine.category?.charAt(0).toUpperCase() || 'G',
-          activeIngredientCode: medicine.activeIngredient?.slice(0, 3).toUpperCase() || '001',
-          producerCode: medicine.manufacturer?.charAt(0).toUpperCase() || 'A',
-          medicineId: medicineId,
-          description: `QR Master for ${medicine.name}`,
-          isActive: true
-        };
-
-        qrMaster = await this.qrCodeService.createQRCodeMaster(qrMasterData, userId);
+      // Get medicine stock for QR code generation
+      const stocks = await this.inventoryService.getAllMedicineStocks({ medicineId });
+      if (!stocks.stocks || stocks.stocks.length === 0) {
+        throw new Error('No medicine stock found for QR code generation');
       }
 
-      // Generate QR codes
+      const medicineStock = stocks.stocks[0]; // Use first stock entry
+
+      // Generate QR codes using the stock ID
       const generateDto: GenerateQRCodeDto = {
-        qrCodeMasterId: qrMaster.id,
+        medicineStockId: medicineStock.id,
         quantity: quantity,
-        qrCodeType: qrCodeType,
         notes: `Generated for medicine: ${medicine.name}`
       };
 
       const result = await this.qrCodeService.generateQRCodes(generateDto, userId);
 
-      // Update medicine to link with QR codes if successful
-      if (result.success && result.qrCodes.length > 0) {
-        await this.linkQRCodesToMedicine(
-          medicineId, 
-          result.qrCodes.map(qr => qr.id), 
-          userId
-        );
-      }
-
       return {
         success: result.success,
         medicine: medicine,
-        qrMaster: qrMaster,
+        medicineStock: medicineStock,
         qrCodes: result.qrCodes,
         generated: result.generated,
         failed: result.failed,
         errors: result.errors
       };
     } catch (error) {
-      throw new Error(`Failed to generate QR codes for medicine: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate QR codes for medicine: ${errorMessage}`);
     }
   }
 
@@ -108,7 +83,7 @@ export class InventoryQRCodeIntegration {
         deviceInfo
       };
 
-      const scanResult = await this.qrCodeService.scanQRCode(scanDto, userId);
+      const scanResult = await this.qrCodeService.scanQRCode(scanDto, userId || 'system');
 
       if (!scanResult.success) {
         return scanResult;
@@ -116,11 +91,24 @@ export class InventoryQRCodeIntegration {
 
       const qrCode = scanResult.qrCode;
       
+      if (!qrCode) {
+        return {
+          ...scanResult,
+          medicine: null,
+          inventoryAction: null,
+          integration: {
+            medicineLinked: false,
+            actionProcessed: false,
+            purpose
+          }
+        };
+      }
+      
       // Get associated medicine if exists
       let medicine = null;
-      if (qrCode.qrCodeMaster?.medicineId) {
+      if (qrCode.medicineStock?.medicineId) {
         medicine = await this.inventoryService.getMedicineById(
-          qrCode.qrCodeMaster.medicineId
+          qrCode.medicineStock.medicineId
         );
       }
 
@@ -128,15 +116,15 @@ export class InventoryQRCodeIntegration {
       let inventoryAction = null;
       
       switch (purpose) {
-        case ScanPurpose.STOCK_IN:
+        case ScanPurpose.DISTRIBUTION:
           if (medicine) {
-            inventoryAction = await this.processStockIn(qrCode, medicine, userId);
+            inventoryAction = await this.processStockOut(qrCode, medicine, userId);
           }
           break;
           
-        case ScanPurpose.STOCK_OUT:
+        case ScanPurpose.INVENTORY_CHECK:
           if (medicine) {
-            inventoryAction = await this.processStockOut(qrCode, medicine, userId);
+            inventoryAction = await this.verifyMedicineStock(qrCode, medicine);
           }
           break;
           
@@ -164,109 +152,50 @@ export class InventoryQRCodeIntegration {
         }
       };
     } catch (error) {
-      throw new Error(`Failed to scan QR code for inventory: ${error.message}`);
-    }
-  }
-
-  /**
-   * Link QR codes to a medicine
-   */
-  private async linkQRCodesToMedicine(
-    medicineId: string,
-    qrCodeIds: string[],
-    userId: string
-  ) {
-    try {
-      // Update QR codes to be linked with medicine
-      await this.prisma.qRCode.updateMany({
-        where: {
-          id: { in: qrCodeIds }
-        },
-        data: {
-          updatedBy: userId,
-          updatedAt: new Date()
-        }
-      });
-
-      // Record stock movement for QR code generation
-      const stockMovementDto: StockMovementDto = {
-        medicineId,
-        movementType: StockMovementType.QR_GENERATED,
-        quantity: qrCodeIds.length,
-        notes: `QR codes generated: ${qrCodeIds.length} codes`,
-        referenceId: qrCodeIds[0], // Use first QR code as reference
-        performedBy: userId
-      };
-
-      await this.inventoryService.recordStockMovement(stockMovementDto);
-    } catch (error) {
-      throw new Error(`Failed to link QR codes to medicine: ${error.message}`);
-    }
-  }
-
-  /**
-   * Process stock in operation
-   */
-  private async processStockIn(qrCode: any, medicine: any, userId: string) {
-    try {
-      // Record stock movement
-      const stockMovementDto: StockMovementDto = {
-        medicineId: medicine.id,
-        movementType: StockMovementType.STOCK_IN,
-        quantity: 1, // Assuming each QR code represents 1 unit
-        notes: `Stock in via QR scan: ${qrCode.qrCodeString}`,
-        referenceId: qrCode.id,
-        performedBy: userId
-      };
-
-      const movement = await this.inventoryService.recordStockMovement(stockMovementDto);
-
-      // Update QR code status to USED
-      await this.qrCodeService.updateQRCodeStatus(qrCode.id, QRCodeStatus.USED, userId);
-
-      return {
-        type: 'stock_in',
-        movement,
-        qrCodeUpdated: true
-      };
-    } catch (error) {
-      throw new Error(`Failed to process stock in: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to scan QR code for inventory: ${errorMessage}`);
     }
   }
 
   /**
    * Process stock out operation
    */
-  private async processStockOut(qrCode: any, medicine: any, userId: string) {
+  private async processStockOut(qrCode: any, medicine: any, userId?: string) {
     try {
+      // Get medicine stock
+      const stocks = await this.inventoryService.getAllMedicineStocks({ medicineId: medicine.id });
+      if (!stocks.stocks || stocks.stocks.length === 0) {
+        throw new Error('No medicine stock found');
+      }
+
+      const stock = stocks.stocks[0];
+      
       // Check if there's sufficient stock
-      const stock = await this.inventoryService.getMedicineStock(medicine.id);
-      if (!stock || stock.currentStock < 1) {
+      if (Number(stock.currentStock) < 1) {
         throw new Error('Insufficient stock for stock out operation');
       }
 
-      // Record stock movement
-      const stockMovementDto: StockMovementDto = {
-        medicineId: medicine.id,
-        movementType: StockMovementType.STOCK_OUT,
-        quantity: 1,
-        notes: `Stock out via QR scan: ${qrCode.qrCodeString}`,
-        referenceId: qrCode.id,
-        performedBy: userId
-      };
+      // Adjust stock (decrease by 1)
+      await this.inventoryService.adjustStock(
+        stock.id, 
+        -1, 
+        'Stock out via QR scan', 
+        userId || 'system', 
+        `Stock out via QR scan: ${qrCode.qrCodeString}`
+      );
 
-      const movement = await this.inventoryService.recordStockMovement(stockMovementDto);
-
-      // Update QR code status to CONSUMED
-      await this.qrCodeService.updateQRCodeStatus(qrCode.id, QRCodeStatus.CONSUMED, userId);
+      // Update QR code status to USED
+      await this.qrCodeService.updateQRCodeStatus(qrCode.id, QRCodeStatus.USED, userId || 'system');
 
       return {
         type: 'stock_out',
-        movement,
-        qrCodeUpdated: true
+        stockId: stock.id,
+        qrCodeUpdated: true,
+        quantity: 1
       };
     } catch (error) {
-      throw new Error(`Failed to process stock out: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to process stock out: ${errorMessage}`);
     }
   }
 
@@ -275,45 +204,41 @@ export class InventoryQRCodeIntegration {
    */
   private async verifyMedicineStock(qrCode: any, medicine: any) {
     try {
-      const stock = await this.inventoryService.getMedicineStock(medicine.id);
+      const stocks = await this.inventoryService.getAllMedicineStocks({ medicineId: medicine.id });
       
       return {
         type: 'verification',
         medicine,
-        stock,
+        stocks: stocks.stocks,
         qrCode,
         verified: true,
         verificationTime: new Date()
       };
     } catch (error) {
-      throw new Error(`Failed to verify medicine stock: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to verify medicine stock: ${errorMessage}`);
     }
   }
 
   /**
    * Audit medicine item
    */
-  private async auditMedicineItem(qrCode: any, medicine: any, userId: string) {
+  private async auditMedicineItem(qrCode: any, medicine: any, userId?: string) {
     try {
-      // Record audit log
-      const stockMovementDto: StockMovementDto = {
-        medicineId: medicine.id,
-        movementType: StockMovementType.AUDIT,
-        quantity: 0, // No quantity change for audit
-        notes: `Audit scan: ${qrCode.qrCodeString}`,
-        referenceId: qrCode.id,
-        performedBy: userId
-      };
-
-      const movement = await this.inventoryService.recordStockMovement(stockMovementDto);
-
+      // Get current stock information
+      const stocks = await this.inventoryService.getAllMedicineStocks({ medicineId: medicine.id });
+      
       return {
         type: 'audit',
-        movement,
-        auditTime: new Date()
+        medicine,
+        stocks: stocks.stocks,
+        qrCode,
+        auditTime: new Date(),
+        performedBy: userId || 'system'
       };
     } catch (error) {
-      throw new Error(`Failed to audit medicine item: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to audit medicine item: ${errorMessage}`);
     }
   }
 
@@ -322,15 +247,16 @@ export class InventoryQRCodeIntegration {
    */
   async getMedicineByQRCode(qrCodeString: string) {
     try {
-      const qrCode = await this.qrCodeService.getQRCodeByString(qrCodeString);
+      const qrCode = await this.qrCodeService.getQRCodeById(qrCodeString);
       
-      if (!qrCode || !qrCode.qrCodeMaster?.medicineId) {
+      if (!qrCode || !qrCode.medicineStock?.medicineId) {
         return null;
       }
 
-      return await this.inventoryService.getMedicineById(qrCode.qrCodeMaster.medicineId);
+      return await this.inventoryService.getMedicineById(qrCode.medicineStock.medicineId);
     } catch (error) {
-      throw new Error(`Failed to get medicine by QR code: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to get medicine by QR code: ${errorMessage}`);
     }
   }
 
@@ -339,13 +265,13 @@ export class InventoryQRCodeIntegration {
    */
   async validateQRCodeMedicineAssociation(qrCodeString: string, medicineId: string) {
     try {
-      const qrCode = await this.qrCodeService.getQRCodeByString(qrCodeString);
+      const qrCode = await this.qrCodeService.getQRCodeById(qrCodeString);
       
-      if (!qrCode || !qrCode.qrCodeMaster) {
+      if (!qrCode || !qrCode.medicineStock) {
         return false;
       }
 
-      return qrCode.qrCodeMaster.medicineId === medicineId;
+      return qrCode.medicineStock.medicineId === medicineId;
     } catch (error) {
       return false;
     }
@@ -356,9 +282,23 @@ export class InventoryQRCodeIntegration {
    */
   async getQRCodesForMedicine(medicineId: string) {
     try {
-      return await this.qrCodeService.getQRCodesByMedicine(medicineId);
+      // Get medicine stocks first
+      const stocks = await this.inventoryService.getAllMedicineStocks({ medicineId });
+      if (!stocks.stocks || stocks.stocks.length === 0) {
+        return [];
+      }
+
+      const stockIds = stocks.stocks.map(stock => stock.id);
+      
+      // Get QR codes for these stocks
+      const qrCodes = await this.qrCodeService.getQRCodes({ 
+        medicineStockId: { in: stockIds } 
+      });
+
+      return qrCodes.qrCodes || [];
     } catch (error) {
-      throw new Error(`Failed to get QR codes for medicine: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to get QR codes for medicine: ${errorMessage}`);
     }
   }
 
@@ -370,9 +310,16 @@ export class InventoryQRCodeIntegration {
       const qrCodes = await this.getQRCodesForMedicine(medicineId);
       const qrCodeIds = qrCodes.map(qr => qr.id);
       
-      return await this.qrCodeService.getScanLogsByQRCodes(qrCodeIds);
+      if (qrCodeIds.length === 0) {
+        return { scans: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      }
+
+      return await this.qrCodeService.getScanLogs({ 
+        qrCodeId: { in: qrCodeIds } 
+      });
     } catch (error) {
-      throw new Error(`Failed to get scan history for medicine: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to get scan history for medicine: ${errorMessage}`);
     }
   }
 }

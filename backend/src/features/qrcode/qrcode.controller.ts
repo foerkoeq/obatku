@@ -21,7 +21,6 @@ import {
   GenerateQRCodeDto,
   BulkGenerateQRCodeDto,
   ScanQRCodeDto,
-  QRMasterStatus,
   QRCodeStatus
 } from './qrcode.types';
 
@@ -37,17 +36,10 @@ export class QRCodeController {
       return ResponseUtil.successPaginated(
         res,
         result.masters,
-        {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
-          hasNext: result.page < result.totalPages,
-          hasPrevious: result.page > 1
-        },
+        result.meta,
         'QR Code masters retrieved successfully'
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -61,11 +53,11 @@ export class QRCodeController {
       const master = await this.qrCodeService.getQRCodeMasterById(id);
 
       if (!master) {
-        return ResponseUtil.notFound(res, 'QR Code master', id);
+        return ResponseUtil.notFound(res, `QR Code master with id ${id} not found`);
       }
 
       return ResponseUtil.success(res, master, 'QR Code master retrieved successfully');
-    } catch (error) {
+    } catch (error: any) {
       return ResponseUtil.internalError(res, error.message);
     }
   };
@@ -82,7 +74,7 @@ export class QRCodeController {
       const master = await this.qrCodeService.createQRCodeMaster(data, userId);
 
       return ResponseUtil.created(res, master, 'QR Code master created successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message.includes('already exists')) {
         return ResponseUtil.duplicateEntry(res, 'QR Code master', 'with these codes');
       }
@@ -106,9 +98,9 @@ export class QRCodeController {
       const master = await this.qrCodeService.updateQRCodeMaster(id, data, userId);
 
       return ResponseUtil.success(res, master, 'QR Code master updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === 'QR Code master not found') {
-        return ResponseUtil.notFound(res, 'QR Code master', id);
+        return ResponseUtil.notFound(res, `QR Code master with id ${req.params.id} not found`);
       }
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
@@ -124,9 +116,9 @@ export class QRCodeController {
       await this.qrCodeService.deleteQRCodeMaster(id);
 
       return ResponseUtil.deleted(res, 'QR Code master deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === 'QR Code master not found') {
-        return ResponseUtil.notFound(res, 'QR Code master', id);
+        return ResponseUtil.notFound(res, `QR Code master with id ${req.params.id} not found`);
       }
       if (error.message.includes('Cannot delete QR Code master that is being used')) {
         return ResponseUtil.businessLogicError(res, error.message);
@@ -159,16 +151,9 @@ export class QRCodeController {
         res,
         result,
         `Successfully generated ${result.generated} QR codes`,
-        201,
-        {
-          summary: {
-            requested: data.quantity,
-            generated: result.generated,
-            failed: result.failed
-          }
-        }
+        201
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -201,19 +186,9 @@ export class QRCodeController {
         res,
         result,
         `Successfully generated ${result.generated} QR codes (${data.totalQuantity} individual + ${bulkPackagesNeeded} bulk packages)`,
-        201,
-        {
-          summary: {
-            totalQuantity: data.totalQuantity,
-            bulkPackageSize: data.bulkPackageSize,
-            bulkPackagesGenerated: bulkPackagesNeeded,
-            individualGenerated: data.totalQuantity,
-            totalGenerated: result.generated,
-            failed: result.failed
-          }
-        }
+        201
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -248,16 +223,9 @@ export class QRCodeController {
           result: result.result
         },
         result.message,
-        200,
-        {
-          scanInfo: {
-            purpose: data.purpose,
-            location: data.location,
-            deviceInfo: data.deviceInfo
-          }
-        }
+        200
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -274,19 +242,11 @@ export class QRCodeController {
       return ResponseUtil.successPaginated(
         res,
         result.qrCodes,
-        {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
-          hasNext: result.page < result.totalPages,
-          hasPrevious: result.page > 1
-        },
+        result.meta,
         'QR Codes retrieved successfully',
-        200,
-        { summary: result.summary }
+        200
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -300,11 +260,11 @@ export class QRCodeController {
       const qrCode = await this.qrCodeService.getQRCodeById(id);
 
       if (!qrCode) {
-        return ResponseUtil.notFound(res, 'QR Code', id);
+        return ResponseUtil.notFound(res, `QR Code with id ${id} not found`);
       }
 
       return ResponseUtil.success(res, qrCode, 'QR Code retrieved successfully');
-    } catch (error) {
+    } catch (error: any) {
       return ResponseUtil.internalError(res, error.message);
     }
   };
@@ -320,15 +280,15 @@ export class QRCodeController {
       }
 
       if (!Object.values(QRCodeStatus).includes(status)) {
-        return ResponseUtil.validationError(res, ['Invalid status value']);
+        return ResponseUtil.validationError(res, 'Invalid status value');
       }
 
       const qrCode = await this.qrCodeService.updateQRCodeStatus(id, status, userId);
 
       return ResponseUtil.success(res, qrCode, 'QR Code status updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === 'QR code not found') {
-        return ResponseUtil.notFound(res, 'QR Code', id);
+        return ResponseUtil.notFound(res, `QR Code with id ${req.params.id} not found`);
       }
       return ResponseUtil.internalError(res, error.message);
     }
@@ -341,9 +301,9 @@ export class QRCodeController {
       await this.qrCodeService.deleteQRCode(id);
 
       return ResponseUtil.deleted(res, 'QR Code deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === 'QR code not found') {
-        return ResponseUtil.notFound(res, 'QR Code', id);
+        return ResponseUtil.notFound(res, `QR Code with id ${req.params.id} not found`);
       }
       if (error.message.includes('Cannot delete QR code that has been scanned')) {
         return ResponseUtil.businessLogicError(res, error.message);
@@ -364,7 +324,7 @@ export class QRCodeController {
         validation,
         validation.isValid ? 'QR Code format is valid' : 'QR Code format is invalid'
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -381,17 +341,10 @@ export class QRCodeController {
       return ResponseUtil.successPaginated(
         res,
         result.scans,
-        {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
-          hasNext: result.page < result.totalPages,
-          hasPrevious: result.page > 1
-        },
+        result.meta,
         'Scan logs retrieved successfully'
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -400,11 +353,11 @@ export class QRCodeController {
   };
 
   // Statistics Controller Methods
-  getQRCodeStatistics = async (req: Request, res: Response) => {
+  getQRCodeStatistics = async (_req: Request, res: Response) => {
     try {
       const stats = await this.qrCodeService.getQRCodeStatistics();
       return ResponseUtil.success(res, stats, 'QR Code statistics retrieved successfully');
-    } catch (error) {
+    } catch (error: any) {
       return ResponseUtil.internalError(res, error.message);
     }
   };
@@ -426,7 +379,7 @@ export class QRCodeController {
         try {
           await this.qrCodeService.updateQRCodeStatus(id, status, userId);
           updated++;
-        } catch (error) {
+        } catch (error: any) {
           errors.push(`QR Code ${id}: ${error.message}`);
         }
       }
@@ -439,7 +392,7 @@ export class QRCodeController {
         errors.length,
         errors.map((error, index) => ({ index, error }))
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -457,7 +410,7 @@ export class QRCodeController {
         try {
           await this.qrCodeService.deleteQRCode(id);
           deleted++;
-        } catch (error) {
+        } catch (error: any) {
           errors.push(`QR Code ${id}: ${error.message}`);
         }
       }
@@ -470,7 +423,7 @@ export class QRCodeController {
         errors.length,
         errors.map((error, index) => ({ index, error }))
       );
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'ZodError') {
         return ResponseUtil.validationError(res, error.errors);
       }
@@ -485,7 +438,7 @@ export class QRCodeController {
       const qrCode = await this.qrCodeService.getQRCodeById(id);
 
       if (!qrCode) {
-        return ResponseUtil.notFound(res, 'QR Code', id);
+        return ResponseUtil.notFound(res, `QR Code with id ${id} not found`);
       }
 
       if (!qrCode.qrCodeImage) {
@@ -503,7 +456,7 @@ export class QRCodeController {
       }
 
       return ResponseUtil.businessLogicError(res, 'Invalid QR Code image format');
-    } catch (error) {
+    } catch (error: any) {
       return ResponseUtil.internalError(res, error.message);
     }
   };
@@ -520,16 +473,16 @@ export class QRCodeController {
       const qrCode = await this.qrCodeService.updateQRCodeStatus(id, QRCodeStatus.PRINTED, userId);
 
       return ResponseUtil.success(res, qrCode, 'QR Code marked as printed');
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === 'QR code not found') {
-        return ResponseUtil.notFound(res, 'QR Code', id);
+        return ResponseUtil.notFound(res, `QR Code with id ${req.params.id} not found`);
       }
       return ResponseUtil.internalError(res, error.message);
     }
   };
 
   // QR Code Format Information
-  getQRCodeFormats = async (req: Request, res: Response) => {
+  getQRCodeFormats = async (_req: Request, res: Response) => {
     try {
       const formats = {
         individual: {
@@ -569,7 +522,7 @@ export class QRCodeController {
       };
 
       return ResponseUtil.success(res, formats, 'QR Code formats retrieved successfully');
-    } catch (error) {
+    } catch (error: any) {
       return ResponseUtil.internalError(res, error.message);
     }
   };

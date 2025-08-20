@@ -29,10 +29,18 @@ const corsOptions = {
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  max: 1000, // Increased limit for authenticated API usage
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again later.',
+    code: 'RATE_LIMIT_EXCEEDED',
+  },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks and auth endpoints (they have their own limits)
+    return req.path === '/health' || req.path.startsWith('/api/v1/auth');
+  },
 });
 
 // Security middleware

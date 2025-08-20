@@ -1,10 +1,13 @@
 import { Express } from 'express';
 import { logger } from '@/core/logger/logger';
+import prisma from '@/core/database/prisma.client';
 
-// Import route modules (Phase 2 - User Management)
+// Import route modules
 import userRoutes from '../../features/users/users.routes';
-// import { authRoutes } from '../../features/auth/auth.routes';
-// import { inventoryRoutes } from '../../features/inventory/inventory.routes';
+import { createAuthSystem } from '../../features/auth';
+
+// Initialize authentication system
+const authSystem = createAuthSystem(prisma);
 
 export const setupRoutes = (app: Express): void => {
   // API base path
@@ -19,10 +22,23 @@ export const setupRoutes = (app: Express): void => {
     });
   });
 
+  // Authentication routes (Phase 4 - Authentication)
+  app.use(`${API_BASE}/auth`, authSystem.authRoutes);
+
   // Feature routes (Phase 2 - User Management)
   app.use(`${API_BASE}/users`, userRoutes);
-  // app.use(`${API_BASE}/auth`, authRoutes);
+  
+  // Future routes will be added here as features are implemented
   // app.use(`${API_BASE}/inventory`, inventoryRoutes);
+  // app.use(`${API_BASE}/qrcode`, qrcodeRoutes);
+  // app.use(`${API_BASE}/submissions`, submissionRoutes);
+  // app.use(`${API_BASE}/approvals`, approvalRoutes);
+  // app.use(`${API_BASE}/transactions`, transactionRoutes);
+  // app.use(`${API_BASE}/reports`, reportRoutes);
 
   logger.info('✅ Routes configured successfully');
+  logger.info('🔐 Authentication system initialized');
 };
+
+// Export auth system for use in other parts of the application
+export { authSystem };

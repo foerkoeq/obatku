@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { InventoryQRCodeIntegration } from './inventory-qrcode.integration';
 import { ResponseUtil } from '../../shared/utils/response.util';
-import { QRCodeType, ScanPurpose } from '../qrcode/qrcode.types';
+import { ScanPurpose } from '../qrcode/qrcode.types';
 
 export class IntegrationController {
   constructor(private readonly integration: InventoryQRCodeIntegration) {}
@@ -11,7 +11,7 @@ export class IntegrationController {
   generateQRCodesForMedicine = async (req: Request, res: Response) => {
     try {
       const { medicineId } = req.params;
-      const { quantity, qrCodeType } = req.body;
+      const { quantity } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -21,7 +21,6 @@ export class IntegrationController {
       const result = await this.integration.generateQRCodesForMedicine(
         medicineId,
         quantity,
-        qrCodeType || QRCodeType.INDIVIDUAL,
         userId
       );
 
@@ -32,10 +31,11 @@ export class IntegrationController {
         201
       );
     } catch (error) {
-      if (error.message.includes('Medicine not found')) {
-        return ResponseUtil.notFound(res, 'Medicine', req.params.medicineId);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('Medicine not found')) {
+        return ResponseUtil.notFound(res, `Medicine with ID: ${req.params.medicineId} not found`);
       }
-      return ResponseUtil.internalError(res, error.message);
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 
@@ -46,11 +46,11 @@ export class IntegrationController {
       const userId = req.user?.id;
 
       if (!qrCodeString || !purpose) {
-        return ResponseUtil.validationError(res, ['QR code string and purpose are required']);
+        return ResponseUtil.validationError(res, 'QR code string and purpose are required');
       }
 
       if (!Object.values(ScanPurpose).includes(purpose)) {
-        return ResponseUtil.validationError(res, ['Invalid scan purpose']);
+        return ResponseUtil.validationError(res, 'Invalid scan purpose');
       }
 
       const result = await this.integration.scanQRCodeForInventory(
@@ -64,14 +64,11 @@ export class IntegrationController {
       return ResponseUtil.success(
         res,
         result,
-        `QR code scanned successfully for ${purpose}`,
-        200,
-        {
-          integration: result.integration
-        }
+        `QR code scanned successfully for ${purpose}`
       );
     } catch (error) {
-      return ResponseUtil.internalError(res, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 
@@ -82,12 +79,13 @@ export class IntegrationController {
       const medicine = await this.integration.getMedicineByQRCode(qrCodeString);
 
       if (!medicine) {
-        return ResponseUtil.notFound(res, 'Medicine', `with QR code: ${qrCodeString}`);
+        return ResponseUtil.notFound(res, `Medicine with QR code: ${qrCodeString} not found`);
       }
 
       return ResponseUtil.success(res, medicine, 'Medicine retrieved by QR code successfully');
     } catch (error) {
-      return ResponseUtil.internalError(res, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 
@@ -97,7 +95,7 @@ export class IntegrationController {
       const { qrCodeString, medicineId } = req.body;
 
       if (!qrCodeString || !medicineId) {
-        return ResponseUtil.validationError(res, ['QR code string and medicine ID are required']);
+        return ResponseUtil.validationError(res, 'QR code string and medicine ID are required');
       }
 
       const isValid = await this.integration.validateQRCodeMedicineAssociation(
@@ -111,7 +109,8 @@ export class IntegrationController {
         isValid ? 'QR code is associated with the medicine' : 'QR code is not associated with the medicine'
       );
     } catch (error) {
-      return ResponseUtil.internalError(res, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 
@@ -124,17 +123,11 @@ export class IntegrationController {
       return ResponseUtil.success(
         res,
         qrCodes,
-        'QR codes for medicine retrieved successfully',
-        200,
-        {
-          summary: {
-            total: qrCodes.length,
-            medicineId
-          }
-        }
+        'QR codes for medicine retrieved successfully'
       );
     } catch (error) {
-      return ResponseUtil.internalError(res, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 
@@ -147,17 +140,11 @@ export class IntegrationController {
       return ResponseUtil.success(
         res,
         scanHistory,
-        'Scan history for medicine retrieved successfully',
-        200,
-        {
-          summary: {
-            total: scanHistory.length,
-            medicineId
-          }
-        }
+        'Scan history for medicine retrieved successfully'
       );
     } catch (error) {
-      return ResponseUtil.internalError(res, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return ResponseUtil.internalError(res, errorMessage);
     }
   };
 }

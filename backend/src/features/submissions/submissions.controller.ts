@@ -14,15 +14,12 @@ import {
   submissionListQuerySchema,
   submissionFiltersSchema 
 } from './submissions.validation';
+import { AuthenticatedUser } from '../auth/auth.types';
 
 // Extend Request type to include user information
 interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string; // Keep as string, will cast to UserRole as needed
-    name: string;
-  };
+  user?: AuthenticatedUser;
+  file?: Express.Multer.File;
 }
 
 export class SubmissionController {

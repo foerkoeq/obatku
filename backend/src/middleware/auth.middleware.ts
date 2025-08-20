@@ -1,27 +1,18 @@
 // src/middleware/auth.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { UserRole, UserStatus } from '@prisma/client';
 import { ResponseUtil } from '../shared/utils/response.util';
-
-// Extend Express Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-        name: string;
-      };
-    }
-  }
-}
 
 interface JwtPayload {
   id: string;
-  email: string;
-  role: string;
+  email?: string;
+  role: UserRole;
   name: string;
+  nip: string;
+  phone: string;
+  status: UserStatus;
+  permissions: string[];
 }
 
 /**
@@ -49,9 +40,13 @@ export const authenticateToken = async (
     // Attach user info to request
     req.user = {
       id: decoded.id,
+      name: decoded.name,
+      nip: decoded.nip,
       email: decoded.email,
+      phone: decoded.phone,
       role: decoded.role,
-      name: decoded.name
+      status: decoded.status,
+      permissions: decoded.permissions,
     };
 
     next();
@@ -68,13 +63,16 @@ export const authenticateToken = async (
   }
 };
 
+// Alias for backward compatibility
+export const authenticate = authenticateToken;
+
 /**
  * Optional authentication middleware
  * Tries to authenticate but doesn't fail if no token provided
  */
 export const optionalAuth = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -92,9 +90,13 @@ export const optionalAuth = async (
     
     req.user = {
       id: decoded.id,
+      name: decoded.name,
+      nip: decoded.nip,
       email: decoded.email,
+      phone: decoded.phone,
       role: decoded.role,
-      name: decoded.name
+      status: decoded.status,
+      permissions: decoded.permissions,
     };
 
     next();
@@ -111,7 +113,7 @@ export const generateToken = (payload: JwtPayload): string => {
   const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
   const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
   
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
 };
 
 /**
@@ -126,9 +128,13 @@ export const refreshToken = (req: Request, res: Response): void => {
 
     const newToken = generateToken({
       id: req.user.id,
+      name: req.user.name,
+      nip: req.user.nip,
       email: req.user.email,
+      phone: req.user.phone,
       role: req.user.role,
-      name: req.user.name
+      status: req.user.status,
+      permissions: req.user.permissions,
     });
 
     ResponseUtil.success(res, { 

@@ -4,8 +4,8 @@ import { InventoryController } from './inventory.controller';
 import { PrismaClient } from '@prisma/client';
 import { InventoryRepository } from './inventory.repository';
 import { InventoryService } from './inventory.service';
-import { authMiddleware } from '../../middleware/auth.middleware';
-import { roleMiddleware } from '../../middleware/role.middleware';
+import { authenticateToken } from '../../middleware/auth.middleware';
+import { requireRole, UserRole } from '../../middleware/role.middleware';
 
 const router = Router();
 
@@ -16,176 +16,145 @@ const inventoryService = new InventoryService(inventoryRepository);
 const inventoryController = new InventoryController(inventoryService);
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Medicine Management Routes
 router.get('/medicines', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   inventoryController.getAllMedicines
 );
 
 router.get('/medicines/:id', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   inventoryController.getMedicineById
 );
 
 router.post('/medicines', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   inventoryController.createMedicine
 );
 
 router.put('/medicines/:id', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   inventoryController.updateMedicine
 );
 
 router.delete('/medicines/:id', 
-  roleMiddleware(['admin']),
+  requireRole([UserRole.ADMIN]),
   inventoryController.deleteMedicine
 );
 
 // Medicine Stock Management Routes
 router.get('/medicines/:medicineId/stock', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
-  inventoryController.getMedicineStock
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
+  inventoryController.getAllMedicineStocks
 );
 
 router.put('/medicines/:medicineId/stock', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   inventoryController.updateMedicineStock
 );
 
 router.post('/medicines/:medicineId/stock/adjust', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   inventoryController.adjustStock
-);
-
-router.post('/medicines/:medicineId/stock/movement', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.recordStockMovement
 );
 
 // Stock Movement History Routes
 router.get('/movements', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   inventoryController.getStockMovements
 );
 
 router.get('/movements/:id', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
-  inventoryController.getStockMovementById
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
+  inventoryController.getStockMovementsByStockId
 );
 
 // Stock Alert Management Routes
 router.get('/alerts', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   inventoryController.getStockAlerts
 );
 
 router.put('/alerts/:id/resolve', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.resolveStockAlert
-);
-
-router.post('/alerts/dismiss/:id', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.dismissStockAlert
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.markAlertAsRead
 );
 
 // Statistics and Reporting Routes
 router.get('/statistics', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   inventoryController.getInventoryStatistics
 );
 
 router.get('/statistics/low-stock', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.getLowStockSummary
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.getLowStockItems
 );
 
 router.get('/statistics/expired', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.getExpiredMedicinesSummary
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.getExpiringSoonItems
 );
 
 router.get('/statistics/expiring-soon', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.getExpiringSoonSummary
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.getExpiringSoonItems
 );
 
 router.get('/health-score', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.getInventoryHealthScore
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.getStockValueByCategory
 );
 
 // Bulk Operations Routes
 router.post('/bulk-update', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.bulkUpdateMedicines
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.bulkUpdateMedicineStatus
 );
 
 router.post('/bulk-delete', 
-  roleMiddleware(['admin']),
+  requireRole([UserRole.ADMIN]),
   inventoryController.bulkDeleteMedicines
 );
 
-router.post('/bulk-stock-adjustment', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.bulkStockAdjustment
+// Stock Management Routes
+router.post('/stocks', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.createMedicineStock
 );
 
-// Export Routes
-router.get('/export/medicines', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.exportMedicines
+router.get('/stocks/:id', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
+  inventoryController.getMedicineStockById
 );
 
-router.get('/export/stock-movements', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.exportStockMovements
+router.delete('/stocks/:id', 
+  requireRole([UserRole.ADMIN]),
+  inventoryController.deleteStock
 );
 
-router.get('/export/alerts', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.exportStockAlerts
+// Stock Reservation Routes
+router.post('/stocks/:id/reserve', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.reserveStock
 );
 
-// Search and Filter Routes
-router.get('/search', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
-  inventoryController.searchMedicines
+router.post('/stocks/:id/release', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.releaseReservedStock
 );
 
-router.get('/categories', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
-  inventoryController.getMedicineCategories
+// Alert Management Routes
+router.post('/alerts/generate', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
+  inventoryController.generateStockAlerts
 );
 
-router.get('/manufacturers', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
-  inventoryController.getMedicineManufacturers
-);
-
-// Medicine Templates and Presets
-router.get('/templates', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.getMedicineTemplates
-);
-
-router.post('/templates', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.createMedicineTemplate
-);
-
-// Medicine Validation Routes
-router.post('/validate-medicine', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.validateMedicineData
-);
-
-router.post('/check-duplicates', 
-  roleMiddleware(['admin', 'pharmacist']),
-  inventoryController.checkDuplicateMedicines
+router.get('/alerts/unread-count', 
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
+  inventoryController.getUnreadAlertsCount
 );
 
 export default router;

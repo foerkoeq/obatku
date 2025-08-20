@@ -28,6 +28,7 @@ export const submissionItemSchema = z.object({
     .optional()
 });
 
+// Base schema without refinement - can be extended
 export const baseSubmissionSchema = z.object({
   district: z.string()
     .min(1, 'District is required')
@@ -67,11 +68,14 @@ export const baseSubmissionSchema = z.object({
   items: z.array(submissionItemSchema)
     .min(1, 'At least one medicine item is required')
     .max(20, 'Cannot request more than 20 different medicines')
-})
-.refine(data => data.affectedArea <= data.totalArea, {
-  message: 'Affected area cannot be greater than total area',
-  path: ['affectedArea']
 });
+
+// Validation schema with refinement - used for final validation
+export const baseSubmissionValidationSchema = baseSubmissionSchema
+  .refine(data => data.affectedArea <= data.totalArea, {
+    message: 'Affected area cannot be greater than total area',
+    path: ['affectedArea']
+  });
 
 // ================================================
 // PPL SUBMISSION SCHEMAS

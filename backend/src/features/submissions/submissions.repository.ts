@@ -2,7 +2,7 @@
 // SUBMISSION REPOSITORY
 // ================================================
 
-import { PrismaClient, SubmissionStatus, UserRole } from '@prisma/client';
+import { PrismaClient, SubmissionStatus } from '@prisma/client';
 import { 
   SubmissionResponse, 
   SubmissionFilters, 
@@ -643,7 +643,7 @@ export class SubmissionRepository {
     return result;
   }
 
-  private async getMonthlyCounts(where: any): Promise<Array<{ month: string; year: number; count: number }>> {
+  private async getMonthlyCounts(_where: any): Promise<Array<{ month: string; year: number; count: number }>> {
     // Get last 12 months data
     const result = await this.prisma.$queryRaw<Array<{ month: number; year: number; count: bigint }>>`
       SELECT 
@@ -676,7 +676,7 @@ export class SubmissionRepository {
     });
   }
 
-  private async getAverageProcessingTime(where: any): Promise<number> {
+  private async getAverageProcessingTime(_where: any): Promise<number> {
     const result = await this.prisma.$queryRaw<Array<{ avg_hours: number }>>`
       SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, reviewed_at)) as avg_hours
       FROM submissions 

@@ -20,7 +20,8 @@ import {
   UserStatus,
   CreateUserData,
   UpdateUserData,
-  PasswordGenerationResult
+  PasswordGenerationResult,
+  UserFilters
 } from './users.types';
 // TODO: Create proper error handling utilities
 // import { AppError } from '../../shared/utils/errors';
@@ -122,9 +123,9 @@ export class UserService {
   }
 
   /**
-   * Get all users with pagination and filtering
+   * Get users with pagination and filtering
    */
-  async getAllUsers(query: UserQuery, _currentUserId?: string): Promise<{
+  async getUsers(query: UserQuery): Promise<{
     users: UserListResponse[];
     pagination: {
       page: number;
@@ -135,9 +136,14 @@ export class UserService {
       hasPrev: boolean;
     };
   }> {
-    const { page = 1, limit = 20, search, role, status, sortBy = 'created_at', sortOrder = 'desc' } = query;
+    const { page = 1, limit = 20, search, role, status, sortBy = 'name', sortOrder = 'asc' } = query;
 
-    const filters = { search, role, status };
+    // Convert string literals to enum values
+    const filters: UserFilters = { 
+      search, 
+      role: role ? this.convertToUserRole(role) : undefined, 
+      status: status ? this.convertToUserStatus(status) : undefined 
+    };
     const sortOptions = { sortBy, sortOrder };
 
     const { users, total } = await this.userRepository.findMany(filters, sortOptions, page, limit);
@@ -155,6 +161,30 @@ export class UserService {
         hasPrev: page > 1
       }
     };
+  }
+
+  /**
+   * Convert string literal to UserRole enum
+   */
+  private convertToUserRole(role: string): UserRole {
+    switch (role) {
+      case 'admin': return UserRole.ADMIN;
+      case 'ppl': return UserRole.PPL;
+      case 'dinas': return UserRole.DINAS;
+      case 'popt': return UserRole.POPT;
+      default: throw new AppError(`Invalid role: ${role}`, 400, ErrorCode.VALIDATION_ERROR);
+    }
+  }
+
+  /**
+   * Convert string literal to UserStatus enum
+   */
+  private convertToUserStatus(status: string): UserStatus {
+    switch (status) {
+      case 'active': return UserStatus.ACTIVE;
+      case 'inactive': return UserStatus.INACTIVE;
+      default: throw new AppError(`Invalid status: ${status}`, 400, ErrorCode.VALIDATION_ERROR);
+    }
   }
 
   /**
@@ -207,7 +237,7 @@ export class UserService {
       nip: userData.nip,
       phone: userData.phone,
       password_hash: passwordHash,
-      role: userData.role,
+      role: this.convertToUserRole(userData.role),
       status: UserStatus.ACTIVE,
       birth_date: birthDate,
       avatar_url: userData.avatar_url,
@@ -242,8 +272,8 @@ export class UserService {
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
-      role: userData.role,
-      status: userData.status,
+      role: userData.role ? this.convertToUserRole(userData.role) : undefined,
+      status: userData.status ? this.convertToUserStatus(userData.status) : undefined,
       birth_date: userData.birth_date ? new Date(userData.birth_date) : undefined,
       avatar_url: userData.avatar_url
     };
@@ -449,7 +479,7 @@ export class UserService {
         nip: userData.nip,
         phone: userData.phone,
         password_hash: passwordHash,
-        role: userData.role,
+        role: this.convertToUserRole(userData.role),
         status: UserStatus.ACTIVE,
         birth_date: birthDate,
         avatar_url: userData.avatar_url,
