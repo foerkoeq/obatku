@@ -187,6 +187,8 @@ export const customSecurityConfigExample = () => {
       enableSecurityMonitoring: true,
       enableRealTimeAlerts: true,
       alertChannels: ['console', 'file'],
+      enableEmailAlerts: false,
+      alertEmailRecipients: [],
       alertThresholds: {
         rateLimitViolations: 5,
         sqlInjectionAttempts: 3,

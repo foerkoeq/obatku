@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup:env": "node scripts/setup-env.js",
+    "validate:env": "node -e \"require('./lib/config/validation').logEnvironmentValidation()\""
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

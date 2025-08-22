@@ -37,7 +37,7 @@ export class UserController {
       // Validate query parameters
       const validatedQuery = userQuerySchema.parse(req.query);
       
-      const result = await this.userService.getAllUsers(validatedQuery, req.user?.id);
+      const result = await this.userService.getUsers(validatedQuery);
       
       ResponseUtil.success(res, result, 'Users retrieved successfully');
     } catch (error) {

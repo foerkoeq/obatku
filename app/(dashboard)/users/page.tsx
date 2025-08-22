@@ -1,22 +1,22 @@
-import { users } from "@/lib/data/user-demo";
-import { UserTable } from "@/components/users/user-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import SiteBreadcrumb from "@/components/site-breadcrumb";
+import { Metadata } from "next";
+import { UserTable } from "@/components/users";
 
-const UsersPage = () => {
-  return (
-    <div className="space-y-6">
-      <SiteBreadcrumb />
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UserTable data={users} />
-        </CardContent>
-      </Card>
-    </div>
-  );
+export const metadata: Metadata = {
+  title: "User Management",
+  description: "Manage system users, roles, and permissions",
 };
 
-export default UsersPage; 
+export default function UsersPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+        <p className="text-muted-foreground">
+          Manage system users, roles, and permissions. Add new users, update profiles, and control access levels.
+        </p>
+      </div>
+      
+      <UserTable />
+    </div>
+  );
+} 

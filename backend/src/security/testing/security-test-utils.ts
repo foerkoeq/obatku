@@ -127,6 +127,8 @@ export const generateTestSecurityConfig = (overrides: Partial<SecurityConfig> = 
     monitoring: {
       enableSecurityMonitoring: true,
       enableRealTimeAlerts: false,
+      enableEmailAlerts: false,
+      alertEmailRecipients: [],
       alertChannels: ['console'],
       alertThresholds: {
         rateLimitViolations: 10,

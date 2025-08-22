@@ -365,7 +365,7 @@ export class QRCodeRepository {
     });
   }
 
-  async updateQRCodeStatus(id: string, status: string, userId: string) {
+  async updateQRCodeStatus(id: string, status: string, _userId: string) {
     return this.prisma.qRCodeData.update({
       where: { id },
       data: {

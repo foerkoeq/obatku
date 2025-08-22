@@ -40,6 +40,9 @@ import { SelectWithOther } from "@/components/form/select-with-other";
 import { TagInput } from "@/components/form/tag-input";
 import { ImageUpload } from "@/components/form/image-upload";
 
+// Services
+import { inventoryService } from "@/lib/services/inventory.service";
+
 // Types
 import { DrugInventory, DrugCategory, Supplier, UserRole } from "@/lib/types/inventory";
 
@@ -49,7 +52,7 @@ const addMedicineSchema = z.object({
   producer: z.string().min(1, "Produsen wajib diisi"),
   content: z.string().min(1, "Kandungan wajib diisi"),
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
-  supplier: z.string().min(1, "Supplier wajib diisi"),
+  supplierId: z.string().min(1, "Supplier wajib dipilih"),
   stock: z.number().min(0, "Stok tidak boleh negatif"),
   unit: z.string().min(1, "Satuan wajib diisi"),
   largePack: z.object({
@@ -81,154 +84,14 @@ const addMedicineSchema = z.object({
 
 type AddMedicineFormData = z.infer<typeof addMedicineSchema>;
 
-// Mock data - in real app, fetch from API
-const mockCategories: DrugCategory[] = [
-  { id: '1', name: 'Herbisida', description: 'Obat pembasmi gulma' },
-  { id: '2', name: 'Insektisida', description: 'Obat pembasmi serangga' },
-  { id: '3', name: 'Fungisida', description: 'Obat pembasmi jamur' },
-  { id: '4', name: 'Bakterisida', description: 'Obat pembasmi bakteri' },
-  { id: '5', name: 'Nematisida', description: 'Obat pembasmi nematoda' },
-];
-
-const mockSuppliers: Supplier[] = [
-  { id: '1', name: 'PT Agro Kimia', contact: '021-xxx-xxxx' },
-  { id: '2', name: 'CV Tani Makmur', contact: '021-yyy-yyyy' },
-  { id: '3', name: 'PT Pupuk Nusantara', contact: '021-zzz-zzzz' },
-  { id: '4', name: 'UD Maju Jaya', contact: '021-aaa-aaaa' },
-];
-
+// Default options
 const unitOptions = [
-  'kg', 'gram', 'liter', 'ml', 'botol', 'kaleng', 'pak', 'sachet', 'tablet', 'kapsul'
+  'kg', 'liter', 'botol', 'sachet', 'tablet', 'kapsul', 'ampul', 'vial', 'tube', 'cream', 'salep'
 ];
 
 const largePackUnits = [
   'dus', 'box', 'karton', 'jerigen', 'drum', 'pack', 'bundle', 'krat'
 ];
-
-// Komponen input dosis dinamis
-
-type DosesRepeaterProps = {
-  control: any; // Bisa diganti UseFormReturn<AddMedicineFormData>["control"] jika ingin lebih strict
-  register: any;
-  errors: any;
-  units: string[];
-  onAddUnit: (newUnit: string) => void;
-};
-
-const DosesRepeater: React.FC<DosesRepeaterProps> = ({ control, register, errors, units, onAddUnit }) => {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "doses",
-  });
-  // Ambil nilai unit dari form utama
-  const unitStok = control._formValues?.unit || '';
-
-  return (
-    <div className="space-y-2">
-      {fields.map((item, index) => (
-        <div key={item.id} className="flex flex-col md:flex-row gap-2 items-end border p-3 rounded-md mb-2">
-          {/* Jumlah */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Jumlah</label>
-            {index === 0 ? (
-              <input
-                type="number"
-                value={1}
-                readOnly
-                className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-              />
-            ) : (
-              <input
-                type="number"
-                step="any"
-                min="0.0001"
-                {...register(`doses.${index}.amount`, { valueAsNumber: true })}
-                className="input input-bordered w-full"
-                placeholder="Contoh: 1"
-              />
-            )}
-            {errors?.doses?.[index]?.amount && (
-              <span className="text-xs text-red-500">{errors.doses[index].amount.message}</span>
-            )}
-          </div>
-          {/* Satuan */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Satuan</label>
-            {index === 0 ? (
-              <input
-                type="text"
-                value={unitStok}
-                readOnly
-                className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-              />
-            ) : (
-              <Controller
-                control={control}
-                name={`doses.${index}.unit`}
-                render={({ field }) => (
-                  <SelectWithOther
-                    options={units.map((unit: string) => ({ value: unit, label: unit }))}
-                    value={field.value}
-                    onChange={field.onChange}
-                    onAddNew={onAddUnit}
-                    placeholder="Pilih satuan"
-                  />
-                )}
-              />
-            )}
-            {errors?.doses?.[index]?.unit && (
-              <span className="text-xs text-red-500">{errors.doses[index].unit.message}</span>
-            )}
-          </div>
-          {/* Luas Lahan */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Luas Lahan</label>
-            <input
-              type="number"
-              step="any"
-              min="0.0001"
-              {...register(`doses.${index}.area`, { valueAsNumber: true })}
-              className="input input-bordered w-full"
-              placeholder="Contoh: 1"
-            />
-            {errors?.doses?.[index]?.area && (
-              <span className="text-xs text-red-500">{errors.doses[index].area.message}</span>
-            )}
-          </div>
-          {/* Satuan Luas */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Satuan Luas</label>
-            <input
-              type="text"
-              value="ha"
-              readOnly
-              className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => remove(index)}
-            className="ml-2 text-red-600 hover:text-red-800"
-            disabled={fields.length === 1 && index === 0}
-            title="Hapus aturan dosis"
-          >
-            Hapus
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => append({ amount: 1, unit: '', area: 1, areaUnit: 'ha' })}
-        className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
-      >
-        + Tambah Aturan Dosis
-      </button>
-      {errors?.doses && typeof errors.doses.message === 'string' && (
-        <span className="text-xs text-red-500">{errors.doses.message}</span>
-      )}
-    </div>
-  );
-};
 
 const AddMedicinePage: React.FC = () => {
   const router = useRouter();
@@ -236,10 +99,11 @@ const AddMedicinePage: React.FC = () => {
   const [userRole] = useState<UserRole>('admin'); // In real app, get from auth context
 
   // State for dynamic options
-  const [categories, setCategories] = useState(mockCategories);
-  const [suppliers, setSuppliers] = useState(mockSuppliers);
+  const [categories, setCategories] = useState<DrugCategory[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [units, setUnits] = useState(unitOptions);
   const [largePackUnitsList, setLargePackUnitsList] = useState(largePackUnits);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // Check authorization - only admin, dinas, and popt can add medicine
   useEffect(() => {
@@ -250,6 +114,31 @@ const AddMedicinePage: React.FC = () => {
     }
   }, [userRole, router]);
 
+  // Load categories and suppliers from backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setDataLoading(true);
+        
+        // Load categories
+        const categoriesResponse = await inventoryService.getCategories();
+        setCategories(categoriesResponse.data || []);
+        
+        // Load suppliers
+        const suppliersResponse = await inventoryService.getSuppliers();
+        setSuppliers(suppliersResponse.data || []);
+        
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Gagal memuat data kategori dan supplier');
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   // Form setup
   const form = useForm<AddMedicineFormData>({
     resolver: zodResolver(addMedicineSchema),
@@ -258,7 +147,7 @@ const AddMedicinePage: React.FC = () => {
       producer: '',
       content: '',
       categoryId: '',
-      supplier: '',
+      supplierId: '',
       stock: 0,
       unit: '',
       largePack: {
@@ -283,24 +172,51 @@ const AddMedicinePage: React.FC = () => {
   });
 
   // Handlers for adding new options
-  const handleAddCategory = (newCategory: string) => {
-    const newCategoryObj = {
-      id: Date.now().toString(),
-      name: newCategory,
-      description: `Kategori ${newCategory}`,
-    };
-    setCategories(prev => [...prev, newCategoryObj]);
-    // In real app, save to backend
+  const handleAddCategory = async (newCategory: string) => {
+    try {
+      const response = await inventoryService.createCategory({
+        name: newCategory,
+        description: `Kategori ${newCategory}`,
+      });
+      
+      const newCategoryObj = response.data;
+      setCategories(prev => [...prev, newCategoryObj]);
+      
+      // Set the new category as selected
+      form.setValue('categoryId', newCategoryObj.id);
+      
+      toast.success('Kategori berhasil ditambahkan');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Gagal menambahkan kategori');
+    }
   };
 
-  const handleAddSupplier = (newSupplier: string) => {
-    const newSupplierObj = {
-      id: Date.now().toString(),
-      name: newSupplier,
-      contact: '-',
-    };
-    setSuppliers(prev => [...prev, newSupplierObj]);
-    // In real app, save to backend
+  const handleAddSupplier = async (newSupplier: string) => {
+    try {
+      const response = await inventoryService.createSupplier({
+        name: newSupplier,
+        contact: '-',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        country: 'Indonesia',
+        postalCode: '',
+      });
+      
+      const newSupplierObj = response.data;
+      setSuppliers(prev => [...prev, newSupplierObj]);
+      
+      // Set the new supplier as selected
+      form.setValue('supplierId', newSupplierObj.id);
+      
+      toast.success('Supplier berhasil ditambahkan');
+    } catch (error) {
+      console.error('Error adding supplier:', error);
+      toast.error('Gagal menambahkan supplier');
+    }
   };
 
   const handleAddUnit = (newUnit: string) => {
@@ -320,21 +236,48 @@ const AddMedicinePage: React.FC = () => {
     try {
       // Prepare data for API
       const medicineData = {
-        ...data,
-        status: 'normal' as const,
-        lastUpdated: new Date(),
-        createdBy: 'Current User', // In real app, get from auth context
+        name: data.name,
+        genericName: data.producer,
+        categoryId: data.categoryId,
+        supplierId: data.supplierId,
+        description: data.notes,
+        activeIngredient: data.content,
+        dosageForm: data.unit,
+        strength: data.content,
+        unit: data.unit,
+        barcode: '', // Will be generated by backend
+        sku: `${data.name.substring(0, 3).toUpperCase()}-${Date.now()}`, // Generate SKU
+        requiresPrescription: false,
       };
 
-      // In real app, make API call to create medicine
-      console.log('Adding medicine:', medicineData);
+      // Create medicine
+      const response = await inventoryService.createMedicine(medicineData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // If images are uploaded, upload them
+      if (data.images && data.images.length > 0) {
+        for (const image of data.images) {
+          if (image instanceof File) {
+            await inventoryService.uploadMedicineImage(response.data.id, image);
+          }
+        }
+      }
+
+      // Create initial stock
+      await inventoryService.createStock({
+        medicineId: response.data.id,
+        batchNumber: `BATCH-${Date.now()}`,
+        quantity: data.stock,
+        unitPrice: data.pricePerUnit || 0,
+        sellingPrice: data.pricePerUnit || 0,
+        expiryDate: data.expiryDate.toISOString(),
+        manufacturingDate: data.entryDate.toISOString(),
+        supplierId: data.supplierId,
+        location: data.storageLocation,
+      });
+
       // Success notification
       toast.success('Obat berhasil ditambahkan!', {
-        description: `${data.name} telah disimpan ke dalam inventory`,
+        description: `${data.name} telah ditambahkan ke inventory`,
       });
 
       // Redirect to inventory page
@@ -355,49 +298,43 @@ const AddMedicinePage: React.FC = () => {
     router.back();
   };
 
-  // Render unauthorized message for PPL users
-  if (userRole === 'ppl') {
+  if (dataLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Anda tidak memiliki akses untuk menambah obat. Silakan hubungi administrator.
-          </AlertDescription>
-        </Alert>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Memuat data...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <div>
-          <PageTitle title="Tambah Obat Baru" className="mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Lengkapi semua informasi obat yang akan ditambahkan ke inventory
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={handleBack}
-          className="w-fit"
+          className="mb-4"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Kembali
         </Button>
+        
+        <PageTitle 
+          title="Tambah Obat Baru" 
+          description="Tambahkan obat pertanian baru ke dalam sistem inventory"
+        />
       </div>
 
-      {/* Form Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Informasi Obat
+            Form Tambah Obat
           </CardTitle>
           <CardDescription>
-            Masukkan detail lengkap obat pertanian yang akan disimpan
+            Isi semua field yang diperlukan untuk menambahkan obat baru. Field dengan tanda * wajib diisi.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -486,13 +423,13 @@ const AddMedicinePage: React.FC = () => {
                 {/* Supplier */}
                 <FormField
                   control={form.control}
-                  name="supplier"
+                  name="supplierId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Supplier *</FormLabel>
                       <FormControl>
                         <SelectWithOther
-                          options={suppliers.map(supplier => ({ value: supplier.name, label: supplier.name }))}
+                          options={suppliers.map(sup => ({ value: sup.id, label: sup.name }))}
                           value={field.value}
                           onChange={field.onChange}
                           onAddNew={handleAddSupplier}
@@ -506,321 +443,290 @@ const AddMedicinePage: React.FC = () => {
               </div>
 
               {/* Stock Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informasi Stok</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Initial Stock */}
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jumlah Stok Awal *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <FormField
+                  control={form.control}
+                  name="stock"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jumlah Stok Awal *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0"
+                          placeholder="0" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Unit */}
-                  <FormField
-                    control={form.control}
-                    name="unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Satuan *</FormLabel>
-                        <FormControl>
-                          <SelectWithOther
-                            options={units.map(unit => ({ value: unit, label: unit }))}
-                            value={field.value}
-                            onChange={field.onChange}
-                            onAddNew={handleAddUnit}
-                            placeholder="Pilih satuan"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Satuan *</FormLabel>
+                      <FormControl>
+                        <SelectWithOther
+                          options={units.map(unit => ({ value: unit, label: unit }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddNew={handleAddUnit}
+                          placeholder="Pilih satuan"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Price per Unit */}
-                  <FormField
-                    control={form.control}
-                    name="pricePerUnit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Harga per Unit</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormDescription>Opsional</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="pricePerUnit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Harga per Unit</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0"
+                          placeholder="0" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Large Pack Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informasi Kemasan Besar</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Large Pack Quantity */}
-                  <FormField
-                    control={form.control}
-                    name="largePack.quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jumlah Kemasan Besar</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <FormField
+                  control={form.control}
+                  name="largePack.quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jumlah Kemasan Besar</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0"
+                          placeholder="0" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Large Pack Unit */}
-                  <FormField
-                    control={form.control}
-                    name="largePack.unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Satuan Kemasan Besar</FormLabel>
-                        <FormControl>
-                          <SelectWithOther
-                            options={largePackUnitsList.map(unit => ({ value: unit, label: unit }))}
-                            value={field.value}
-                            onChange={field.onChange}
-                            onAddNew={handleAddLargePackUnit}
-                            placeholder="Pilih satuan kemasan"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="largePack.unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Satuan Kemasan Besar</FormLabel>
+                      <FormControl>
+                        <SelectWithOther
+                          options={largePackUnitsList.map(unit => ({ value: unit, label: unit }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddNew={handleAddLargePackUnit}
+                          placeholder="Pilih satuan"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Items per Pack */}
-                  <FormField
-                    control={form.control}
-                    name="largePack.itemsPerPack"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jumlah per Kemasan</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="1"
-                            placeholder="1"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Berapa unit dalam 1 kemasan besar
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="largePack.itemsPerPack"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jumlah per Kemasan</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1"
+                          placeholder="1" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Date Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informasi Tanggal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Entry Date */}
-                  <FormField
-                    control={form.control}
-                    name="entryDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal Masuk *</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Pilih tanggal masuk"
-                            allowClear
-                            displayFormat="dd/MM/yyyy"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="entryDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tanggal Masuk *</FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          date={field.value}
+                          onSelect={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Expiry Date */}
-                  <FormField
-                    control={form.control}
-                    name="expiryDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal Expired *</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Pilih tanggal expired"
-                            allowClear
-                            displayFormat="dd/MM/yyyy"
-                            minDate={form.getValues('entryDate')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="expiryDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tanggal Expired *</FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          date={field.value}
+                          onSelect={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              {/* Dosis Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Aturan Dosis Penggunaan</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Jumlah */}
+              {/* Target Pest Section */}
+              <FormField
+                control={form.control}
+                name="targetPest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Jenis OPT yang Dikendalikan *</FormLabel>
+                    <FormControl>
+                      <TagInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Ketik jenis OPT dan tekan Enter"
+                        maxTags={10}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Masukkan jenis Organisme Pengganggu Tumbuhan yang dapat dikendalikan oleh obat ini
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Storage Location */}
+              <FormField
+                control={form.control}
+                name="storageLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lokasi Penyimpanan *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Contoh: Gudang A, Rak 1, Level 2" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Tentukan lokasi penyimpanan yang spesifik untuk memudahkan pencarian
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Notes */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Catatan Tambahan</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Tambahkan catatan khusus atau instruksi penyimpanan..." 
+                        className="min-h-[100px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Image Upload */}
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Foto Obat</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        maxFiles={5}
+                        maxSize={5 * 1024 * 1024} // 5MB
+                        accept="image/*"
+                        placeholder="Upload foto obat (maksimal 5 file, 5MB per file)"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Upload foto obat untuk dokumentasi. Format: JPG, PNG, GIF. Maksimal 5 file.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Dose Information */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <h3 className="text-lg font-semibold mb-4">Informasi Dosis</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="dose.amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Jumlah</FormLabel>
+                        <FormLabel>Jumlah Dosis</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            value={1}
-                            readOnly
-                            className="bg-gray-100 cursor-not-allowed"
+                          <Input 
+                            type="number" 
+                            min="0.1"
+                            step="0.1"
+                            placeholder="1" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 1)}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {/* Satuan */}
+
                   <FormField
                     control={form.control}
                     name="dose.unit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Satuan</FormLabel>
-                        <FormControl>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                type="text"
-                                value={form.watch('unit')}
-                                readOnly
-                                className="bg-gray-100 cursor-not-allowed"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              Silakan isi satuan di bagian Informasi Stok
-                            </TooltipContent>
-                          </Tooltip>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* Luas Lahan */}
-                  <FormField
-                    control={form.control}
-                    name="dose.area"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Luas Lahan</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            min="0.0001"
-                            placeholder="Contoh: 1"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* Satuan Luas */}
-                  <FormField
-                    control={form.control}
-                    name="dose.areaUnit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Satuan Luas</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            value="ha"
-                            readOnly
-                            className="bg-gray-100 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-
-              {/* Additional Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informasi Tambahan</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Target Pest */}
-                  <FormField
-                    control={form.control}
-                    name="targetPest"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jenis OPT *</FormLabel>
-                        <FormControl>
-                          <TagInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Ketik jenis OPT dan tekan Enter atau koma..."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Storage Location */}
-                  <FormField
-                    control={form.control}
-                    name="storageLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lokasi Penyimpanan *</FormLabel>
+                        <FormLabel>Satuan Dosis</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Contoh: Gudang A-1" 
+                            placeholder="Contoh: liter, kg" 
                             {...field} 
                           />
                         </FormControl>
@@ -828,87 +734,56 @@ const AddMedicinePage: React.FC = () => {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="dose.area"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Luas Lahan (ha)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0.0001"
+                            step="0.0001"
+                            placeholder="1" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 1)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-
-
-                {/* Notes */}
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Catatan/Deskripsi</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Masukkan catatan tambahan tentang obat ini..."
-                          rows={4}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Opsional - Informasi tambahan tentang penyimpanan, penggunaan, atau catatan khusus
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
-              {/* Upload Images Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Unggah Foto/Dokumen</h3>
-                <FormField
-                  control={form.control}
-                  name="images"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Foto Obat, Label, atau Dokumen Pendukung</FormLabel>
-                      <FormControl>
-                        <ImageUpload
-                          value={field.value || []}
-                          onChange={field.onChange}
-                          maxFiles={3}
-                          maxSize={5}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Opsional - Unggah foto obat, label kemasan, atau dokumen pendukung lainnya
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              
-
-              {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 sm:flex-none"
-                >
-                  {loading ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Simpan Obat
-                    </>
-                  )}
-                </Button>
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-4 pt-6 border-t">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleBack}
                   disabled={loading}
-                  className="flex-1 sm:flex-none"
                 >
                   Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="min-w-[120px]"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Simpan Obat
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
@@ -919,6 +794,4 @@ const AddMedicinePage: React.FC = () => {
   );
 };
 
-export default AddMedicinePage;
-
-// # END OF Add Medicine Page 
+export default AddMedicinePage; 

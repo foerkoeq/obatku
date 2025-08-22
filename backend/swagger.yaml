@@ -1,0 +1,1513 @@
+openapi: 3.0.3
+info:
+  title: ObatKu Pharmacy Management System API
+  description: |
+    Comprehensive API for ObatKu Pharmacy Management System
+    
+    ## Features
+    - **Authentication & Authorization**: JWT-based authentication with role-based access control
+    - **User Management**: Complete user CRUD operations with NIP-based authentication
+    - **Inventory Management**: Medicine and stock management
+    - **Transaction Management**: Agricultural medicine distribution workflow (PPL submission → Dinas approval → Warehouse distribution)
+    - **Reporting**: Analytics and reporting capabilities
+    
+    ## Authentication
+    Most endpoints require authentication via JWT Bearer token in the Authorization header.
+    Public endpoints include login, refresh token, and health checks.
+    
+    ## Rate Limiting
+    - General API: 1000 requests per 15 minutes
+    - Login attempts: 5 requests per 15 minutes per IP
+    - Token refresh: 10 requests per 5 minutes per IP
+    
+  version: 1.0.0
+  contact:
+    name: ObatKu Development Team
+    email: support@obatku.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Development server
+  - url: https://api.obatku.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Users
+    description: User management operations
+  - name: Health
+    description: System health and status endpoints
+
+paths:
+  # ================================================
+  # HEALTH CHECK ENDPOINTS
+  # ================================================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: System Health Check
+      description: Get overall system health status
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00.000Z"
+                  environment:
+                    type: string
+                    example: "development"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  # ================================================
+  # AUTHENTICATION ENDPOINTS
+  # ================================================
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: |
+        Authenticate user with NIP and password.
+        
+        **Rate Limit**: 5 requests per 15 minutes per IP
+        **Security**: Protected against brute force attacks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nip
+                - password
+              properties:
+                nip:
+                  type: string
+                  description: User's NIP (Nomor Induk Pegawai)
+                  example: "198501012010012001"
+                  minLength: 18
+                  maxLength: 18
+                password:
+                  type: string
+                  description: User's password
+                  example: "password123"
+                  minLength: 8
+                rememberMe:
+                  type: boolean
+                  description: Whether to remember the user session
+                  default: false
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh Access Token
+      description: |
+        Refresh access token using refresh token.
+        
+        **Rate Limit**: 10 requests per 5 minutes per IP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Refresh token expired or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User Logout
+      description: |
+        Logout user and invalidate session/tokens.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: Refresh token to invalidate
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get Current User Profile
+      description: |
+        Get current authenticated user's profile information.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/permissions:
+    get:
+      tags:
+        - Authentication
+      summary: Get Current User Permissions
+      description: |
+        Get current user's permissions and access rights.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User permissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionsResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change User Password
+      description: |
+        Change current user's password.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+                - confirmPassword
+              properties:
+                currentPassword:
+                  type: string
+                  description: Current password
+                  example: "oldpassword123"
+                newPassword:
+                  type: string
+                  description: New password
+                  example: "newpassword123"
+                  minLength: 8
+                confirmPassword:
+                  type: string
+                  description: Confirm new password
+                  example: "newpassword123"
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+        '400':
+          description: Invalid request data or password mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================
+  # USER MANAGEMENT ENDPOINTS
+  # ================================================
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get All Users
+      description: |
+        Retrieve paginated list of all users.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          description: Search by name or NIP
+          required: false
+          schema:
+            type: string
+        - name: role
+          in: query
+          description: Filter by user role
+          required: false
+          schema:
+            type: string
+            enum: [admin, ppl, dinas, popt]
+        - name: status
+          in: query
+          description: Filter by user status
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive]
+        - name: sortBy
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+            enum: [name, nip, role, created_at, last_login]
+            default: created_at
+        - name: sortOrder
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListPaginatedResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Users
+      summary: Create New User
+      description: |
+        Create a new user account.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - User with NIP already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get User by ID
+      description: |
+        Retrieve user information by ID.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update User
+      description: |
+        Update user information by ID.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Users
+      summary: Delete User
+      description: |
+        Delete user by ID.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get Current User Profile
+      description: |
+        Get current authenticated user's profile.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update Current User Profile
+      description: |
+        Update current authenticated user's profile.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/stats:
+    get:
+      tags:
+        - Users
+      summary: Get User Statistics
+      description: |
+        Get user statistics and analytics.
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatsResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/check-nip/{nip}:
+    get:
+      tags:
+        - Users
+      summary: Check NIP Existence
+      description: |
+        Check if a NIP already exists in the system.
+        
+        **Authentication Required**: Bearer token in Authorization header
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: nip
+          in: path
+          description: NIP to check
+          required: true
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            example: "198501012010012001"
+      responses:
+        '200':
+          description: NIP check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIPCheckResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}/reset-password:
+    post:
+      tags:
+        - Users
+      summary: Reset User Password
+      description: |
+        Reset user password (admin only).
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}/role:
+    put:
+      tags:
+        - Users
+      summary: Change User Role
+      description: |
+        Change user role (admin only).
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeRoleRequest'
+      responses:
+        '200':
+          description: Role changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}/status:
+    put:
+      tags:
+        - Users
+      summary: Toggle User Status
+      description: |
+        Toggle user active/inactive status (admin only).
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/bulk:
+    post:
+      tags:
+        - Users
+      summary: Bulk Create Users
+      description: |
+        Create multiple users at once (admin only).
+        
+        **Authentication Required**: Bearer token in Authorization header
+        **Admin Only**: This endpoint requires admin privileges
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - users
+              properties:
+                users:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateUserRequest'
+                  minItems: 1
+                  maxItems: 100
+      responses:
+        '201':
+          description: Users created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# ================================================
+# COMPONENTS & SCHEMAS
+# ================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    # ================================================
+    # AUTHENTICATION SCHEMAS
+    # ================================================
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/AuthenticatedUser'
+            tokens:
+              $ref: '#/components/schemas/AuthTokens'
+
+    AuthenticatedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "John Doe"
+        nip:
+          type: string
+          example: "198501012010012001"
+        email:
+          type: string
+          nullable: true
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "+6281234567890"
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        avatarUrl:
+          type: string
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-15T10:30:00.000Z"
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["users:read", "users:write", "inventory:read"]
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+        tokenType:
+          type: string
+          example: "Bearer"
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Token refreshed successfully"
+        data:
+          type: object
+          properties:
+            tokens:
+              $ref: '#/components/schemas/AuthTokens'
+
+    LogoutResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Logout successful"
+
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Profile retrieved successfully"
+        data:
+          $ref: '#/components/schemas/AuthenticatedUser'
+
+    PermissionsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Permissions retrieved successfully"
+        data:
+          type: object
+          properties:
+            permissions:
+              type: array
+              items:
+                type: string
+              example: ["users:read", "users:write", "inventory:read"]
+            role:
+              type: string
+              example: "admin"
+
+    ChangePasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Password changed successfully"
+
+    # ================================================
+    # USER MANAGEMENT SCHEMAS
+    # ================================================
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - nip
+        - phone
+        - role
+        - birth_date
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "john.doe@example.com"
+        nip:
+          type: string
+          minLength: 18
+          maxLength: 18
+          example: "198501012010012001"
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: "+6281234567890"
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+        birth_date:
+          type: string
+          format: date
+          example: "1985-01-01"
+        avatar_url:
+          type: string
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: "+6281234567890"
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        birth_date:
+          type: string
+          format: date
+          example: "1985-01-01"
+        avatar_url:
+          type: string
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          nullable: true
+          example: "john.doe@example.com"
+        nip:
+          type: string
+          example: "198501012010012001"
+        phone:
+          type: string
+          example: "+6281234567890"
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        birth_date:
+          type: string
+          format: date
+          example: "1985-01-01"
+        avatar_url:
+          type: string
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-15T10:30:00.000Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    UserListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "John Doe"
+        nip:
+          type: string
+          example: "198501012010012001"
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-15T10:30:00.000Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+
+    UserListPaginatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Users retrieved successfully"
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserListResponse'
+            pagination:
+              $ref: '#/components/schemas/PaginationInfo'
+
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    UserStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Statistics retrieved successfully"
+        data:
+          type: object
+          properties:
+            totalUsers:
+              type: integer
+              example: 100
+            activeUsers:
+              type: integer
+              example: 85
+            inactiveUsers:
+              type: integer
+              example: 15
+            usersByRole:
+              type: object
+              properties:
+                admin:
+                  type: integer
+                  example: 5
+                ppl:
+                  type: integer
+                  example: 50
+                dinas:
+                  type: integer
+                  example: 30
+                popt:
+                  type: integer
+                  example: 15
+            recentRegistrations:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserListResponse'
+
+    NIPCheckResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "NIP check completed"
+        data:
+          type: object
+          properties:
+            exists:
+              type: boolean
+              example: false
+            nip:
+              type: string
+              example: "198501012010012001"
+
+    PasswordResetRequest:
+      type: object
+      properties:
+        new_password:
+          type: string
+          minLength: 8
+          nullable: true
+          example: "newpassword123"
+        reset_to_birth_date:
+          type: boolean
+          default: true
+          example: true
+
+    PasswordResetResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Password reset successfully"
+        data:
+          type: object
+          properties:
+            temporaryPassword:
+              type: string
+              example: "temp123456"
+            mustChangePassword:
+              type: boolean
+              example: true
+
+    ChangeRoleRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum: [admin, ppl, dinas, popt]
+          example: "admin"
+
+    BulkCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Users created successfully"
+        data:
+          type: object
+          properties:
+            created:
+              type: integer
+              example: 5
+            failed:
+              type: integer
+              example: 0
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+                  error:
+                    type: string
+                    nullable: true
+
+    DeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User deleted successfully"
+
+    # ================================================
+    # ERROR RESPONSE SCHEMAS
+    # ================================================
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        path:
+          type: string
+          example: "/api/v1/users"
+        method:
+          type: string
+          example: "POST"
+
+# ================================================
+# SECURITY
+# ================================================
+security:
+  - bearerAuth: []
+
+# ================================================
+# EXTERNAL DOCUMENTATION
+# ================================================
+externalDocs:
+  description: Find more info about ObatKu
+  url: https://github.com/obatku/pharmacy-management-system

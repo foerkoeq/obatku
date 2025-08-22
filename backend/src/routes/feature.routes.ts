@@ -10,7 +10,7 @@ router.use('/inventory', inventoryRoutes);
 router.use('/qrcode', qrCodeRoutes);
 
 // Health check for features
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     features: {

@@ -17,8 +17,8 @@ export class SQLInjectionPrevention {
   /**
    * Middleware to detect SQL injection attempts
    */
-  detectSQLInjection() {
-    return (req: Request, res: Response, next: NextFunction) => {
+  detectSQLInjection(): (req: Request, res: Response, next: NextFunction) => void | Response {
+    return (req: Request, res: Response, next: NextFunction): void | Response => {
       const violations: SecurityViolation[] = [];
 
       // Check all input fields
@@ -357,7 +357,7 @@ export class SQLInjectionPrevention {
    * Create whitelist validator for specific endpoints
    */
   createWhitelistValidator(allowedFields: string[], allowedValues?: Record<string, string[]>) {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, _res: Response, next: NextFunction) => {
       const violations: SecurityViolation[] = [];
 
       // Check body fields

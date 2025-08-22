@@ -313,7 +313,7 @@ class SubmissionService {
     // Log approval
     await this.auditLogger.logResourceOperation(
       user.id,
-      'approve',
+      'update', // Changed from 'approve' to 'update' since logResourceOperation only accepts CRUD operations
       PERMISSION_RESOURCES.SUBMISSIONS,
       submissionId,
       'success'

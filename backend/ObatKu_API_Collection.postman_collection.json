@@ -1,0 +1,582 @@
+{
+  "info": {
+    "name": "ObatKu Pharmacy Management System API",
+    "description": "Comprehensive API collection for ObatKu Pharmacy Management System\n\n## Features\n- Authentication & Authorization\n- User Management\n- Inventory Management (Coming Soon)\n- Transaction Management (Coming Soon)\n- Reporting (Coming Soon)\n\n## Setup Instructions\n1. Import this collection into Postman\n2. Set up environment variables:\n   - `base_url`: http://localhost:3001/api/v1\n   - `access_token`: (will be set after login)\n   - `refresh_token`: (will be set after login)\n3. Start with the Authentication folder\n4. Use the login request to get tokens\n5. Tokens will be automatically set in environment variables",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "obatku-api-collection",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (set after login)"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (set after login)"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Auto-set tokens after successful login",
+          "if (pm.response.code === 200) {",
+          "    const response = pm.response.json();",
+          "    if (response.data && response.data.tokens) {",
+          "        pm.environment.set('access_token', response.data.tokens.accessToken);",
+          "        pm.environment.set('refresh_token', response.data.tokens.refreshToken);",
+          "        console.log('Tokens set successfully');",
+          "    }",
+          "}",
+          "",
+          "// Auto-refresh token if 401 received",
+          "if (pm.response.code === 401) {",
+          "    const refreshToken = pm.environment.get('refresh_token');",
+          "    if (refreshToken) {",
+          "        console.log('Token expired, attempting refresh...');",
+          "        // You can implement auto-refresh logic here",
+          "    }",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "Authentication and authorization endpoints",
+      "item": [
+        {
+          "name": "System Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the system is running and healthy"
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nip\": \"198501012010012001\",\n  \"password\": \"password123\",\n  \"rememberMe\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticate user with NIP and password\n\n**Rate Limit**: 5 requests per 15 minutes per IP\n**Security**: Protected against brute force attacks"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token\n\n**Rate Limit**: 10 requests per 5 minutes per IP"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get current authenticated user's profile information\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/permissions",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "permissions"]
+            },
+            "description": "Get current user's permissions and access rights\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"oldpassword123\",\n  \"newPassword\": \"newpassword123\",\n  \"confirmPassword\": \"newpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Change current user's password\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout user and invalidate session/tokens\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management",
+      "description": "User management operations (Admin only)",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?page=1&limit=20&sortBy=created_at&sortOrder=desc",
+              "host": ["{{base_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "created_at",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order"
+                }
+              ]
+            },
+            "description": "Retrieve paginated list of all users\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?page=1&limit=10&search=admin&role=admin&status=active",
+              "host": ["{{base_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "admin",
+                  "description": "Search by name or NIP"
+                },
+                {
+                  "key": "role",
+                  "value": "admin",
+                  "description": "Filter by user role"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by user status"
+                }
+              ]
+            },
+            "description": "Get users with search and filter options"
+          },
+          "response": []
+        },
+        {
+          "name": "Create New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"nip\": \"199001012010012002\",\n  \"phone\": \"+6281234567891\",\n  \"role\": \"ppl\",\n  \"birth_date\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "description": "Create a new user account\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Retrieve user information by ID\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe Updated\",\n  \"phone\": \"+6281234567892\",\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Update user information by ID\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Delete user by ID\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            },
+            "description": "Get current authenticated user's profile\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"phone\": \"+6281234567893\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            },
+            "description": "Update current authenticated user's profile\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/stats",
+              "host": ["{{base_url}}"],
+              "path": ["users", "stats"]
+            },
+            "description": "Get user statistics and analytics\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Check NIP Existence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/check-nip/199001012010012002",
+              "host": ["{{base_url}}"],
+              "path": ["users", "check-nip", "199001012010012002"]
+            },
+            "description": "Check if a NIP already exists in the system\n\n**Authentication Required**: Bearer token in Authorization header"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset User Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reset_to_birth_date\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}", "reset-password"]
+            },
+            "description": "Reset user password (admin only)\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"dinas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}/role",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}", "role"]
+            },
+            "description": "Change user role (admin only)\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle User Status",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}", "status"]
+            },
+            "description": "Toggle user active/inactive status (admin only)\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"users\": [\n    {\n      \"name\": \"User 1\",\n      \"nip\": \"199101012010012003\",\n      \"phone\": \"+6281234567894\",\n      \"role\": \"ppl\",\n      \"birth_date\": \"1991-01-01\"\n    },\n    {\n      \"name\": \"User 2\",\n      \"nip\": \"199201012010012004\",\n      \"phone\": \"+6281234567895\",\n      \"role\": \"popt\",\n      \"birth_date\": \"1992-01-01\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["users", "bulk"]
+            },
+            "description": "Create multiple users at once (admin only)\n\n**Authentication Required**: Bearer token in Authorization header\n**Admin Only**: This endpoint requires admin privileges"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Test Data & Examples",
+      "description": "Sample data and test scenarios for development",
+      "item": [
+        {
+          "name": "Sample User Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test",
+              "host": ["{{base_url}}"],
+              "path": ["test"]
+            },
+            "description": "Test endpoint to verify API is working"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

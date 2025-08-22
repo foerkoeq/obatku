@@ -1,41 +1,36 @@
-// # START OF Inventory Components Index - Central export for all inventory components
-// Purpose: Provide centralized exports for easy importing
-// Usage: import { InventoryTable, StatusIndicator } from '@/components/inventory'
-// Dependencies: All inventory components
+// Inventory Components Index
+// Export all inventory-related components for easy importing
 
-// Main components
 export { default as InventoryTable } from './inventory-table';
 export { default as InventorySearch } from './inventory-search';
+export { default as InventoryDetailModal } from './inventory-detail-modal';
+export { default as MedicineDetailModal } from './medicine-detail-modal';
 export { default as FilterSidebar } from './filter-sidebar';
 export { default as StatusIndicator } from './status-indicator';
-
-// Modal components
-export { default as InventoryDetailModal } from './inventory-detail-modal';
 export { default as ExportModal } from './export-modal';
 export { default as BarcodeModal } from './barcode-modal';
-
-// QR Print components
 export { default as QRPrintModal } from './qr-print-modal';
 export { default as QRPrintSettings } from './qr-print-settings';
 export { default as QRPrintPreview } from './qr-print-preview';
 export { default as QRRangeConfigurator } from './qr-range-configurator';
 
-// Types
-export type {
-  DrugInventory,
-  InventoryFilters,
-  PaginationConfig,
-  ExportOptions,
-  BarcodeOptions,
-  UserRole,
-  DrugCategory,
-  Supplier,
-  StockStatus,
-  SortConfig
-} from '@/lib/types/inventory';
+// New Inventory Management Forms
+export { default as StockManagementForm } from './stock-management-form';
+export { default as CategoryManagementForm } from './category-management-form';
 
-// QR Print types
-export type { QRPrintOptions } from './qr-print-settings';
+// Types
+export type { InventoryTableProps } from './inventory-table';
+export type { InventorySearchProps } from './inventory-search';
+export type { InventoryDetailModalProps } from './inventory-detail-modal';
+export type { MedicineDetailModalProps } from './medicine-detail-modal';
+export type { FilterSidebarProps } from './filter-sidebar';
+export type { StatusIndicatorProps } from './status-indicator';
+export type { ExportModalProps } from './export-modal';
+export type { BarcodeModalProps } from './barcode-modal';
+export type { QRPrintModalProps } from './qr-print-modal';
+export type { QRPrintSettingsProps } from './qr-print-settings';
+export type { QRPrintPreviewProps } from './qr-print-preview';
+export type { QRRangeConfiguratorProps } from './qr-range-configurator';
 
 // Demo data
 export {
@@ -50,5 +45,3 @@ export {
   getNearExpiryItems,
   getTotalStockValue
 } from '@/lib/data/inventory-demo';
-
-// # END OF Inventory Components Index

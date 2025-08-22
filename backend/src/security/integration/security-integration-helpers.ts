@@ -150,6 +150,8 @@ export const setupIntegrationForEnvironment = (
         monitoring: {
           enableSecurityMonitoring: false,
           enableRealTimeAlerts: false,
+          enableEmailAlerts: false,
+          alertEmailRecipients: [],
           alertChannels: [],
           alertThresholds: {
             rateLimitViolations: 10,
@@ -266,6 +268,8 @@ export const setupIntegrationForEnvironment = (
         monitoring: {
           enableSecurityMonitoring: true,
           enableRealTimeAlerts: true,
+          enableEmailAlerts: true,
+          alertEmailRecipients: ['admin@staging.com'],
           alertChannels: ['console', 'file'],
           alertThresholds: {
             rateLimitViolations: 5,
@@ -378,6 +382,8 @@ export const setupIntegrationForEnvironment = (
         monitoring: {
           enableSecurityMonitoring: true,
           enableRealTimeAlerts: true,
+          enableEmailAlerts: true,
+          alertEmailRecipients: ['security@production.com', 'admin@production.com'],
           alertChannels: ['console', 'file', 'email'],
           alertThresholds: {
             rateLimitViolations: 3,
@@ -494,6 +500,8 @@ export const setupIntegrationForEnvironment = (
         monitoring: {
           enableSecurityMonitoring: false,
           enableRealTimeAlerts: false,
+          enableEmailAlerts: false,
+          alertEmailRecipients: [],
           alertChannels: [],
           alertThresholds: {
             rateLimitViolations: 20,

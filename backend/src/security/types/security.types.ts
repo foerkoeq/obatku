@@ -435,3 +435,31 @@ export interface SecurityPerformanceMetrics {
   memoryOverhead: number;
   cpuOverhead: number;
 }
+
+// General Performance Metrics
+export interface PerformanceMetrics {
+  responseTime: number;
+  memoryUsage: number;
+  cpuUsage: number;
+  throughput: number;
+}
+
+// Performance Thresholds
+export interface PerformanceThresholds {
+  responseTime: {
+    warning: number;
+    critical: number;
+  };
+  memoryUsage: {
+    warning: number;
+    critical: number;
+  };
+  cpuUsage: {
+    warning: number;
+    critical: number;
+  };
+  throughput: {
+    warning: number;
+    critical: number;
+  };
+}

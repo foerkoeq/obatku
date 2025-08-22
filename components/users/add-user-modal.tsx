@@ -4,8 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,13 +36,19 @@ import {
 import { userSchema } from "@/lib/validations/user";
 import { cn } from "@/lib/utils";
 import DatePicker from "@/components/ui/date-picker";
+import { userService } from "@/lib/services/user.service";
+import { useFormStore } from "@/hooks/use-form-store";
 
 type AddUserModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 };
 
-export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
+export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { setFormErrors, clearFormErrors } = useFormStore();
+  
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
@@ -54,18 +61,84 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof userSchema>) {
-    const password = format(values.birthDate, "ddMMyy");
-    console.log({ ...values, password });
-    toast.success("User created successfully!", {
-      description: `Password for ${values.name} is ${password}`,
-    });
-    onOpenChange(false);
-    form.reset();
+  async function onSubmit(values: z.infer<typeof userSchema>) {
+    try {
+      setIsSubmitting(true);
+      clearFormErrors();
+      
+      // Generate password from birth date
+      const password = format(values.birthDate, "ddMMyy");
+      
+      // Prepare user data for backend
+      const userData = {
+        name: values.name,
+        email: values.email || "",
+        password: password,
+        role: values.role,
+        phone: values.phone,
+        // Add additional fields that backend expects
+        permissions: [], // Default permissions based on role
+        isActive: true,
+      };
+
+      // Call backend API
+      const response = await userService.createUser(userData);
+      
+      if (response.success) {
+        toast.success("User created successfully!", {
+          description: `Password for ${values.name} is ${password}`,
+        });
+        
+        // Reset form and close modal
+        form.reset();
+        onOpenChange(false);
+        
+        // Trigger success callback to refresh data
+        onSuccess?.();
+      } else {
+        toast.error("Failed to create user", {
+          description: response.message || "An error occurred while creating the user",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      
+      // Handle validation errors from backend
+      if (error.errors && Array.isArray(error.errors)) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          if (err.field) {
+            fieldErrors[err.field] = err.message;
+          }
+        });
+        
+        // Set form errors
+        Object.entries(fieldErrors).forEach(([field, message]) => {
+          form.setError(field as any, { message });
+        });
+        
+        setFormErrors(fieldErrors);
+      } else {
+        // Handle general errors
+        toast.error("Failed to create user", {
+          description: error.message || "An error occurred while creating the user",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
+  const handleClose = () => {
+    if (!isSubmitting) {
+      form.reset();
+      clearFormErrors();
+      onOpenChange(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>
@@ -178,11 +251,21 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save User</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Save User"
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

@@ -4,8 +4,8 @@ import { QRCodeController } from './qrcode.controller';
 import { PrismaClient } from '@prisma/client';
 import { QRCodeRepository } from './qrcode.repository';
 import { QRCodeService } from './qrcode.service';
-import { authMiddleware } from '../../middleware/auth.middleware';
-import { roleMiddleware } from '../../middleware/role.middleware';
+import { authenticateToken } from '../../middleware/auth.middleware';
+import { requireRole, UserRole } from '../../middleware/role.middleware';
 
 const router = Router();
 
@@ -16,115 +16,115 @@ const qrCodeService = new QRCodeService(qrCodeRepository);
 const qrCodeController = new QRCodeController(qrCodeService);
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // QR Code Master Management Routes
 router.get('/masters', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.getAllQRCodeMasters
 );
 
 router.get('/masters/:id', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.getQRCodeMasterById
 );
 
 router.post('/masters', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.createQRCodeMaster
 );
 
 router.put('/masters/:id', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.updateQRCodeMaster
 );
 
 router.delete('/masters/:id', 
-  roleMiddleware(['admin']),
+  requireRole([UserRole.ADMIN]),
   qrCodeController.deleteQRCodeMaster
 );
 
 // QR Code Generation Routes
 router.post('/generate', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.generateQRCodes
 );
 
 router.post('/generate/bulk', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.bulkGenerateQRCodes
 );
 
 // QR Code Management Routes
 router.get('/', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.getAllQRCodes
 );
 
 router.get('/:id', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.getQRCodeById
 );
 
 router.put('/:id/status', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.updateQRCodeStatus
 );
 
 router.delete('/:id', 
-  roleMiddleware(['admin']),
+  requireRole([UserRole.ADMIN]),
   qrCodeController.deleteQRCode
 );
 
 // QR Code Scanning Routes
 router.post('/scan', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.scanQRCode
 );
 
 // QR Code Validation Routes
 router.post('/validate', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.validateQRCode
 );
 
 // Scan Log Management Routes
 router.get('/scans/logs', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.getScanLogs
 );
 
 // Statistics and Reports Routes
 router.get('/statistics', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.getQRCodeStatistics
 );
 
 // Bulk Operations Routes
 router.put('/bulk/status', 
-  roleMiddleware(['admin', 'pharmacist']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER]),
   qrCodeController.bulkUpdateQRCodeStatus
 );
 
 router.delete('/bulk', 
-  roleMiddleware(['admin']),
+  requireRole([UserRole.ADMIN]),
   qrCodeController.bulkDeleteQRCodes
 );
 
 // Utility Routes
 router.get('/:id/download', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.downloadQRCodeImage
 );
 
 router.put('/:id/print', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.printQRCode
 );
 
 // Format Information Routes
 router.get('/info/formats', 
-  roleMiddleware(['admin', 'pharmacist', 'staff']),
+  requireRole([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]),
   qrCodeController.getQRCodeFormats
 );
 

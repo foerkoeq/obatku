@@ -26,8 +26,19 @@ export const authenticateToken = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    if (!authHeader) {
+      ResponseUtil.unauthenticated(res, 'Access token is required');
+      return;
+    }
 
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      ResponseUtil.unauthenticated(res, 'Access token is required');
+      return;
+    }
+
+    const token = parts[1];
     if (!token) {
       ResponseUtil.unauthenticated(res, 'Access token is required');
       return;
@@ -55,7 +66,7 @@ export const authenticateToken = async (
     
     if (errorMessage.includes('expired')) {
       ResponseUtil.error(res, 'TOKEN_EXPIRED', 'Token has expired', null, 401);
-    } else if (errorMessage.includes('invalid')) {
+    } else if (errorMessage.includes('malformed') || errorMessage.includes('invalid')) {
       ResponseUtil.error(res, 'INVALID_TOKEN', 'Invalid token', null, 401);
     } else {
       ResponseUtil.unauthenticated(res, 'Authentication failed');

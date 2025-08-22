@@ -81,7 +81,7 @@ export class AuthMiddleware {
    * Optional authentication middleware
    * Sets user context if token is valid, but doesn't block request
    */
-  optionalAuthenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  optionalAuthenticate = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.get('Authorization');
       if (authHeader && authHeader.startsWith(AUTH_CONSTANTS.TOKEN_PREFIX)) {
@@ -206,7 +206,7 @@ export class AuthMiddleware {
    * Request logging middleware
    * Logs authenticated requests for audit purposes
    */
-  logAuthenticatedRequest = (req: Request, res: Response, next: NextFunction): void => {
+  logAuthenticatedRequest = (req: Request, _res: Response, next: NextFunction): void => {
     if (req.user) {
       const logData = {
         userId: req.user.id,
@@ -234,7 +234,8 @@ export class AuthMiddleware {
     try {
       const authHeader = req.get('Authorization');
       if (authHeader && authHeader.startsWith(AUTH_CONSTANTS.TOKEN_PREFIX)) {
-        const token = authHeader.substring(AUTH_CONSTANTS.TOKEN_PREFIX.length);
+        // Extract token for potential future use (commented out for now)
+        // const token = authHeader.substring(AUTH_CONSTANTS.TOKEN_PREFIX.length);
         
         // This would require access to JWTService
         // For now, we'll add a header to suggest token refresh

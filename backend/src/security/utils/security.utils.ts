@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { RiskLevel, SecurityViolation } from '../types/security.types';
 
 /**
@@ -40,12 +40,13 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  * Generate secure JWT token
  */
 export function generateJWTToken(payload: any, secret: string, expiresIn: string = '24h'): string {
-  return jwt.sign(payload, secret, { 
-    expiresIn,
+  const options: SignOptions = { 
+    expiresIn: expiresIn as any,
     algorithm: 'HS256',
     issuer: 'obatku-api',
     audience: 'obatku-client'
-  });
+  };
+  return jwt.sign(payload, secret, options);
 }
 
 /**
@@ -94,7 +95,7 @@ export function encryptData(data: string, key: string): { encrypted: string; iv:
 /**
  * Decrypt sensitive data
  */
-export function decryptData(encryptedData: string, key: string, iv: string): string {
+export function decryptData(encryptedData: string, key: string, _iv: string): string {
   const algorithm = 'aes-256-gcm';
   const decipher = crypto.createDecipher(algorithm, key);
   
@@ -118,14 +119,37 @@ export function generateSecureFilename(originalName: string): string {
  * Validate email format securely
  */
 export function validateEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  
+  // Trim whitespace
+  const trimmedEmail = email.trim();
+  if (trimmedEmail === '') return false;
+  
+  // Check for spaces in local part or domain
+  if (trimmedEmail.includes(' ')) return false;
+  
+  // Check for double dots
+  if (trimmedEmail.includes('..')) return false;
+  
+  // Check for dots at start or end
+  if (trimmedEmail.startsWith('.') || trimmedEmail.endsWith('.')) return false;
+  
+  // Check for dots adjacent to @
+  if (trimmedEmail.includes('.@') || trimmedEmail.includes('@.')) return false;
+  
+  // Check length
+  if (trimmedEmail.length > 254) return false;
+  
+  // Basic format check with stricter regex
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-  return emailRegex.test(email) && email.length <= 254;
+  
+  return emailRegex.test(trimmedEmail);
 }
 
 /**
  * Validate password strength
  */
-export function validatePasswordStrength(password: string): {
+export function validatePasswordStrength(password: string | null | undefined): {
   isValid: boolean;
   score: number;
   feedback: string[];
@@ -133,10 +157,30 @@ export function validatePasswordStrength(password: string): {
   const feedback: string[] = [];
   let score = 0;
 
-  // Length check
-  if (password.length >= 8) score += 20;
-  else feedback.push('Password must be at least 8 characters long');
+  // Handle null/undefined cases
+  if (!password || typeof password !== 'string') {
+    feedback.push('Password is required');
+    return {
+      isValid: false,
+      score: 0,
+      feedback
+    };
+  }
 
+  // Length check - Base requirement
+  if (password.length < 8) {
+    feedback.push('Password must be at least 8 characters long');
+    // Don't add any points if too short
+    return {
+      isValid: false,
+      score: 0,
+      feedback
+    };
+  }
+  
+  // Add base length points
+  score += 20;
+  
   if (password.length >= 12) score += 10;
 
   // Character variety checks
@@ -252,7 +296,10 @@ export function generateApiKey(prefix: string = 'sk'): string {
  * Validate API key format
  */
 export function validateApiKeyFormat(apiKey: string): boolean {
-  const apiKeyRegex = /^[a-zA-Z]{2}_[A-Za-z0-9_-]{43}$/;
+  if (!apiKey || typeof apiKey !== 'string') return false;
+  
+  // Check for Stripe-like API key format: sk_test_... or pk_test_... etc.
+  const apiKeyRegex = /^(sk|pk)_(test|live)_[a-zA-Z0-9]{24}$/;
   return apiKeyRegex.test(apiKey);
 }
 
@@ -344,7 +391,7 @@ export const IPUtils = {
   /**
    * Get IP reputation (mock implementation)
    */
-  async getIPReputation(ip: string): Promise<{
+  async getIPReputation(_ip: string): Promise<{
     reputation: 'good' | 'suspicious' | 'malicious';
     score: number;
     reasons: string[];

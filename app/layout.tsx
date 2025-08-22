@@ -8,6 +8,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import DirectionProvider from "@/providers/direction-provider";
 import AuthProvider from "@/providers/auth.provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { StoreProvider } from "@/lib/stores";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,19 +25,21 @@ export default function RootLayout({
   return (
     <html lang="id" dir="ltr" suppressHydrationWarning>
       <body className={`${inter.className} dashcode-app`} suppressHydrationWarning>
-        <AuthProvider>
-          <ThemeProvider>
-            <MountedProvider>
-              <DirectionProvider direction="ltr">
-                <TooltipProvider>
-                  {children}
-                </TooltipProvider>
-              </DirectionProvider>
-            </MountedProvider>
-            <Toaster />
-            <SonnerToaster />
-          </ThemeProvider>
-        </AuthProvider>
+        <StoreProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <MountedProvider>
+                <DirectionProvider direction="ltr">
+                  <TooltipProvider>
+                    {children}
+                  </TooltipProvider>
+                </DirectionProvider>
+              </MountedProvider>
+              <Toaster />
+              <SonnerToaster />
+            </ThemeProvider>
+          </AuthProvider>
+        </StoreProvider>
       </body>
     </html>
   );

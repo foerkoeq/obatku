@@ -25,7 +25,6 @@ export const rateLimiter = (options: RateLimitOptions) => {
     try {
       const key = req.ip || 'unknown';
       const now = Date.now();
-      const windowStart = now - options.windowMs;
 
       // Get current request count for this IP
       const current = requestCounts.get(key);
@@ -68,7 +67,6 @@ export const strictRateLimiter = (options: RateLimitOptions) => {
     try {
       const key = `${req.ip}-${req.path}`;
       const now = Date.now();
-      const windowStart = now - options.windowMs;
 
       const current = requestCounts.get(key);
       
@@ -107,7 +105,6 @@ export const userRateLimiter = (options: RateLimitOptions) => {
       const userId = req.user?.id || req.ip || 'unknown';
       const key = `user-${userId}`;
       const now = Date.now();
-      const windowStart = now - options.windowMs;
 
       const current = requestCounts.get(key);
       

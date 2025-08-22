@@ -4,13 +4,9 @@
  */
 
 import { Request } from 'express';
+import { AuthenticatedUser } from '../features/auth/auth.types';
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    name: string;
-  };
+  user?: AuthenticatedUser;
   userId?: string;
 }

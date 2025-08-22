@@ -4,6 +4,7 @@ import { IntegrationController } from './integration.controller';
 import { InventoryQRCodeIntegration } from './inventory-qrcode.integration';
 import { PrismaClient } from '@prisma/client';
 import { InventoryService } from '../inventory/inventory.service';
+import { InventoryRepository } from '../inventory/inventory.repository';
 import { QRCodeRepository } from '../qrcode/qrcode.repository';
 import { QRCodeService } from '../qrcode/qrcode.service';
 
@@ -13,7 +14,8 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Inventory dependencies
-const inventoryService = new InventoryService(prisma);
+const inventoryRepository = new InventoryRepository(prisma);
+const inventoryService = new InventoryService(inventoryRepository);
 
 // QR Code dependencies
 const qrCodeRepository = new QRCodeRepository(prisma);

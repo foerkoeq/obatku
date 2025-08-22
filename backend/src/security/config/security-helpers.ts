@@ -71,6 +71,8 @@ export const getDefaultConfigForEnvironment = (env: string): Partial<SecurityCon
         monitoring: {
           enableSecurityMonitoring: true,
           enableRealTimeAlerts: false,
+          enableEmailAlerts: false,
+          alertEmailRecipients: [],
           alertChannels: ['log'],
           alertThresholds: {
             rateLimitViolations: 10,
@@ -147,6 +149,8 @@ export const getDefaultConfigForEnvironment = (env: string): Partial<SecurityCon
         monitoring: {
           enableSecurityMonitoring: true,
           enableRealTimeAlerts: true,
+          enableEmailAlerts: true,
+          alertEmailRecipients: ['admin@staging.com'],
           alertChannels: ['log', 'email'],
           alertThresholds: {
             rateLimitViolations: 8,
@@ -223,6 +227,8 @@ export const getDefaultConfigForEnvironment = (env: string): Partial<SecurityCon
         monitoring: {
           enableSecurityMonitoring: true,
           enableRealTimeAlerts: true,
+          enableEmailAlerts: true,
+          alertEmailRecipients: ['security@production.com', 'admin@production.com'],
           alertChannels: ['log', 'email', 'webhook'],
           alertThresholds: {
             rateLimitViolations: 5,

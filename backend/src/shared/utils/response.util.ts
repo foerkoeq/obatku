@@ -238,7 +238,7 @@ export class ResponseUtil {
       total: number, 
       successful: number, 
       failed: number,
-      errors?: Array<{ index: number; error: string }>
+      errors: Array<{ index: number; error: string }> | undefined
     } 
   }>> {
     const defaultMessage = `Bulk operation completed: ${successful} successful, ${failed} failed`;
@@ -263,15 +263,15 @@ export const createPaginationMeta = (
   limit: number,
   total: number
 ): PaginationMeta => {
-  const pages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(total / limit);
   
   return {
     page,
     limit,
     total,
-    pages,
-    hasNext: page < pages,
-    hasPrev: page > 1
+    totalPages,
+    hasNext: page < totalPages,
+    hasPrevious: page > 1
   };
 };
 
