@@ -104,12 +104,23 @@ export function isProduction(): boolean {
 
 /**
  * Get API endpoint URL
+ * In development, use backendApiUrl directly to avoid proxy issues
+ * In production, use backendApiUrl directly
  */
 export function getApiUrl(endpoint: string): string {
   const config = getEnvironmentConfig();
+  
+  // Use backendApiUrl directly (includes /api prefix)
   const baseUrl = config.backendApiUrl.replace(/\/$/, '');
   const cleanEndpoint = endpoint.replace(/^\//, '');
-  return `${baseUrl}/${cleanEndpoint}`;
+  const fullUrl = `${baseUrl}/${cleanEndpoint}`;
+  
+  // Debug logging in development
+  if (typeof window !== 'undefined' && config.nodeEnv === 'development') {
+    console.log('[getApiUrl]', { endpoint, baseUrl, cleanEndpoint, fullUrl });
+  }
+  
+  return fullUrl;
 }
 
 /**

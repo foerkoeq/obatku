@@ -55,6 +55,8 @@
     "dotenv": "^16.3.1",
     "winston": "^3.11.0",
     "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "cookie-parser": "^1.4.6",
     "express-validator": "^7.0.1",
     "uuid": "^9.0.1",
     "moment": "^2.29.4",
@@ -65,7 +67,6 @@
     "sharp": "^0.33.0",
     "pdf-lib": "^1.17.1",
     "exceljs": "^4.4.0",
-    "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0"
   },
   "devDependencies": {
@@ -81,7 +82,8 @@
     "@types/nodemailer": "^6.4.14",
     "@types/qrcode": "^1.5.5",
     "@types/compression": "^1.7.5",
-    "@types/csv-parser": "^3.0.0",
+    "@types/morgan": "^1.9.9",
+    "@types/cookie-parser": "^1.4.6",
     "typescript": "^5.3.2",
     "tsx": "^4.6.2",
     "prisma": "^5.7.1",

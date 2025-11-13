@@ -40,17 +40,25 @@ export function middleware(request: NextRequest) {
                 request.headers.get('authorization')?.replace('Bearer ', '');
 
   // Handle API proxy for development
+  // Note: Next.js rewrites in next.config.mjs handle the actual proxying
+  // This middleware just ensures CORS headers are set
   if (pathname.startsWith('/api/')) {
     // Skip Next.js internal API routes
     if (pathname.startsWith('/api/_next/') || pathname.startsWith('/api/__nextjs')) {
       return NextResponse.next();
     }
 
-    // Proxy to backend
-    const backendUrl = new URL(pathname.replace('/api', ''), env.backendUrl);
-    backendUrl.search = request.nextUrl.search;
-
-    return NextResponse.rewrite(backendUrl);
+    // Let Next.js rewrites handle the proxying
+    // Just ensure CORS headers are set
+    const response = NextResponse.next();
+    
+    // Add CORS headers for API requests
+    response.headers.set('Access-Control-Allow-Origin', env.backendUrl);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    
+    return response;
   }
 
   // Handle uploads proxy for development

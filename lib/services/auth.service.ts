@@ -8,22 +8,32 @@ import tokenStorage from '@/lib/utils/token-storage';
 
 // Authentication interfaces
 export interface LoginCredentials {
-  email: string;
+  nip: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
   user: {
     id: string;
-    email: string;
     name: string;
+    nip: string;
+    email?: string;
+    phone?: string;
     role: string;
     permissions: string[];
     avatar?: string;
+    avatarUrl?: string;
+    lastLogin?: string;
+    status?: string;
+    mustChangePassword?: boolean;
   };
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+  tokens: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresIn: number;
+    tokenType: string;
+  };
 }
 
 export interface RefreshTokenResponse {
@@ -34,15 +44,18 @@ export interface RefreshTokenResponse {
 
 export interface UserProfile {
   id: string;
-  email: string;
   name: string;
+  nip: string;
+  email?: string;
+  phone?: string;
   role: string;
   permissions: string[];
   avatar?: string;
-  phone?: string;
-  address?: string;
-  createdAt: string;
-  updatedAt: string;
+  avatarUrl?: string;
+  lastLogin?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ChangePasswordRequest {
@@ -70,22 +83,49 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<SingleResponse<LoginResponse>> {
     try {
-      const response = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+      const response = await api.post<{ user: LoginResponse['user']; tokens: LoginResponse['tokens'] }>(
+        API_ENDPOINTS.AUTH.LOGIN, 
+        credentials
+      );
       
-             // Store tokens
-       if (response.data) {
-         api.setToken(response.data.accessToken);
-         
-         // Store tokens using token storage utility
-         tokenStorage.setAccessToken(response.data.accessToken);
-         tokenStorage.setRefreshToken(response.data.refreshToken);
-         
-         // Calculate and store expiry time
-         const expiresAt = Date.now() + (response.data.expiresIn * 1000);
-         tokenStorage.setTokenExpiry(expiresAt);
-       }
+      // Transform response to match expected format
+      if (response.data) {
+        const loginResponse: LoginResponse = {
+          user: response.data.user,
+          tokens: response.data.tokens,
+        };
+        
+        // Store tokens
+        api.setToken(loginResponse.tokens.accessToken);
+        
+        // Store tokens using token storage utility
+        tokenStorage.setAccessToken(loginResponse.tokens.accessToken);
+        if (loginResponse.tokens.refreshToken) {
+          tokenStorage.setRefreshToken(loginResponse.tokens.refreshToken);
+        }
+        
+        // Calculate and store expiry time
+        const expiresAt = Date.now() + (loginResponse.tokens.expiresIn * 1000);
+        tokenStorage.setTokenExpiry(expiresAt);
+        
+        // Store user data
+        tokenStorage.setUserData({
+          id: loginResponse.user.id,
+          email: loginResponse.user.email || '',
+          name: loginResponse.user.name,
+          role: loginResponse.user.role,
+          permissions: loginResponse.user.permissions,
+          avatar: loginResponse.user.avatar || loginResponse.user.avatarUrl,
+        });
+        
+        return {
+          success: response.success,
+          data: loginResponse,
+          message: response.message,
+        };
+      }
       
-      return response;
+      return response as any;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
     }
@@ -116,34 +156,48 @@ class AuthService {
    */
   async refreshToken(): Promise<SingleResponse<RefreshTokenResponse>> {
     try {
-             const refreshToken = tokenStorage.getRefreshToken();
+      const refreshToken = tokenStorage.getRefreshToken();
       
       if (!refreshToken) {
         throw new ApiServiceError('No refresh token available', 401, 'NO_REFRESH_TOKEN');
       }
 
-      const response = await api.post<RefreshTokenResponse>(API_ENDPOINTS.AUTH.REFRESH, {
-        refreshToken,
-      });
+      const response = await api.post<{ tokens: RefreshTokenResponse }>(
+        API_ENDPOINTS.AUTH.REFRESH, 
+        { refreshToken }
+      );
       
-               // Update tokens
-         if (response.data) {
-           api.setToken(response.data.accessToken);
-           
-           // Update tokens using token storage utility
-           tokenStorage.setAccessToken(response.data.accessToken);
-           tokenStorage.setRefreshToken(response.data.refreshToken);
-           
-           // Calculate and store expiry time
-           const expiresAt = Date.now() + (response.data.expiresIn * 1000);
-           tokenStorage.setTokenExpiry(expiresAt);
-         }
+      // Transform response to match expected format
+      if (response.data && 'tokens' in response.data) {
+        const refreshResponse: RefreshTokenResponse = {
+          accessToken: response.data.tokens.accessToken,
+          refreshToken: response.data.tokens.refreshToken,
+          expiresIn: response.data.tokens.expiresIn,
+        };
+        
+        // Update tokens
+        api.setToken(refreshResponse.accessToken);
+        tokenStorage.setAccessToken(refreshResponse.accessToken);
+        if (refreshResponse.refreshToken) {
+          tokenStorage.setRefreshToken(refreshResponse.refreshToken);
+        }
+        
+        // Calculate and store expiry time
+        const expiresAt = Date.now() + (refreshResponse.expiresIn * 1000);
+        tokenStorage.setTokenExpiry(expiresAt);
+        
+        return {
+          success: response.success,
+          data: refreshResponse,
+          message: response.message,
+        };
+      }
       
-      return response;
+      return response as any;
     } catch (error) {
-             // Clear tokens on refresh failure
-       api.clearToken();
-       tokenStorage.clearAll();
+      // Clear tokens on refresh failure
+      api.clearToken();
+      tokenStorage.clearAll();
       throw ApiServiceError.fromApiError(error as any);
     }
   }
@@ -153,8 +207,18 @@ class AuthService {
    */
   async verifyToken(): Promise<SingleResponse<UserProfile>> {
     try {
-      const response = await api.get<UserProfile>(API_ENDPOINTS.AUTH.VERIFY);
-      return response;
+      const response = await api.get<{ user: UserProfile } | UserProfile>(API_ENDPOINTS.AUTH.VERIFY);
+      
+      // Transform response if needed
+      if (response.data && 'user' in response.data) {
+        return {
+          success: response.success,
+          data: (response.data as any).user,
+          message: response.message,
+        };
+      }
+      
+      return response as SingleResponse<UserProfile>;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
     }
@@ -165,8 +229,18 @@ class AuthService {
    */
   async getProfile(): Promise<SingleResponse<UserProfile>> {
     try {
-      const response = await api.get<UserProfile>(API_ENDPOINTS.USERS.PROFILE);
-      return response;
+      const response = await api.get<{ user: UserProfile } | UserProfile>(API_ENDPOINTS.AUTH.VERIFY);
+      
+      // Transform response if needed
+      if (response.data && 'user' in response.data) {
+        return {
+          success: response.success,
+          data: (response.data as any).user,
+          message: response.message,
+        };
+      }
+      
+      return response as SingleResponse<UserProfile>;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
     }
@@ -190,7 +264,7 @@ class AuthService {
   async changePassword(passwordData: ChangePasswordRequest): Promise<MessageResponse> {
     try {
       const response = await api.post<{ message: string }>(
-        `${API_ENDPOINTS.USERS.PROFILE}/change-password`,
+        `${API_ENDPOINTS.AUTH.VERIFY}/change-password`,
         passwordData
       );
       return response;
@@ -204,11 +278,9 @@ class AuthService {
    */
   async forgotPassword(emailData: ForgotPasswordRequest): Promise<MessageResponse> {
     try {
-      const response = await api.post<{ message: string }>(
-        `${API_ENDPOINTS.AUTH.LOGIN}/forgot-password`,
-        emailData
-      );
-      return response;
+      // Backend might not have forgot password endpoint yet
+      // For now, return error or implement later
+      throw new ApiServiceError('Forgot password not implemented yet', 501, 'NOT_IMPLEMENTED');
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
     }

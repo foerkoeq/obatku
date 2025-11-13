@@ -9,18 +9,18 @@ import { api, ApiResponse, ApiError } from '../api/client';
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    REFRESH: '/auth/refresh',
-    VERIFY: '/auth/verify',
+    LOGIN: '/v1/auth/login',
+    LOGOUT: '/v1/auth/logout',
+    REFRESH: '/v1/auth/refresh',
+    VERIFY: '/v1/auth/profile',
   },
   
   // Users
   USERS: {
-    BASE: '/users',
-    PROFILE: '/users/profile',
-    ROLES: '/users/roles',
-    PERMISSIONS: '/users/permissions',
+    BASE: '/v1/users',
+    PROFILE: '/v1/users/profile',
+    ROLES: '/v1/users/roles',
+    PERMISSIONS: '/v1/users/permissions',
   },
   
   // Inventory

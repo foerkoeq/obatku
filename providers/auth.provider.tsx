@@ -108,31 +108,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const response = await authService.login(credentials)
       
-              if (response.success && response.data) {
-          // Set user data
-          setUser(response.data.user)
-          setIsAuthenticated(true)
-          
-          // Update user store
-          userStoreLogin(response.data.user)
-          
-          // Redirect to dashboard
-          router.push('/dashboard')
-        } else {
-          setError(response.message || 'Login failed')
+      if (response.success && response.data) {
+        // Transform user data to match UserProfile interface
+        const userData: UserProfile = {
+          id: response.data.user.id,
+          name: response.data.user.name,
+          nip: response.data.user.nip,
+          email: response.data.user.email,
+          phone: response.data.user.phone,
+          role: response.data.user.role,
+          permissions: response.data.user.permissions,
+          avatar: response.data.user.avatar || response.data.user.avatarUrl,
+          avatarUrl: response.data.user.avatarUrl,
+          lastLogin: response.data.user.lastLogin,
+          status: response.data.user.status,
         }
+        
+        // Set user data
+        setUser(userData)
+        setIsAuthenticated(true)
+        
+        // Update user store
+        userStoreLogin(userData)
+        
+        // Show success message (toast will be shown by login form)
+        
+        // Redirect to dashboard after a short delay to ensure state is updated
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 100)
+      } else {
+        const errorMessage = response.message || 'Login failed'
+        setError(errorMessage)
+        throw new Error(errorMessage)
+      }
     } catch (error) {
       console.error('Login error:', error)
       
+      let errorMessage = 'Terjadi kesalahan saat login'
+      
       if (error instanceof ApiServiceError) {
-        setError(error.message)
-      } else {
-        setError('An unexpected error occurred during login')
+        errorMessage = error.message
+      } else if (error instanceof Error) {
+        errorMessage = error.message
       }
+      
+      setError(errorMessage)
+      throw error
     } finally {
       setIsLoading(false)
     }
-  }, [router])
+  }, [router, userStoreLogin])
 
   // Logout function
   const logout = useCallback(async () => {

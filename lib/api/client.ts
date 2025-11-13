@@ -124,9 +124,22 @@ class ApiClient {
       throw error;
     }
 
+    // Handle different response formats
+    // Backend returns: { success, message, data }
+    // If data already has the structure (success, message, data), return it as is
+    if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+      return {
+        success: data.success,
+        data: data.data as T,
+        message: data.message,
+        statusCode: response.status,
+      };
+    }
+    
+    // If data is the response itself (wrapped in success/message/data)
     return {
       success: true,
-      data,
+      data: data as T,
       message: data?.message,
       statusCode: response.status,
     };
@@ -150,6 +163,16 @@ class ApiClient {
     const url = endpoint.startsWith('http') ? endpoint : getApiUrl(endpoint);
     const requestHeaders = this.getHeaders(headers);
 
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API Client] Making request:', {
+        method,
+        url,
+        headers: requestHeaders,
+        hasBody: !!body,
+      });
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -163,9 +186,33 @@ class ApiClient {
       });
 
       clearTimeout(timeoutId);
+      
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API Client] Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+      }
+      
       return await this.handleResponse<T>(response);
     } catch (error) {
       clearTimeout(timeoutId);
+
+      // Enhanced error logging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[API Client] Request failed:', {
+          url,
+          method,
+          error: error instanceof Error ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } : error,
+        });
+      }
 
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
@@ -175,12 +222,23 @@ class ApiClient {
             error: 'TIMEOUT',
           } as ApiError;
         }
+        
+        // Check for CORS errors
+        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          throw {
+            message: `CORS error: ${error.message}. Please check backend CORS configuration.`,
+            statusCode: 0,
+            error: 'CORS_ERROR',
+            details: { url, method },
+          } as ApiError;
+        }
       }
 
       throw {
         message: error instanceof Error ? error.message : 'Network error',
         statusCode: 0,
         error: 'NETWORK_ERROR',
+        details: { url, method },
       } as ApiError;
     }
   }

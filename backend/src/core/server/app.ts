@@ -19,11 +19,37 @@ app.set('trust proxy', 1);
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
+    
+    // In development, be more permissive
+    if (process.env.NODE_ENV === 'development') {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        // Log for debugging
+        console.warn('[CORS] Blocked origin:', origin);
+        callback(null, true); // Allow in dev for debugging
+      }
+    } else {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['X-Request-ID', 'X-Rate-Limit-Remaining'],
+  preflightContinue: false,
 };
 
 // Rate limiting
@@ -58,6 +84,12 @@ app.use(helmet({
 // Apply rate limiting to all requests
 app.use(limiter);
 
+// CORS - Apply before other middleware to handle preflight requests
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -68,11 +100,24 @@ app.use(cookieParser());
 // Compression
 app.use(compression());
 
-// CORS
-app.use(cors(corsOptions));
-
 // Logging middleware
 app.use(morgan('combined', { stream: morganStream }));
+
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'ObatKu Backend API',
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api/v1',
+      docs: '/api/docs',
+    },
+  });
+});
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

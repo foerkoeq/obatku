@@ -85,8 +85,11 @@ class TokenStorage {
       this.storage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
       
       // Also set in cookies for middleware access
+      // Cookie expires in 15 minutes (900 seconds)
       if (typeof document !== 'undefined') {
-        document.cookie = `accessToken=${token}; path=/; max-age=900; secure; samesite=strict`;
+        const isProduction = process.env.NODE_ENV === 'production';
+        const secureFlag = isProduction ? '; secure' : '';
+        document.cookie = `accessToken=${token}; path=/; max-age=900${secureFlag}; samesite=strict`;
       }
     } catch (error) {
       console.error('Failed to store access token:', error);
@@ -219,7 +222,10 @@ class TokenStorage {
       
       // Clear from cookies
       if (typeof document !== 'undefined') {
-        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        const isProduction = process.env.NODE_ENV === 'production';
+        const secureFlag = isProduction ? '; secure' : '';
+        document.cookie = `accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT${secureFlag}; samesite=strict`;
+        document.cookie = `refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT${secureFlag}; samesite=strict`;
       }
     } catch (error) {
       console.error('Failed to clear tokens:', error);

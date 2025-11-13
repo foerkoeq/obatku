@@ -18,14 +18,16 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { useAuth } from "@/providers/auth.provider";
 
 const schema = z.object({
-  email: z.string().email({ message: "Email tidak valid." }),
-  password: z.string().min(4, { message: "Password minimal 4 karakter." }),
+  nip: z.string().min(1, { message: "NIP wajib diisi." }),
+  password: z.string().min(1, { message: "Password wajib diisi." }),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 const LoginForm = () => {
-  const [isPending, startTransition] = React.useTransition();
+  const { login, isLoading, error } = useAuth();
   const [passwordType, setPasswordType] = React.useState("password");
   const [showForgotModal, setShowForgotModal] = useState(false);
 
@@ -41,24 +43,27 @@ const LoginForm = () => {
     resolver: zodResolver(schema),
     mode: "all",
     defaultValues: {
-      email: "",
+      nip: "",
       password: "",
+      rememberMe: false,
     },
   });
 
-  const onSubmit = (data: z.infer<typeof schema>) => {
-    startTransition(async () => {
-      try {
-        // Simulasi login - nanti akan diganti dengan API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Redirect ke dashboard berdasarkan role (sementara ke dashboard biasa)
-        window.location.href = "/dashboard";
-        toast.success("Berhasil masuk ke sistem");
-      } catch (err: any) {
-        toast.error("Email atau password salah");
-      }
-    });
+  const onSubmit = async (data: z.infer<typeof schema>) => {
+    try {
+      await login({
+        nip: data.nip,
+        password: data.password,
+        rememberMe: data.rememberMe,
+      });
+      
+      // Show success toast
+      toast.success("Berhasil masuk ke sistem");
+    } catch (err: any) {
+      // Error is already set in auth context, just show toast
+      const errorMessage = error || err?.message || "NIP atau password salah";
+      toast.error(errorMessage);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -70,24 +75,24 @@ const LoginForm = () => {
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="mt-5 2xl:mt-7 space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="font-medium text-default-600">
-            Email/Username
+          <Label htmlFor="nip" className="font-medium text-default-600">
+            NIP (Nomor Induk Pegawai)
           </Label>
           <Input
             size="lg"
-            disabled={isPending}
-            {...register("email")}
-            type="email"
-            id="email"
-            placeholder="Masukkan email atau username"
+            disabled={isLoading}
+            {...register("nip")}
+            type="text"
+            id="nip"
+            placeholder="Masukkan NIP"
             className={cn("", {
-              "border-destructive": errors.email,
+              "border-destructive": errors.nip,
             })}
           />
         </div>
-        {errors.email && (
+        {errors.nip && (
           <div className="text-destructive mt-2 text-sm">
-            {errors.email.message}
+            {errors.nip.message}
           </div>
         )}
 
@@ -98,7 +103,7 @@ const LoginForm = () => {
           <div className="relative">
             <Input
               size="lg"
-              disabled={isPending}
+              disabled={isLoading}
               {...register("password")}
               type={passwordType}
               id="password"
@@ -123,7 +128,18 @@ const LoginForm = () => {
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              {...register("rememberMe")}
+              className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+            />
+            <Label htmlFor="rememberMe" className="text-sm text-default-600 cursor-pointer">
+              Ingat saya
+            </Label>
+          </div>
           <button
             type="button"
             onClick={() => setShowForgotModal(true)}
@@ -133,9 +149,15 @@ const LoginForm = () => {
           </button>
         </div>
 
-        <Button fullWidth disabled={isPending} className="mt-6">
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isPending ? "Memproses..." : "Masuk"}
+        {error && (
+          <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <Button fullWidth disabled={isLoading} className="mt-6" type="submit">
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading ? "Memproses..." : "Masuk"}
         </Button>
       </form>
 

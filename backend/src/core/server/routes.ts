@@ -22,6 +22,16 @@ export const setupRoutes = (app: Express): void => {
     });
   });
 
+  // CORS test endpoint
+  app.get(`${API_BASE}/cors-test`, (_req, res) => {
+    res.json({
+      success: true,
+      message: 'CORS is working!',
+      origin: _req.headers.origin,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Authentication routes (Phase 4 - Authentication)
   app.use(`${API_BASE}/auth`, authSystem.authRoutes);
 
