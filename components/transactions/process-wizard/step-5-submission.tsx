@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Icon } from "@/components/ui/icon";
 import { toast } from "sonner";
+import { transactionService } from '@/lib/services/transaction.service';
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Transaction } from "@/lib/types/transaction";
@@ -59,11 +60,15 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
     admin: false
   });
 
-  // Create submission summary
+  // Normalize PPL officer to a string and create submission summary
+  const pplOfficerName: string = typeof transaction.bppOfficer === 'string'
+    ? transaction.bppOfficer
+    : transaction.bppOfficer?.name ?? '';
+
   const submissionSummary: SubmissionSummary = {
     transactionId: transaction.id,
     letterNumber: transaction.letterNumber,
-    pplOfficer: transaction.applicantData.bppOfficer,
+    pplOfficer: pplOfficerName,
     totalItems: Object.values(wizardState.scanResults.scannedItems).reduce((sum, count) => sum + count, 0),
     processStartTime: wizardState.scanResults.timestamp,
     processEndTime: new Date(),
@@ -95,33 +100,45 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
     setSubmissionStatus('submitting');
 
     try {
-      // Step 1: Submit transaction completion
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const newSubmissionId = `SUB-${transaction.id}-${Date.now()}`;
-      setSubmissionId(newSubmissionId);
+      // Call backend to mark transaction as processed / distributed
+      const payload = {
+        scannedItems: wizardState.scanResults.scannedItems,
+        photosCount: wizardState.photoDocumentation.photos.length,
+        documentsGenerated: !!wizardState.documentGeneration.pdfBlob,
+        signedDocumentUploaded: !!wizardState.fileUpload.signedDocument,
+        processedAt: new Date().toISOString(),
+      } as any;
 
-      // Step 2: Send notifications
-      await sendNotifications();
+      const resp = await transactionService.process(transaction.id, payload);
 
-      // Step 3: Update transaction status
-      // In real app: await updateTransactionStatus(transaction.id, 'distributed');
+      if (resp && resp.success) {
+        const respData: any = resp.data;
+        const newSubmissionId = respData?.submissionId || `SUB-${transaction.id}-${Date.now()}`;
+        setSubmissionId(newSubmissionId);
 
-      // Update wizard state
-      onUpdateState({
-        submission: {
-          submitted: true,
-          submissionId: newSubmissionId,
-          timestamp: new Date()
-        }
-      });
+        // Send notifications
+        await sendNotifications();
 
-      setSubmissionStatus('completed');
-      toast.success('Proses pengeluaran obat berhasil diselesaikan');
+        // Update wizard state (explicitly typed to satisfy TS)
+        const submissionUpdate: Partial<WizardState> = {
+          submission: {
+            submitted: true,
+            submissionId: newSubmissionId,
+            timestamp: new Date()
+          }
+        };
+        onUpdateState(submissionUpdate);
 
-      // Auto-redirect after 3 seconds
-      setTimeout(() => {
-        onComplete();
-      }, 3000);
+        setSubmissionStatus('completed');
+        toast.success(resp.message || 'Proses pengeluaran obat berhasil diselesaikan');
+
+        // Auto-redirect after 3 seconds
+        setTimeout(() => {
+          onComplete();
+        }, 3000);
+      } else {
+        throw resp;
+      }
 
     } catch (error) {
       console.error('Submission failed:', error);
@@ -188,7 +205,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
               <div>
                 <span className="text-sm text-gray-500">Waktu Selesai</span>
                 <p className="font-medium">
-                  {format(submissionSummary.processEndTime, 'dd MMM yyyy, HH:mm', { locale: id })}
+                  {submissionSummary.processEndTime ? format(submissionSummary.processEndTime, 'dd MMM yyyy, HH:mm', { locale: id }) : '-'}
                 </p>
               </div>
             </div>
@@ -211,7 +228,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                 />
                 <span className="font-medium">Scan QR Code Items</span>
               </div>
-              <Badge variant={wizardState.scanResults.isComplete ? "default" : "destructive"}>
+              <Badge color={wizardState.scanResults.isComplete ? "default" : "destructive"}>
                 {wizardState.scanResults.isComplete ? "Selesai" : "Belum"}
               </Badge>
             </div>
@@ -224,7 +241,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                 />
                 <span className="font-medium">Dokumentasi Foto</span>
               </div>
-              <Badge variant={submissionSummary.photosCount >= 2 ? "default" : "destructive"}>
+              <Badge color={submissionSummary.photosCount >= 2 ? "default" : "destructive"}>
                 {submissionSummary.photosCount >= 2 ? "Selesai" : "Belum"}
               </Badge>
             </div>
@@ -237,7 +254,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                 />
                 <span className="font-medium">Cetak Berita Acara</span>
               </div>
-              <Badge variant={wizardState.documentGeneration.printed ? "default" : "destructive"}>
+              <Badge color={wizardState.documentGeneration.printed ? "default" : "destructive"}>
                 {wizardState.documentGeneration.printed ? "Selesai" : "Belum"}
               </Badge>
             </div>
@@ -250,7 +267,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                 />
                 <span className="font-medium">Upload BA Bertanda Tangan</span>
               </div>
-              <Badge variant={wizardState.fileUpload.uploaded ? "default" : "destructive"}>
+              <Badge color={wizardState.fileUpload.uploaded ? "default" : "destructive"}>
                 {wizardState.fileUpload.uploaded ? "Selesai" : "Belum"}
               </Badge>
             </div>
@@ -317,7 +334,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                   Obat telah berhasil diserahkan kepada {submissionSummary.pplOfficer}
                 </p>
                 {submissionId && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge color="info" className="text-xs">
                     ID Submission: {submissionId}
                   </Badge>
                 )}

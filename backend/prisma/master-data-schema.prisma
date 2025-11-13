@@ -1,0 +1,173 @@
+// # START OF Master Data Schema - Database schema for master data management
+// Purpose: Define database models for farmer groups, commodities, pest types, and reference data
+// Dependencies: Prisma ORM
+// Returns: Database schema definitions
+
+// ================================================
+// MASTER DATA MODELS
+// ================================================
+
+model FarmerGroup {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  leader          String
+  district        String
+  village         String
+  memberCount     Int      @default(0)
+  establishedDate DateTime
+  status          MasterDataStatus @default(ACTIVE)
+  contactInfo     Json?    // { phone?: string, email?: string }
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  // Relations
+  creator   User              @relation("FarmerGroupCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("FarmerGroupUpdater", fields: [updatedBy], references: [id])
+  submissions Submission[]
+
+  @@map("farmer_groups")
+  @@index([district])
+  @@index([village])
+  @@index([status])
+}
+
+model Commodity {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  category        String
+  description     String?  @db.Text
+  commonPestTypes Json     @default("[]") // string[]
+  status          MasterDataStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  // Relations
+  creator   User              @relation("CommodityCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("CommodityUpdater", fields: [updatedBy], references: [id])
+  submissions Submission[]
+  pestTypes PestType[]
+
+  @@map("commodities")
+  @@index([category])
+  @@index([status])
+}
+
+model PestType {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  category            String
+  description         String?  @db.Text
+  affectedCommodities Json     @default("[]") // string[]
+  severity            PestSeverity @default(MEDIUM)
+  status              MasterDataStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  // Relations
+  creator   User              @relation("PestTypeCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("PestTypeUpdater", fields: [updatedBy], references: [id])
+  submissions Submission[]
+  commodities Commodity[]
+
+  @@map("pest_types")
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+}
+
+model District {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String?  @unique
+  province  String?
+  status    MasterDataStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  // Relations
+  creator   User              @relation("DistrictCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("DistrictUpdater", fields: [updatedBy], references: [id])
+  villages  Village[]
+
+  @@map("districts")
+  @@index([province])
+  @@index([status])
+}
+
+model Village {
+  id        String   @id @default(cuid())
+  name      String
+  district  String
+  code      String?  @unique
+  status    MasterDataStatus @default(ACTIVE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  // Relations
+  creator   User              @relation("VillageCreator", fields: [createdBy], references: [id])
+  updater   User?             @relation("VillageUpdater", fields: [updatedBy], references: [id])
+  districtRef District        @relation(fields: [district], references: [name])
+
+  @@map("villages")
+  @@index([district])
+  @@index([status])
+  @@unique([name, district])
+}
+
+// ================================================
+// ENUMS
+// ================================================
+
+enum MasterDataStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PestSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ================================================
+// UPDATE EXISTING USER MODEL
+// ================================================
+
+// Add these relations to the existing User model:
+// farmerGroupsCreated    FarmerGroup[] @relation("FarmerGroupCreator")
+// farmerGroupsUpdated    FarmerGroup[] @relation("FarmerGroupUpdater")
+// commoditiesCreated     Commodity[] @relation("CommodityCreator")
+// commoditiesUpdated     Commodity[] @relation("CommodityUpdater")
+// pestTypesCreated       PestType[] @relation("PestTypeCreator")
+// pestTypesUpdated       PestType[] @relation("PestTypeUpdater")
+// districtsCreated       District[] @relation("DistrictCreator")
+// districtsUpdated       District[] @relation("DistrictUpdater")
+// villagesCreated        Village[] @relation("VillageCreator")
+// villagesUpdated        Village[] @relation("VillageUpdater")
+
+// ================================================
+// UPDATE EXISTING SUBMISSION MODEL
+// ================================================
+
+// Add these relations to the existing Submission model:
+// farmerGroupRef         FarmerGroup? @relation(fields: [farmerGroup], references: [name])
+// commodityRef           Commodity? @relation(fields: [commodity], references: [name])
+// pestTypeRefs           PestType[] @relation(fields: [pestTypes], references: [name])
+
+// # END OF Master Data Schema

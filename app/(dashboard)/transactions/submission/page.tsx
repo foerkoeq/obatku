@@ -5,16 +5,30 @@ import {
   useEffect
 } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { transactionService } from '@/lib/services/transaction.service';
 import {
   TagInput
 } from "@/components/form/tag-input";
 import {
   ImageUpload
 } from "@/components/form/image-upload";
+import {
+  SelectWithCreate,
+  type SelectOption
+} from "@/components/form/select-with-create";
+import {
+  MultiSelectWithCreate
+} from "@/components/form/multi-select-with-create";
+import {
+  useFarmerGroups,
+  useCommodities,
+  usePestTypes,
+  useVillages
+} from "@/hooks/use-master-data";
 import PageTitle from "@/components/page-title";
 import {
   Card,
@@ -68,6 +82,19 @@ const submissionSchema = z
       .array(z.any())
       .min(1, "File surat wajib diunggah")
       .max(1, "Hanya satu file yang diperbolehkan"),
+    // Drug request items
+    drugItems: z
+      .array(
+        z.object({
+          medicineId: z.string().optional(),
+          name: z.string().min(1, "Nama obat wajib diisi"),
+          quantity: z
+            .number({ invalid_type_error: "Jumlah harus berupa angka" })
+            .int("Jumlah harus bilangan bulat")
+            .positive("Jumlah harus lebih dari 0"),
+        })
+      )
+      .min(1, "Minimal satu jenis obat harus diminta"),
   })
   .refine((data) => data.affectedArea <= data.totalArea, {
     message: "Luas terserang tidak boleh melebihi luasan total",
@@ -87,6 +114,24 @@ const SubmissionPage = () => {
   // ----------------------------------------------------------------
   const [userRole] = useState<UserRole>("ppl"); // treat ppl ~ BPP
   const [district] = useState<string>("Kecamatan Example"); // derive from user profile
+
+  // ----------------------------------------------------------------
+  // Master Data Hooks
+  // ----------------------------------------------------------------
+  const { farmerGroups, loading: farmerGroupsLoading, createFarmerGroup } = useFarmerGroups({
+    district,
+    status: 'ACTIVE'
+  });
+  
+  const { commodities, loading: commoditiesLoading, createCommodity } = useCommodities({
+    status: 'ACTIVE'
+  });
+  
+  const { pestTypes, loading: pestTypesLoading, createPestType } = usePestTypes({
+    status: 'ACTIVE'
+  });
+  
+  const { villages, loading: villagesLoading } = useVillages(district);
 
   // Gate access – only BPP/PPL allowed
   useEffect(() => {
@@ -111,22 +156,80 @@ const SubmissionPage = () => {
       letterNumber: "",
       letterDate: new Date(),
       letterFile: [],
+      drugItems: [
+        { medicineId: undefined, name: "", quantity: 1 },
+      ],
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'drugItems',
+  });
+
   const [loading, setLoading] = useState(false);
+
+  // ----------------------------------------------------------------
+  // Transform data for dropdowns
+  // ----------------------------------------------------------------
+  const farmerGroupOptions: SelectOption[] = farmerGroups.map(group => ({
+    value: group.id,
+    label: group.name,
+    description: `${group.leader} - ${group.village}`
+  }));
+
+  const commodityOptions: SelectOption[] = commodities.map(commodity => ({
+    value: commodity.id,
+    label: commodity.name,
+    description: commodity.category
+  }));
+
+  const pestTypeOptions: SelectOption[] = pestTypes.map(pest => ({
+    value: pest.id,
+    label: pest.name,
+    description: `${pest.category} - ${pest.severity}`
+  }));
+
+  const villageOptions: SelectOption[] = villages.map(village => ({
+    value: village,
+    label: village
+  }));
 
   const onSubmit = async (data: SubmissionFormData) => {
     setLoading(true);
 
     try {
-      // TODO: integrate with API
-      console.log("Submitting request:", data);
+      // Prepare payload
+      const fileObj = Array.isArray(data.letterFile) && data.letterFile.length > 0 ? data.letterFile[0] : null;
+      const file: File | undefined = fileObj?.file instanceof File ? fileObj.file : undefined;
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Get selected farmer group and commodity names for submission
+      const selectedFarmerGroup = farmerGroups.find(g => g.id === data.farmerGroup);
+      const selectedCommodity = commodities.find(c => c.id === data.commodity);
+      const selectedPestTypes = pestTypes.filter(p => data.pestType.includes(p.id));
 
-      toast.success("Pengajuan berhasil dikirim");
-      router.push("/transactions/list");
+      const payload = {
+        district: data.district,
+        village: data.village,
+        farmerGroup: selectedFarmerGroup?.name || data.farmerGroup,
+        leader: data.leader,
+        commodity: selectedCommodity?.name || data.commodity,
+        totalArea: data.totalArea,
+        affectedArea: data.affectedArea,
+        pestType: selectedPestTypes.map(p => p.name),
+        letterNumber: data.letterNumber,
+        letterDate: data.letterDate.toISOString(),
+        drugItems: data.drugItems.map((it) => ({ name: it.name, medicineId: it.medicineId, quantity: it.quantity })),
+      };
+
+      const resp = await transactionService.submit(payload, file);
+
+      if (resp && resp.success) {
+        toast.success(resp.message || 'Pengajuan berhasil dikirim');
+        router.push('/transactions/list');
+      } else {
+        throw resp;
+      }
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengirim pengajuan");
@@ -197,7 +300,17 @@ const SubmissionPage = () => {
                   <FormItem>
                     <FormLabel>Desa</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nama desa" {...field} />
+                      <SelectWithCreate
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={villageOptions}
+                        placeholder="Pilih desa..."
+                        searchPlaceholder="Cari desa..."
+                        emptyMessage="Tidak ada desa ditemukan."
+                        loading={villagesLoading}
+                        allowClear
+                        onClear={() => field.onChange("")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,7 +324,46 @@ const SubmissionPage = () => {
                   <FormItem>
                     <FormLabel>Nama Kelompok Tani/Gapoktan</FormLabel>
                     <FormControl>
-                      <Input placeholder="Contoh: Tani Makmur" {...field} />
+                      <SelectWithCreate
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={farmerGroupOptions}
+                        placeholder="Pilih kelompok tani..."
+                        searchPlaceholder="Cari kelompok tani..."
+                        emptyMessage="Tidak ada kelompok tani ditemukan."
+                        loading={farmerGroupsLoading}
+                        onCreate={async (data) => {
+                          const newGroup = await createFarmerGroup({
+                            name: data.name,
+                            leader: data.leader || '',
+                            district: district,
+                            village: form.getValues('village') || '',
+                            memberCount: parseInt(data.memberCount) || 0,
+                            establishedDate: new Date().toISOString(),
+                            contactInfo: {
+                              phone: data.phone,
+                              email: data.email
+                            }
+                          });
+                          return {
+                            value: newGroup.id,
+                            label: newGroup.name,
+                            description: `${newGroup.leader} - ${newGroup.village}`
+                          };
+                        }}
+                        createButtonText="Tambah Kelompok Tani"
+                        createDialogTitle="Tambah Kelompok Tani Baru"
+                        createDialogDescription="Buat kelompok tani baru untuk ditambahkan ke daftar."
+                        createFormFields={[
+                          { name: 'name', label: 'Nama Kelompok', type: 'text', required: true, placeholder: 'Contoh: Tani Makmur' },
+                          { name: 'leader', label: 'Ketua Kelompok', type: 'text', required: true, placeholder: 'Nama ketua kelompok' },
+                          { name: 'memberCount', label: 'Jumlah Anggota', type: 'text', required: true, placeholder: 'Jumlah anggota' },
+                          { name: 'phone', label: 'No. Telepon', type: 'text', required: false, placeholder: 'No. telepon (opsional)' },
+                          { name: 'email', label: 'Email', type: 'text', required: false, placeholder: 'Email (opsional)' }
+                        ]}
+                        allowClear
+                        onClear={() => field.onChange("")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -248,7 +400,38 @@ const SubmissionPage = () => {
                   <FormItem>
                     <FormLabel>Komoditas</FormLabel>
                     <FormControl>
-                      <Input placeholder="Contoh: Padi" {...field} />
+                      <SelectWithCreate
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={commodityOptions}
+                        placeholder="Pilih komoditas..."
+                        searchPlaceholder="Cari komoditas..."
+                        emptyMessage="Tidak ada komoditas ditemukan."
+                        loading={commoditiesLoading}
+                        onCreate={async (data) => {
+                          const newCommodity = await createCommodity({
+                            name: data.name,
+                            category: data.category || 'Umum',
+                            description: data.description,
+                            commonPestTypes: []
+                          });
+                          return {
+                            value: newCommodity.id,
+                            label: newCommodity.name,
+                            description: newCommodity.category
+                          };
+                        }}
+                        createButtonText="Tambah Komoditas"
+                        createDialogTitle="Tambah Komoditas Baru"
+                        createDialogDescription="Buat komoditas baru untuk ditambahkan ke daftar."
+                        createFormFields={[
+                          { name: 'name', label: 'Nama Komoditas', type: 'text', required: true, placeholder: 'Contoh: Padi' },
+                          { name: 'category', label: 'Kategori', type: 'text', required: true, placeholder: 'Contoh: Pangan' },
+                          { name: 'description', label: 'Deskripsi', type: 'textarea', required: false, placeholder: 'Deskripsi komoditas (opsional)' }
+                        ]}
+                        allowClear
+                        onClear={() => field.onChange("")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -302,11 +485,42 @@ const SubmissionPage = () => {
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
                     <FormLabel>Jenis OPT</FormLabel>
-                    <TagInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Tambahkan jenis OPT..."
-                    />
+                    <FormControl>
+                      <MultiSelectWithCreate
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={pestTypeOptions}
+                        placeholder="Pilih jenis OPT..."
+                        searchPlaceholder="Cari jenis OPT..."
+                        emptyMessage="Tidak ada jenis OPT ditemukan."
+                        loading={pestTypesLoading}
+                        onCreate={async (data) => {
+                          const newPestType = await createPestType({
+                            name: data.name,
+                            category: data.category || 'Umum',
+                            description: data.description,
+                            affectedCommodities: [form.getValues('commodity')].filter(Boolean),
+                            severity: data.severity || 'MEDIUM'
+                          });
+                          return {
+                            value: newPestType.id,
+                            label: newPestType.name,
+                            description: `${newPestType.category} - ${newPestType.severity}`
+                          };
+                        }}
+                        createButtonText="Tambah Jenis OPT"
+                        createDialogTitle="Tambah Jenis OPT Baru"
+                        createDialogDescription="Buat jenis OPT baru untuk ditambahkan ke daftar."
+                        createFormFields={[
+                          { name: 'name', label: 'Nama OPT', type: 'text', required: true, placeholder: 'Contoh: Wereng Coklat' },
+                          { name: 'category', label: 'Kategori', type: 'text', required: true, placeholder: 'Contoh: Hama' },
+                          { name: 'severity', label: 'Tingkat Keparahan', type: 'text', required: true, placeholder: 'LOW, MEDIUM, HIGH, CRITICAL' },
+                          { name: 'description', label: 'Deskripsi', type: 'textarea', required: false, placeholder: 'Deskripsi OPT (opsional)' }
+                        ]}
+                        maxSelections={10}
+                        showSelectedCount
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -367,6 +581,62 @@ const SubmissionPage = () => {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          {/* Drug Request Items */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Permintaan Obat</CardTitle>
+              <CardDescription>Tambah obat yang diminta beserta jumlah</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {fields.map((item, index) => (
+                <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
+                  <div className="col-span-7">
+                    <FormField
+                      control={form.control}
+                      name={`drugItems.${index}.name` as const}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nama Obat</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Contoh: Pestisida X" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <FormField
+                      control={form.control}
+                      name={`drugItems.${index}.quantity` as const}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Jumlah</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={1} {...field} onChange={(e) => field.onChange(parseInt(e.target.value || '0'))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => remove(index)}>
+                        Hapus
+                      </Button>
+                      {index === fields.length - 1 && (
+                        <Button type="button" onClick={() => append({ medicineId: undefined, name: '', quantity: 1 })}>
+                          Tambah
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
 

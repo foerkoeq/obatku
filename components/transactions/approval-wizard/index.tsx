@@ -21,6 +21,7 @@ import { Step2Approval } from "./step-2-approval";
 import { Step3Summary } from "./step-3-summary";
 import { approvalWizardSchema } from "./types";
 import type { ApprovalWizardSchema } from "./types";
+import { transactionService } from '@/lib/services/transaction.service';
 import { Icon } from "@/components/ui/icon";
 import { RejectConfirmationDialog } from "./reject-confirmation-dialog";
 
@@ -94,11 +95,30 @@ export const ApprovalWizardModal = ({
   };
 
   const onSubmit = (data: ApprovalWizardSchema) => {
-    console.log("Final Approval Data:", data);
-    toast.success("Permintaan Berhasil Disetujui", {
-      description: `Pengajuan dari ${transaction.farmerGroup.name} telah disetujui.`,
-    });
-    onClose();
+    (async () => {
+      try {
+        const payload = {
+          status: 'approved',
+          noteToSubmitter: data.noteToSubmitter,
+          noteToWarehouse: data.noteToWarehouse,
+          approvedDrugs: data.approvedDrugs,
+          pickupDate: data.pickupDate?.toISOString(),
+        } as any;
+
+        const resp = await transactionService.approve(transaction.id, payload);
+        if (resp && resp.success) {
+          toast.success(resp.message || 'Permintaan Berhasil Disetujui', {
+            description: `Pengajuan dari ${transaction.farmerGroup.name} telah disetujui.`,
+          });
+          onClose();
+        } else {
+          throw resp;
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Gagal memproses persetujuan');
+      }
+    })();
   };
   
   const handleConfirmRejection = (reason: string) => {

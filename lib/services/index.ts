@@ -23,3 +23,4 @@ export { authService } from './auth.service';
 export { userService } from './user.service';
 export { inventoryService } from './inventory.service';
 export { transactionService } from './transaction.service';
+export { masterDataService } from './master-data.service';

@@ -71,6 +71,15 @@ export const API_ENDPOINTS = {
     TRANSACTIONS: '/reports/transactions',
     EXPIRY: '/reports/expiry',
   },
+  
+  // Master Data
+  MASTER_DATA: {
+    FARMER_GROUPS: '/master-data/farmer-groups',
+    COMMODITIES: '/master-data/commodities',
+    PEST_TYPES: '/master-data/pest-types',
+    DISTRICTS: '/master-data/districts',
+    VILLAGES: '/master-data/villages',
+  },
 } as const;
 
 // Common query parameters

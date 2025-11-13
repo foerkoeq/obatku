@@ -50,14 +50,8 @@ import {
   getRolePermissions
 } from "@/lib/types/transaction";
 
-import {
-  mockTransactionData,
-  getTransactionsByRole,
-  getTransactionsByStatus,
-  getPendingApprovals,
-  getPendingDistributions,
-  getTransactionStats
-} from "@/lib/data/transaction-demo";
+import { mockTransactionData, getTransactionStats } from "@/lib/data/transaction-demo";
+import { transactionService } from '@/lib/services/transaction.service';
 
 // Mock user data - in real app, get from auth context
 const MOCK_USER = {
@@ -104,19 +98,17 @@ const TransactionListPage: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      let transactionData: Transaction[];
-      
-      // Filter data based on user role
-      if (permissions.viewScope === 'own') {
-        transactionData = getTransactionsByRole(user.role, user.id);
+      // Call backend list endpoint - here we keep simple querystring for pagination
+      const resp = await transactionService.list(`?page=${pagination.page}&limit=${pagination.limit}`);
+      if (resp && resp.success) {
+        // resp.data expected to be PaginationResponse<Transaction>
+        const payload: any = resp.data;
+        setData(payload.data || []);
+        setPagination(prev => ({ ...prev, total: payload.pagination?.total || (payload.data||[]).length }));
       } else {
-        transactionData = mockTransactionData;
+        // Fallback to mock data if API unavailable
+        setData(mockTransactionData);
       }
-      
-      setData(transactionData);
     } catch (error) {
       toast.error("Gagal memuat data transaksi");
     } finally {
@@ -210,8 +202,26 @@ const TransactionListPage: React.FC = () => {
   };
 
   const handleRowClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setShowDetailModal(true);
+    // Fetch fresh detail from API
+    (async () => {
+      try {
+        setLoading(true);
+        const resp = await transactionService.get(transaction.id);
+        if (resp && resp.success) {
+          setSelectedTransaction(resp.data as Transaction);
+        } else {
+          setSelectedTransaction(transaction);
+        }
+        setShowDetailModal(true);
+      } catch (err) {
+        console.error(err);
+        toast.error('Gagal memuat detail transaksi');
+        setSelectedTransaction(transaction);
+        setShowDetailModal(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   const handleViewDetails = (transaction: Transaction) => {
