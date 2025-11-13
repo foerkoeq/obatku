@@ -16,22 +16,16 @@ export * from './form.store'
 // STORE PROVIDER SETUP
 // ============================================================================
 
-import { Provider } from 'jotai'
-import { ReactNode } from 'react'
-
-interface StoreProviderProps {
-  children: ReactNode
-}
-
-export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
-  return <Provider>{children}</Provider>
-}
+// Export StoreProvider component (defined in store-provider.tsx)
+export { StoreProvider } from './store-provider'
 
 // ============================================================================
 // STORE UTILITIES
 // ============================================================================
 
 // Re-export commonly used stores and actions
+// Note: User and Form stores are already exported via export * above
+// This explicit re-export is only for App stores for clarity
 export {
   // App stores
   appSettingsAtom,
@@ -52,52 +46,7 @@ export {
   clearLoadingAtom,
   openModalAtom,
   closeModalAtom,
-  toggleModalAtom,
-  
-  // User stores
-  userStateAtom,
-  hasPermissionAtom,
-  hasRoleAtom,
-  hasAnyRoleAtom,
-  hasAllRolesAtom,
-  userDisplayNameAtom,
-  isSessionExpiredAtom,
-  
-  // User actions
-  updateUserProfileAtom,
-  setAuthStatusAtom,
-  updateUserPreferencesAtom,
-  updateUserPermissionsAtom,
-  updateUserRolesAtom,
-  setUserLoadingAtom,
-  updateLastActivityAtom,
-  clearUserStateAtom,
-  
-  // Form stores
-  formValidationAtom,
-  formLoadingAtom,
-  formErrorAtom,
-  formDataAtom,
-  hasFormErrorsAtom,
-  isFormLoadingAtom,
-  hasFormChangesAtom,
-  getFormErrorsSummaryAtom,
-  
-  // Form actions
-  setFormValidationAtom,
-  addFormErrorAtom,
-  clearFormErrorsAtom,
-  setFormTouchedAtom,
-  setFormLoadingAtom,
-  setFormSubmittingAtom,
-  setFormSavingAtom,
-  setFormErrorAtom,
-  clearFormErrorsAtom2,
-  setFormDataAtom,
-  markFormSavedAtom,
-  resetFormDataAtom,
-  initializeFormAtom,
-  clearFormStateAtom
+  toggleModalAtom
 } from './app.store'
 export {
   userStores,
@@ -184,13 +133,7 @@ export type {
   AppError,
   AppNotification,
   LoadingState,
-  ModalState,
-  UserState,
-  FormFieldError,
-  FormValidationState,
-  FormLoadingState,
-  FormErrorState,
-  FormDataState
+  ModalState
 } from './app.store'
 export type { UserState } from './user.store'
 export type {
