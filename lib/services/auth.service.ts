@@ -126,8 +126,33 @@ class AuthService {
       }
       
       return response as any;
-    } catch (error) {
-      throw ApiServiceError.fromApiError(error as any);
+    } catch (error: any) {
+      // Enhanced error handling with better messages
+      if (error?.error === 'NETWORK_ERROR' || error?.error === 'CORS_ERROR') {
+        // Re-throw network errors with user-friendly message
+        const apiError = ApiServiceError.fromApiError(error);
+        apiError.message = error.message || apiError.message;
+        throw apiError;
+      }
+      
+      // Handle validation errors (400)
+      if (error?.statusCode === 400 && error?.details?.validationErrors) {
+        const validationErrors = error.details.validationErrors;
+        const errorMessage = validationErrors.length > 0 
+          ? validationErrors.join(', ')
+          : error.message || 'Validation failed';
+        
+        const apiError = ApiServiceError.fromApiError(error);
+        apiError.message = errorMessage;
+        apiError.details = {
+          ...error.details,
+          validationErrors,
+        };
+        throw apiError;
+      }
+      
+      // For other errors, use standard error handling
+      throw ApiServiceError.fromApiError(error);
     }
   }
 

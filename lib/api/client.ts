@@ -105,12 +105,25 @@ class ApiClient {
     }
 
     if (!response.ok) {
+      // Extract validation errors if available
+      const validationErrors = data?.errors || data?.error?.errors || [];
+      const errorMessage = data?.message || `HTTP ${response.status}`;
+      
       const error: ApiError = {
-        message: data?.message || `HTTP ${response.status}`,
+        message: errorMessage,
         statusCode: response.status,
         error: data?.error || 'Request failed',
-        details: data,
+        details: {
+          ...data,
+          validationErrors: Array.isArray(validationErrors) ? validationErrors : [],
+          fullError: data,
+        },
       };
+
+      // Log validation errors in development
+      if (process.env.NODE_ENV === 'development' && validationErrors.length > 0) {
+        console.error('[API Client] Validation errors:', validationErrors);
+      }
 
       // Handle authentication errors
       if (response.status === 401) {
@@ -163,20 +176,23 @@ class ApiClient {
     const url = endpoint.startsWith('http') ? endpoint : getApiUrl(endpoint);
     const requestHeaders = this.getHeaders(headers);
 
-    // Debug logging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[API Client] Making request:', {
-        method,
-        url,
-        headers: requestHeaders,
-        hasBody: !!body,
-      });
-    }
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
+      // Debug logging before request
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API Client] Making request:', {
+          method,
+          url,
+          endpoint,
+          baseURL: this.baseURL,
+          headers: Object.keys(requestHeaders),
+          hasBody: !!body,
+          bodyPreview: body ? (typeof body === 'object' ? JSON.stringify(body).substring(0, 100) : String(body).substring(0, 100)) : null,
+        });
+      }
+
       const response = await fetch(url, {
         method,
         headers: requestHeaders,
@@ -198,47 +214,115 @@ class ApiClient {
       }
       
       return await this.handleResponse<T>(response);
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeoutId);
 
-      // Enhanced error logging
+      // Enhanced error logging - capture all error types
+      const errorInfo = {
+        // Error properties
+        name: error?.name || 'Unknown',
+        message: error?.message || String(error) || 'Unknown error',
+        stack: error?.stack || 'No stack trace',
+        // Request info
+        url,
+        method,
+        endpoint,
+        baseURL: this.baseURL,
+        constructedUrl: url,
+        // Additional error properties
+        cause: error?.cause || null,
+        code: error?.code || null,
+        errno: error?.errno || null,
+        // Type info
+        errorType: typeof error,
+        isError: error instanceof Error,
+        // Timestamp
+        timestamp: new Date().toISOString(),
+      };
+
       if (process.env.NODE_ENV === 'development') {
-        console.error('[API Client] Request failed:', {
-          url,
-          method,
-          error: error instanceof Error ? {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          } : error,
-        });
+        console.error('[API Client] Request failed - Full error info:', errorInfo);
+        console.error('[API Client] Raw error object:', error);
+        console.error('[API Client] Error stringified:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       }
 
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
+      // Extract error message and name
+      const errorMessage = error?.message || String(error) || 'Unknown error';
+      const errorName = error?.name || (error instanceof Error ? 'Error' : 'UnknownError');
+      
+      // Handle AbortError (timeout)
+      if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+        throw {
+          message: `Request timeout setelah ${timeout}ms. Pastikan backend berjalan di ${this.baseURL}`,
+          statusCode: 408,
+          error: 'TIMEOUT',
+          details: { url, method, timeout, errorInfo },
+        } as ApiError;
+      }
+      
+      // Check for network errors (Failed to fetch, NetworkError, etc.)
+      const isNetworkError = 
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('Network request failed') ||
+        errorMessage.includes('ERR_INTERNET_DISCONNECTED') ||
+        errorMessage.includes('ERR_NETWORK_CHANGED') ||
+        errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+        errorMessage.includes('ERR_NAME_NOT_RESOLVED') ||
+        errorName === 'TypeError' && (errorMessage.includes('fetch') || errorMessage.includes('network'));
+
+      if (isNetworkError) {
+        // Check if it's a CORS error specifically
+        const isCorsError = errorMessage.includes('CORS') || 
+                           errorMessage.includes('Access-Control-Allow-Origin') ||
+                           errorMessage.includes('CORS policy') ||
+                           errorMessage.includes('cross-origin');
+
+        if (isCorsError) {
           throw {
-            message: 'Request timeout',
-            statusCode: 408,
-            error: 'TIMEOUT',
-          } as ApiError;
-        }
-        
-        // Check for CORS errors
-        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          throw {
-            message: `CORS error: ${error.message}. Please check backend CORS configuration.`,
+            message: `CORS Error: Backend tidak mengizinkan request dari origin ini. Pastikan CORS_ORIGIN di backend mencakup ${typeof window !== 'undefined' ? window.location.origin : 'frontend origin'}`,
             statusCode: 0,
             error: 'CORS_ERROR',
-            details: { url, method },
+            details: { 
+              url, 
+              method,
+              backendUrl: this.baseURL,
+              origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+              errorMessage,
+              suggestion: 'Periksa konfigurasi CORS_ORIGIN di backend .env.local'
+            },
           } as ApiError;
         }
+
+        // Generic network error
+        throw {
+          message: `Network Error: Tidak dapat terhubung ke backend di ${url}. Pastikan:\n1. Backend berjalan di port 3001\n2. Backend dapat diakses dari browser\n3. Tidak ada firewall yang memblokir koneksi\n4. CORS sudah dikonfigurasi dengan benar`,
+          statusCode: 0,
+          error: 'NETWORK_ERROR',
+          details: { 
+            url, 
+            method,
+            endpoint,
+            backendUrl: this.baseURL,
+            originalError: errorMessage,
+            errorName,
+            suggestion: 'Test dengan: curl -X POST http://localhost:3001/api/v1/auth/login -H "Content-Type: application/json" -d \'{"nip":"test","password":"test"}\''
+          },
+        } as ApiError;
       }
 
+      // Fallback for unknown errors
       throw {
-        message: error instanceof Error ? error.message : 'Network error',
+        message: `Error: ${errorMessage}`,
         statusCode: 0,
-        error: 'NETWORK_ERROR',
-        details: { url, method },
+        error: 'UNKNOWN_ERROR',
+        details: { 
+          url, 
+          method, 
+          endpoint,
+          errorInfo,
+          originalError: error 
+        },
       } as ApiError;
     }
   }

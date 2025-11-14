@@ -20,36 +20,78 @@ app.set('trust proxy', 1);
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Parse CORS_ORIGIN from env (can be comma-separated)
+    const corsOriginEnv = process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
+    
+    // Build allowed origins list
     const allowedOrigins = [
-      process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000',
+      ...envOrigins,
       'http://localhost:3000',
       'http://127.0.0.1:3000',
     ];
     
+    // Remove duplicates
+    const uniqueOrigins = [...new Set(allowedOrigins)];
+    
+    // Log CORS configuration in development
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[CORS] Allowed origins:', uniqueOrigins);
+      if (origin) {
+        logger.info('[CORS] Request origin:', origin);
+      }
+    }
+    
     // In development, be more permissive
     if (process.env.NODE_ENV === 'development') {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) {
+        logger.info('[CORS] Allowing request with no origin (development mode)');
         callback(null, true);
-      } else {
-        // Log for debugging
-        console.warn('[CORS] Blocked origin:', origin);
-        callback(null, true); // Allow in dev for debugging
+        return;
       }
+      
+      // Check if origin is in allowed list
+      if (uniqueOrigins.includes(origin)) {
+        logger.info('[CORS] Allowing origin:', origin);
+        callback(null, true);
+        return;
+      }
+      
+      // In development, log but still allow for debugging
+      logger.warn('[CORS] Origin not in allowed list, but allowing in development:', origin);
+      callback(null, true);
     } else {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Production: strict CORS
+      if (!origin) {
+        // In production, we might want to reject no-origin requests
+        // But some legitimate requests might not have origin
+        callback(null, true);
+        return;
+      }
+      
+      if (uniqueOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        logger.error('[CORS] Blocked origin:', origin);
+        callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
       }
     }
   },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'X-Request-ID',
+  ],
   exposedHeaders: ['X-Request-ID', 'X-Rate-Limit-Remaining'],
   preflightContinue: false,
+  maxAge: 86400, // 24 hours
 };
 
 // Rate limiting

@@ -15,12 +15,12 @@ async function main() {
   console.log('👤 Seeding users...');
 
   const adminUser = await prisma.user.upsert({
-    where: { nip: 'ADMIN001' },
+    where: { nip: '1001' },
     update: {},
     create: {
       name: 'Administrator',
       email: 'admin@obatku.local',
-      nip: 'ADMIN001',
+      nip: '1001',
       phone: '081234567890',
       passwordHash: hashedPassword,
       role: 'ADMIN',
@@ -31,12 +31,12 @@ async function main() {
   });
 
   const pplUser = await prisma.user.upsert({
-    where: { nip: 'PPL001' },
+    where: { nip: '2001' },
     update: {},
     create: {
       name: 'Budi Santoso',
       email: 'budi@obatku.local',
-      nip: 'PPL001',
+      nip: '2001',
       phone: '081234567891',
       passwordHash: hashedPassword,
       role: 'PPL',
@@ -48,12 +48,12 @@ async function main() {
   });
 
   const dinasUser = await prisma.user.upsert({
-    where: { nip: 'DINAS001' },
+    where: { nip: '3001' },
     update: {},
     create: {
       name: 'Siti Rahayu',
       email: 'siti@obatku.local',
-      nip: 'DINAS001',
+      nip: '3001',
       phone: '081234567892',
       passwordHash: hashedPassword,
       role: 'DINAS',
@@ -65,12 +65,12 @@ async function main() {
   });
 
   const poptUser = await prisma.user.upsert({
-    where: { nip: 'POPT001' },
+    where: { nip: '4001' },
     update: {},
     create: {
       name: 'Ahmad Wijaya',
       email: 'ahmad@obatku.local',
-      nip: 'POPT001',
+      nip: '4001',
       phone: '081234567893',
       passwordHash: hashedPassword,
       role: 'POPT',
@@ -544,11 +544,11 @@ async function main() {
   console.log('✅ 6 QR code masters created');
   console.log('✅ 2 QR code sequences created');
   console.log('\n🔑 Default login credentials:');
-  console.log('Admin: admin@obatku.local / password123');
-  console.log('PPL: budi@obatku.local / password123');
-  console.log('Dinas: siti@obatku.local / password123');
-  console.log('POPT: ahmad@obatku.local / password123');
-  console.log('\nAll passwords: password123');
+  console.log('Admin: NIP=1001 / Password=password123');
+  console.log('PPL: NIP=2001 / Password=password123');
+  console.log('Dinas: NIP=3001 / Password=password123');
+  console.log('POPT: NIP=4001 / Password=password123');
+  console.log('\n⚠️  Catatan: NIP harus berupa angka saja!');
 }
 
 main()
