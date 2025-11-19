@@ -1,12 +1,11 @@
 import * as React from "react";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
 import { QrCode, Edit, Trash2, ArrowLeft, Loader2, Package, Calendar, MapPin } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import StatusIndicator from "@/components/inventory/status-indicator";
 import { Badge } from "@/components/ui/badge";
 import { DrugInventory } from "@/lib/types/inventory";
+import { safeFormatDate, safeFormatDateTime, formatExpiryDatesWithPercentage } from "@/lib/utils/date-utils";
 
 interface MedicineDetailModalProps {
   open: boolean;
@@ -28,6 +27,20 @@ const formatCurrency = (amount: number) => {
     currency: 'IDR',
     minimumFractionDigits: 0,
   }).format(amount);
+};
+
+/**
+ * Renders expiry date(s) with percentage formatting
+ * Format: "40% 9-9-2028, 60% 08-8-2026" (comma-separated inline)
+ */
+const renderExpiryDate = (expiryDate: Date | Date[] | string | string[] | Array<{ date: Date | string; percentage: number }> | null | undefined) => {
+  const formatted = formatExpiryDatesWithPercentage(
+    expiryDate,
+    'd-M-yyyy' // Format: 9-9-2028 (natural format without padding)
+  );
+  
+  // Join all dates with comma and space for inline display
+  return <div className="text-sm">{formatted.join(', ')}</div>;
 };
 
 const MedicineDetailModal: React.FC<MedicineDetailModalProps> = ({
@@ -158,16 +171,28 @@ const MedicineDetailModal: React.FC<MedicineDetailModalProps> = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-4 w-4" />Tanggal Masuk</span>
-              <div className="text-sm">{format(medicine.entryDate, 'dd MMMM yyyy', { locale: id })}</div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Tanggal Masuk
+              </span>
+              <div className="text-sm">
+                {safeFormatDate(medicine.entryDate, 'dd MMMM yyyy')}
+              </div>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-4 w-4" />Tanggal Expired</span>
-              <div className="text-sm">{format(medicine.expiryDate, 'dd MMMM yyyy', { locale: id })}</div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Tanggal Expired
+              </span>
+              <div className="text-sm">
+                {renderExpiryDate(medicine.expiryDate)}
+              </div>
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Terakhir Diperbarui</span>
-              <div className="text-sm">{format(medicine.lastUpdated, 'dd MMMM yyyy HH:mm', { locale: id })}</div>
+              <div className="text-sm">
+                {safeFormatDateTime(medicine.lastUpdated, 'dd MMMM yyyy HH:mm')}
+              </div>
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Dibuat oleh</span>

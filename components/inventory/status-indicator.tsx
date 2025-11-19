@@ -53,11 +53,19 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
 }) => {
   const config = statusConfig[status];
 
+  // Compact labels for table
+  const compactLabels = {
+    normal: 'Normal',
+    low: 'Menipis',
+    expired: 'Exp',
+    near_expiry: 'Hampir',
+  };
+
   return (
     <Badge
       color={config.color}
       className={cn(
-        "flex items-center gap-1.5 px-2 py-1 text-xs font-medium",
+        "flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap",
         config.bgColor,
         config.textColor,
         className
@@ -65,14 +73,9 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
     >
       <Icon 
         icon={config.icon} 
-        className="w-3 h-3" 
+        className="w-2.5 h-2.5" 
       />
-      <span className="hidden sm:inline">{config.label}</span>
-      <span className="sm:hidden">
-        {status === 'normal' ? 'OK' : 
-         status === 'low' ? 'Low' : 
-         status === 'expired' ? 'Exp' : 'Near'}
-      </span>
+      <span>{compactLabels[status]}</span>
     </Badge>
   );
 };

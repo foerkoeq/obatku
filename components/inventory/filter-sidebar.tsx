@@ -2,7 +2,7 @@
 // Purpose: Provide comprehensive filtering options for drug inventory
 // Props: filters, onFiltersChange, categories, suppliers, onReset
 // Returns: Collapsible sidebar with filter controls
-// Dependencies: Sheet, Button, Select, DatePicker, Input, Checkbox
+// Dependencies: Sheet, Button, Select, DatePicker, Input, Checkbox, Accordion
 
 "use client";
 
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Icon } from "@iconify/react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -73,10 +74,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   }, [filters.status, updateFilters]);
 
   const FilterContent = () => (
-    <div className="space-y-6 p-4">
+    <div className="space-y-4 p-4">
       {/* Reset Button */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-default-900">Filter Data</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-default-900 text-lg">Filter Lanjutan</h3>
         <Button
           variant="outline"
           size="sm"
@@ -88,209 +89,253 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         </Button>
       </div>
 
-      {/* Category Filter */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Kategori Obat</Label>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {categories.map((category) => (
-            <div key={category.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`category-${category.id}`}
-                checked={filters.category.includes(category.id)}
-                onCheckedChange={(checked) => 
-                  handleCategoryChange(category.id, checked as boolean)
-                }
-              />
-              <Label
-                htmlFor={`category-${category.id}`}
-                className="text-sm font-normal cursor-pointer flex-1"
-              >
-                {category.name}
-              </Label>
+      <Accordion type="multiple" defaultValue={["category", "status"]} className="w-full">
+        {/* Category Filter */}
+        <AccordionItem value="category">
+          <AccordionTrigger className="text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <Icon icon="heroicons:tag" className="w-4 h-4" />
+              Kategori Obat
+              {filters.category.length > 0 && (
+                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                  {filters.category.length}
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Supplier Filter */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Supplier</Label>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {suppliers.map((supplier) => (
-            <div key={supplier.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`supplier-${supplier.id}`}
-                checked={filters.supplier.includes(supplier.name)}
-                onCheckedChange={(checked) => 
-                  handleSupplierChange(supplier.name, checked as boolean)
-                }
-              />
-              <Label
-                htmlFor={`supplier-${supplier.id}`}
-                className="text-sm font-normal cursor-pointer flex-1"
-              >
-                {supplier.name}
-              </Label>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto pt-2">
+              {categories.map((category) => (
+                <div key={category.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`category-${category.id}`}
+                    checked={filters.category.includes(category.id)}
+                    onCheckedChange={(checked) => 
+                      handleCategoryChange(category.id, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={`category-${category.id}`}
+                    className="text-sm font-normal cursor-pointer flex-1"
+                  >
+                    {category.name}
+                  </Label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Status Filter */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Status Stok</Label>
-        <div className="space-y-2">
-          {statusOptions.map((status) => (
-            <div key={status.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`status-${status.value}`}
-                checked={filters.status.includes(status.value)}
-                onCheckedChange={(checked) => 
-                  handleStatusChange(status.value, checked as boolean)
-                }
-              />
-              <Label
-                htmlFor={`status-${status.value}`}
-                className="text-sm font-normal cursor-pointer flex-1"
-              >
-                {status.label}
-              </Label>
+        {/* Supplier Filter */}
+        <AccordionItem value="supplier">
+          <AccordionTrigger className="text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <Icon icon="heroicons:building-office" className="w-4 h-4" />
+              Sumber
+              {filters.supplier.length > 0 && (
+                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                  {filters.supplier.length}
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto pt-2">
+              {suppliers.map((supplier) => (
+                <div key={supplier.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`supplier-${supplier.id}`}
+                    checked={filters.supplier.includes(supplier.name)}
+                    onCheckedChange={(checked) => 
+                      handleSupplierChange(supplier.name, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={`supplier-${supplier.id}`}
+                    className="text-sm font-normal cursor-pointer flex-1"
+                  >
+                    {supplier.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Stock Range Filter */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Rentang Stok</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs text-default-500">Min</Label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={filters.stockRange.min || ''}
-              onChange={(e) => updateFilters({
-                stockRange: {
-                  ...filters.stockRange,
-                  min: e.target.value ? parseInt(e.target.value) : undefined
-                }
-              })}
-              className="h-8"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-default-500">Max</Label>
-            <Input
-              type="number"
-              placeholder="∞"
-              value={filters.stockRange.max || ''}
-              onChange={(e) => updateFilters({
-                stockRange: {
-                  ...filters.stockRange,
-                  max: e.target.value ? parseInt(e.target.value) : undefined
-                }
-              })}
-              className="h-8"
-            />
-          </div>
-        </div>
-      </div>
+        {/* Status Filter */}
+        <AccordionItem value="status">
+          <AccordionTrigger className="text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <Icon icon="heroicons:chart-bar" className="w-4 h-4" />
+              Status Stok
+              {filters.status.length > 0 && (
+                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                  {filters.status.length}
+                </span>
+              )}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              {statusOptions.map((status) => (
+                <div key={status.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`status-${status.value}`}
+                    checked={filters.status.includes(status.value)}
+                    onCheckedChange={(checked) => 
+                      handleStatusChange(status.value, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={`status-${status.value}`}
+                    className="text-sm font-normal cursor-pointer flex-1"
+                  >
+                    {status.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Expiry Date Range Filter */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Rentang Tanggal Kadaluarsa</Label>
-        <div className="space-y-2">
-          <div>
-            <Label className="text-xs text-default-500">Dari Tanggal</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full h-8 justify-start text-left font-normal",
-                    !filters.expiryRange.start && "text-muted-foreground"
-                  )}
-                >
-                  <Icon icon="heroicons:calendar-days" className="mr-2 h-4 w-4" />
-                  {filters.expiryRange.start ? (
-                    format(filters.expiryRange.start, "PPP", { locale: id })
-                  ) : (
-                    <span>Pilih tanggal</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={filters.expiryRange.start}
-                  onSelect={(date) => updateFilters({
-                    expiryRange: { ...filters.expiryRange, start: date }
+        {/* Stock Range Filter */}
+        <AccordionItem value="stock">
+          <AccordionTrigger className="text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <Icon icon="heroicons:cube" className="w-4 h-4" />
+              Rentang Stok
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <Label className="text-xs text-default-500 mb-1 block">Min</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={filters.stockRange.min || ''}
+                  onChange={(e) => updateFilters({
+                    stockRange: {
+                      ...filters.stockRange,
+                      min: e.target.value ? parseInt(e.target.value) : undefined
+                    }
                   })}
-                  initialFocus
+                  className="h-9"
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div>
-            <Label className="text-xs text-default-500">Sampai Tanggal</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full h-8 justify-start text-left font-normal",
-                    !filters.expiryRange.end && "text-muted-foreground"
-                  )}
-                >
-                  <Icon icon="heroicons:calendar-days" className="mr-2 h-4 w-4" />
-                  {filters.expiryRange.end ? (
-                    format(filters.expiryRange.end, "PPP", { locale: id })
-                  ) : (
-                    <span>Pilih tanggal</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={filters.expiryRange.end}
-                  onSelect={(date) => updateFilters({
-                    expiryRange: { ...filters.expiryRange, end: date }
+              </div>
+              <div>
+                <Label className="text-xs text-default-500 mb-1 block">Max</Label>
+                <Input
+                  type="number"
+                  placeholder="∞"
+                  value={filters.stockRange.max || ''}
+                  onChange={(e) => updateFilters({
+                    stockRange: {
+                      ...filters.stockRange,
+                      max: e.target.value ? parseInt(e.target.value) : undefined
+                    }
                   })}
-                  initialFocus
+                  className="h-9"
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Expiry Date Range Filter */}
+        <AccordionItem value="expiry">
+          <AccordionTrigger className="text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <Icon icon="heroicons:calendar-days" className="w-4 h-4" />
+              Tanggal Kadaluarsa
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 pt-2">
+              <div>
+                <Label className="text-xs text-default-500 mb-1 block">Dari Tanggal</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-9 justify-start text-left font-normal",
+                        !filters.expiryRange.start && "text-muted-foreground"
+                      )}
+                    >
+                      <Icon icon="heroicons:calendar-days" className="mr-2 h-4 w-4" />
+                      {filters.expiryRange.start ? (
+                        format(filters.expiryRange.start, "PPP", { locale: id })
+                      ) : (
+                        <span>Pilih tanggal</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.expiryRange.start}
+                      onSelect={(date) => updateFilters({
+                        expiryRange: { ...filters.expiryRange, start: date }
+                      })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="text-xs text-default-500 mb-1 block">Sampai Tanggal</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-9 justify-start text-left font-normal",
+                        !filters.expiryRange.end && "text-muted-foreground"
+                      )}
+                    >
+                      <Icon icon="heroicons:calendar-days" className="mr-2 h-4 w-4" />
+                      {filters.expiryRange.end ? (
+                        format(filters.expiryRange.end, "PPP", { locale: id })
+                      ) : (
+                        <span>Pilih tanggal</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.expiryRange.end}
+                      onSelect={(date) => updateFilters({
+                        expiryRange: { ...filters.expiryRange, end: date }
+                      })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 
   return (
-    <>
-      {/* Mobile Filter */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild className="lg:hidden">
-          <Button variant="outline" size="sm">
-            <Icon icon="heroicons:funnel" className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-80">
-          <SheetHeader>
-            <SheetTitle>Filter Data Stok</SheetTitle>
-          </SheetHeader>
-          <FilterContent />
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Filter Sidebar */}
-      <div className={cn("hidden lg:block w-80 border-r bg-background", className)}>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Icon icon="heroicons:funnel" className="w-4 h-4" />
+          Filter Lanjutan
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:w-96 overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Filter Lanjutan</SheetTitle>
+        </SheetHeader>
         <FilterContent />
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 };
 

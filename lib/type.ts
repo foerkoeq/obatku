@@ -1,4 +1,4 @@
-export type color = "default" | "primary" | "secondary" | "success" | "info" | "warning" | "destructive"
+export type color = "default" | "primary" | "secondary" | "success" | "info" | "warning" | "destructive" | "blue" | "purple" | "indigo" | "teal" | "emerald" | "amber" | "rose" | "cyan" | "violet" | "fuchsia" | "sky" | "lime" | "orange" | "pink" | "slate" | "zinc" | "stone" | "neutral" | "red" | "green"
 export type InputColor = "default" | "primary" | "secondary" | "success" | "info" | "warning" | "destructive"
 export type shadow = "sm" | "md" | "lg" | "xl"
 export type size = "default" | "sm" | "md" | "lg"

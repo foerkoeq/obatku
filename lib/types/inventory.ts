@@ -9,6 +9,7 @@ export interface DrugInventory {
   content: string;
   category: DrugCategory;
   supplier: string;
+  sumber?: string; // APBD, APBD 1, APBN, CSR, etc.
   stock: number;
   unit: string;
   largePack: {
@@ -17,7 +18,7 @@ export interface DrugInventory {
     itemsPerPack: number;
   };
   entryDate: Date;
-  expiryDate: Date;
+  expiryDate: Date | Date[] | Array<{ date: Date | string; percentage: number }>; // Support multiple expiry dates with percentage
   pricePerUnit?: number;
   targetPest: string[];
   storageLocation: string;

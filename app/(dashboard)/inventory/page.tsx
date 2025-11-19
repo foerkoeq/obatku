@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import InventoryTable from "@/components/inventory/inventory-table";
 import MedicineDetailModal from "@/components/inventory/medicine-detail-modal";
 import InventorySearch from "@/components/inventory/inventory-search";
+import InventoryStatsCards from "@/components/inventory/inventory-stats-cards";
+import FilterSidebar from "@/components/inventory/filter-sidebar";
 import ExportModal from "@/components/inventory/export-modal";
 import QRPrintModal from "@/components/inventory/qr-print-modal";
 
@@ -33,6 +35,9 @@ import {
   SortConfig
 } from "@/lib/types/inventory";
 
+// Import utilities
+import { extractExpiryDates } from "@/lib/utils/date-utils";
+
 // Mock data - in real app, this would come from API
 const mockCategories: DrugCategory[] = [
   { id: '1', name: 'Herbisida', description: 'Obat pembasmi gulma' },
@@ -42,9 +47,10 @@ const mockCategories: DrugCategory[] = [
 ];
 
 const mockSuppliers: Supplier[] = [
-  { id: '1', name: 'PT Agro Kimia', contact: '021-xxx-xxxx' },
-  { id: '2', name: 'CV Tani Makmur', contact: '021-yyy-yyyy' },
-  { id: '3', name: 'PT Pupuk Nusantara', contact: '021-zzz-zzzz' },
+  { id: '1', name: 'APBD', contact: '021-xxx-xxxx' },
+  { id: '2', name: 'APBD 1', contact: '021-yyy-yyyy' },
+  { id: '3', name: 'APBN', contact: '021-zzz-zzzz' },
+  { id: '4', name: 'CSR', contact: '021-aaa-aaaa' },
 ];
 
 const mockInventoryData: DrugInventory[] = [
@@ -55,6 +61,7 @@ const mockInventoryData: DrugInventory[] = [
     content: 'Glifosat 486 g/l',
     category: mockCategories[0],
     supplier: 'PT Agro Kimia',
+    sumber: 'APBD',
     stock: 150,
     unit: 'liter',
     largePack: { quantity: 20, unit: 'jerigen', itemsPerPack: 5 },
@@ -76,11 +83,12 @@ const mockInventoryData: DrugInventory[] = [
     content: 'Deltametrin 25 g/l',
     category: mockCategories[1],
     supplier: 'CV Tani Makmur',
+    sumber: 'APBN',
     stock: 8,
     unit: 'liter',
     largePack: { quantity: 12, unit: 'dus', itemsPerPack: 1 },
     entryDate: new Date('2024-02-10'),
-    expiryDate: new Date('2024-12-31'),
+    expiryDate: [new Date('2024-12-31'), new Date('2025-06-30')],
     pricePerUnit: 285000,
     targetPest: ['Penggerek batang', 'Ulat grayak', 'Thrips'],
     storageLocation: 'Gudang B-2',
@@ -96,6 +104,7 @@ const mockInventoryData: DrugInventory[] = [
     content: 'Difenokonazol 250 g/l',
     category: mockCategories[2],
     supplier: 'PT Pupuk Nusantara',
+    sumber: 'CSR',
     stock: 5,
     unit: 'liter',
     largePack: { quantity: 10, unit: 'box', itemsPerPack: 1 },
@@ -149,11 +158,24 @@ const InventoryPage: React.FC = () => {
   // Selection state
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
+  // Stats card filter state
+  const [activeCardFilter, setActiveCardFilter] = useState<'all' | 'low' | 'expired' | 'filtered' | null>(null);
+
   const router = useRouter();
 
   // Filter and search logic
   const applyFilters = useCallback(() => {
     let filtered = [...data];
+
+    // Apply stats card filter first
+    if (activeCardFilter === 'low') {
+      filtered = filtered.filter(item => item.status === 'low');
+    } else if (activeCardFilter === 'expired') {
+      filtered = filtered.filter(item => item.status === 'expired');
+    } else if (activeCardFilter === 'all') {
+      // Show all, no filter
+    }
+    // 'filtered' doesn't apply additional filter, it's just for display
 
     // Apply search filter
     if (filters.search) {
@@ -181,8 +203,8 @@ const InventoryPage: React.FC = () => {
       );
     }
 
-    // Apply status filter
-    if (filters.status.length > 0) {
+    // Apply status filter (only if not already filtered by card)
+    if (filters.status.length > 0 && !activeCardFilter) {
       filtered = filtered.filter(item =>
         filters.status.includes(item.status)
       );
@@ -198,14 +220,18 @@ const InventoryPage: React.FC = () => {
 
     // Apply expiry date range filter
     if (filters.expiryRange.start) {
-      filtered = filtered.filter(item =>
-        new Date(item.expiryDate) >= filters.expiryRange.start!
-      );
+      const startDate = filters.expiryRange.start;
+      filtered = filtered.filter(item => {
+        const expiryDates = extractExpiryDates(item.expiryDate);
+        return expiryDates.some(date => date.getTime() >= startDate.getTime());
+      });
     }
     if (filters.expiryRange.end) {
-      filtered = filtered.filter(item =>
-        new Date(item.expiryDate) <= filters.expiryRange.end!
-      );
+      const endDate = filters.expiryRange.end;
+      filtered = filtered.filter(item => {
+        const expiryDates = extractExpiryDates(item.expiryDate);
+        return expiryDates.some(date => date.getTime() <= endDate.getTime());
+      });
     }
 
     // Apply sorting
@@ -224,7 +250,7 @@ const InventoryPage: React.FC = () => {
       total: filtered.length,
       page: 1, // Reset to first page when filters change
     }));
-  }, [data, filters.search, filters.category, filters.supplier, filters.status, filters.stockRange, filters.expiryRange, sortConfig]);
+  }, [data, activeCardFilter, filters.search, filters.category, filters.supplier, filters.status, filters.stockRange, filters.expiryRange, sortConfig]);
 
   // Apply filters when dependencies change
   useEffect(() => {
@@ -260,6 +286,11 @@ const InventoryPage: React.FC = () => {
       expiryRange: {},
       stockRange: {},
     });
+    setActiveCardFilter(null);
+  }, []);
+
+  const handleStatsCardFilter = useCallback((filterType: 'all' | 'low' | 'expired' | 'filtered' | null) => {
+    setActiveCardFilter(filterType);
   }, []);
 
   // State for detail modal
@@ -393,6 +424,16 @@ const InventoryPage: React.FC = () => {
             )}
           </div>
 
+          {/* Statistics Cards */}
+          <div className="mb-6">
+            <InventoryStatsCards
+              data={data}
+              filteredData={filteredData}
+              onFilterClick={handleStatsCardFilter}
+              activeFilter={activeCardFilter}
+            />
+          </div>
+
           {/* Search and Actions */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6">
             <div className="flex-1">
@@ -403,6 +444,15 @@ const InventoryPage: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Filter Button */}
+              <FilterSidebar
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                categories={mockCategories}
+                suppliers={mockSuppliers}
+                onReset={handleResetFilters}
+              />
+              
               {/* Selected items actions */}
               {selectedItems.length > 0 && (
                 <>
@@ -446,34 +496,6 @@ const InventoryPage: React.FC = () => {
                 Export Semua
               </Button>
             </div>
-          </div>
-
-          {/* Statistics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-default-900">{data.length}</div>
-                <div className="text-sm text-default-600">Total Obat</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-warning">{data.filter(d => d.status === 'low').length}</div>
-                <div className="text-sm text-default-600">Stok Menipis</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-destructive">{data.filter(d => d.status === 'expired').length}</div>
-                <div className="text-sm text-default-600">Kadaluarsa</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-primary">{filteredData.length}</div>
-                <div className="text-sm text-default-600">Hasil Filter</div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Data Table */}

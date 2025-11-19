@@ -13,6 +13,20 @@ interface TagInputProps {
   maxTags?: number;
 }
 
+// Badge color variants for tags
+const badgeColors = [
+  "bg-blue-500 text-white hover:bg-blue-600",
+  "bg-purple-500 text-white hover:bg-purple-600",
+  "bg-indigo-500 text-white hover:bg-indigo-600",
+  "bg-teal-500 text-white hover:bg-teal-600",
+  "bg-emerald-500 text-white hover:bg-emerald-600",
+  "bg-amber-500 text-white hover:bg-amber-600",
+  "bg-rose-500 text-white hover:bg-rose-600",
+  "bg-cyan-500 text-white hover:bg-cyan-600",
+  "bg-violet-500 text-white hover:bg-violet-600",
+  "bg-fuchsia-500 text-white hover:bg-fuchsia-600",
+];
+
 export const TagInput: React.FC<TagInputProps> = ({
   value = [],
   onChange,
@@ -23,18 +37,21 @@ export const TagInput: React.FC<TagInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState("");
 
+  // Ensure value is always an array
+  const tags = Array.isArray(value) ? value : [];
+
   const addTag = (tagText: string) => {
     const trimmedTag = tagText.trim();
-    if (trimmedTag && !value.includes(trimmedTag)) {
-      if (!maxTags || value.length < maxTags) {
-        onChange([...value, trimmedTag]);
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      if (!maxTags || tags.length < maxTags) {
+        onChange([...tags, trimmedTag]);
       }
     }
     setInputValue("");
   };
 
   const removeTag = (indexToRemove: number) => {
-    onChange(value.filter((_, index) => index !== indexToRemove));
+    onChange(tags.filter((_, index) => index !== indexToRemove));
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -42,19 +59,25 @@ export const TagInput: React.FC<TagInputProps> = ({
     
     // Check if user typed a comma
     if (inputValue.includes(",")) {
-      const tags = inputValue.split(",");
-      const newTags = tags.slice(0, -1); // All except the last one
-      const remainingInput = tags[tags.length - 1]; // The last one after comma
+      const inputTags = inputValue.split(",");
+      const newTags = inputTags.slice(0, -1); // All except the last one
+      const remainingInput = inputTags[inputTags.length - 1]; // The last one after comma
       
-      // Add all valid tags
+      // Collect all new valid tags
+      const tagsToAdd: string[] = [];
       newTags.forEach(tag => {
         const trimmedTag = tag.trim();
-        if (trimmedTag && !value.includes(trimmedTag)) {
-          if (!maxTags || value.length < maxTags) {
-            onChange([...value, trimmedTag]);
-          }
+        if (trimmedTag && !tags.includes(trimmedTag) && !tagsToAdd.includes(trimmedTag)) {
+          tagsToAdd.push(trimmedTag);
         }
       });
+      
+      // Add all valid tags at once
+      if (tagsToAdd.length > 0) {
+        const updatedTags = [...tags, ...tagsToAdd];
+        const limitedTags = maxTags ? updatedTags.slice(0, maxTags) : updatedTags;
+        onChange(limitedTags);
+      }
       
       setInputValue(remainingInput);
     } else {
@@ -66,9 +89,9 @@ export const TagInput: React.FC<TagInputProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       addTag(inputValue);
-    } else if (e.key === "Backspace" && inputValue === "" && value.length > 0) {
+    } else if (e.key === "Backspace" && inputValue === "" && tags.length > 0) {
       // Remove last tag when backspace is pressed on empty input
-      removeTag(value.length - 1);
+      removeTag(tags.length - 1);
     }
   };
 
@@ -80,27 +103,35 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Display existing tags */}
-      {value.length > 0 && (
+      {/* Display existing tags with colored badges */}
+      {tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {value.map((tag, index) => (
-            <Badge
-              key={index}
-              className="px-2 py-1 text-sm flex items-center gap-1 hover:bg-secondary/80 bg-secondary text-secondary-foreground"
-            >
-              <span>{tag}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0 hover:bg-transparent"
-                onClick={() => removeTag(index)}
-                disabled={disabled}
+          {tags.map((tag, index) => {
+            // Assign color based on index
+            const colorClass = badgeColors[index % badgeColors.length];
+            
+            return (
+              <Badge
+                key={`${tag}-${index}`}
+                className={`px-3 py-1.5 text-sm flex items-center gap-2 transition-all duration-200 border-0 ${colorClass}`}
               >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          ))}
+                <span className="font-medium">{tag}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:bg-white/20 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(index);
+                  }}
+                  disabled={disabled}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            );
+          })}
         </div>
       )}
       
@@ -112,14 +143,14 @@ export const TagInput: React.FC<TagInputProps> = ({
         onKeyDown={handleKeyDown}
         onBlur={handleInputBlur}
         placeholder={placeholder}
-        disabled={disabled || (maxTags ? value.length >= maxTags : false)}
+        disabled={disabled || (maxTags ? tags.length >= maxTags : false)}
       />
       
       {/* Helper text */}
       <div className="text-xs text-muted-foreground">
         {maxTags && (
           <span className="mr-2">
-            {value.length}/{maxTags} tag{value.length !== 1 ? 's' : ''}
+            {tags.length}/{maxTags} tag{tags.length !== 1 ? 's' : ''}
           </span>
         )}
         <span>
