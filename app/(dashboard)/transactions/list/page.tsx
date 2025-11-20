@@ -27,9 +27,19 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Icon } from "@iconify/react";
 import { HydrationSafe } from "@/components/ui/hydration-safe";
 import { toast } from "sonner";
+import SiteBreadcrumb from "@/components/site-breadcrumb";
+import { colorBank, ColorBankKey } from "@/components/ui/color-bank";
+import { cn } from "@/lib/utils";
 
 // Import transaction components
 import {
@@ -120,6 +130,19 @@ const TransactionListPage: React.FC = () => {
   const applyFilters = useCallback(() => {
     let filtered = [...data];
 
+    // Role-based filtering
+    if (user.role === 'ppl') {
+      // PPL: hanya data yang mereka usulkan
+      filtered = filtered.filter(item => item.createdBy === user.id || item.bppOfficer.id === user.id);
+    } else if (user.role === 'popt') {
+      // POPT: hanya data di kecamatan mereka
+      filtered = filtered.filter(item => 
+        item.farmerGroup.subDistrict.toLowerCase() === user.district?.toLowerCase() ||
+        item.farmerGroup.district.toLowerCase() === user.district?.toLowerCase()
+      );
+    }
+    // Admin dan Dinas: semua data (tidak perlu filter)
+
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
@@ -166,7 +189,7 @@ const TransactionListPage: React.FC = () => {
       total: filtered.length,
       page: 1 // Reset to first page when filtering
     }));
-  }, [data, filters]);
+  }, [data, filters, user.role, user.id, user.district]);
 
   // Paginated data
   const paginatedData = useMemo(() => {
@@ -278,17 +301,42 @@ const TransactionListPage: React.FC = () => {
     [...new Set(data.map(t => t.farmingDetails.commodity))].sort()
   , [data]);
 
+  // Stats cards configuration with inventory style
+  const statsCards = [
+    {
+      id: 'total',
+      label: 'Total Transaksi',
+      value: stats.total,
+      icon: 'heroicons:document-text',
+      colorKey: 'blue' as ColorBankKey,
+    },
+    {
+      id: 'pending',
+      label: 'Menunggu Persetujuan',
+      value: stats.pendingApprovals,
+      icon: 'heroicons:clock',
+      colorKey: 'amber' as ColorBankKey,
+    },
+    {
+      id: 'ready',
+      label: 'Siap Distribusi',
+      value: stats.pendingDistributions,
+      icon: 'heroicons:truck',
+      colorKey: 'emerald' as ColorBankKey,
+    },
+    {
+      id: 'completed',
+      label: 'Selesai',
+      value: stats.completed,
+      icon: 'heroicons:check-circle',
+      colorKey: 'rose' as ColorBankKey,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-default-900">Daftar Transaksi</h1>
-          <p className="text-default-600 mt-1">
-            Kelola transaksi permintaan obat pertanian
-          </p>
-        </div>
-
+      {/* Breadcrumb */}
+      <SiteBreadcrumb>
         {permissions.canEdit && (
           <Button onClick={() => router.push('/transactions/submission')}>
             <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
@@ -297,205 +345,225 @@ const TransactionListPage: React.FC = () => {
             Buat Pengajuan
           </Button>
         )}
-      </div>
+      </SiteBreadcrumb>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-default-600">
-              Total Transaksi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-default-900">
-              {stats.total}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-default-600">
-              Menunggu Persetujuan
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              {stats.pendingApprovals}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-default-600">
-              Siap Distribusi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.pendingDistributions}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-default-600">
-              Selesai
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.completed}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filter & Pencarian</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <TransactionSearch
-            value={filters.search}
-            onChange={handleSearchChange}
-            showAdvanced={true}
-            onAdvancedSearch={(advancedFilters) => {
-              // Handle advanced search filters - simple string search, not array filters
-              setFilters(prev => ({
-                ...prev,
-                search: prev.search // Keep existing search
-                // Advanced filters are handled within the search component for filtering
-              }));
-            }}
-          />
-          
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={resetFilters}
-              className="shrink-0"
-            >
-              <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
-                <Icon icon="heroicons:x-mark" className="h-4 w-4 mr-2 flex-shrink-0" />
-              </HydrationSafe>
-              Reset Filter
-            </Button>
-          </div>
-
-          {/* Filter Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Status Filter */}
-            <div>
-              <label className="text-sm font-medium text-default-700 mb-2 block">
-                Status
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {(['submitted', 'under_review', 'approved', 'completed', 'rejected'] as TransactionStatus[]).map((status) => (
-                  <div
-                    key={status}
-                    className="cursor-pointer"
-                    onClick={() => handleStatusFilter(status)}
-                  >
-                    <TransactionStatusIndicator 
-                      status={status} 
-                      showText={true}
-                      className={filters.status.includes(status) ? "opacity-100" : "opacity-50"}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Priority Filter */}
-            <div>
-              <label className="text-sm font-medium text-default-700 mb-2 block">
-                Prioritas
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((priority) => (
-                  <Badge
-                    key={priority}
-                    className={`cursor-pointer text-xs ${filters.priority.includes(priority) ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
-                    onClick={() => handlePriorityFilter(priority)}
-                  >
-                    {priority}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* District Filter */}
-            <div>
-              <label className="text-sm font-medium text-default-700 mb-2 block">
-                Kabupaten
-              </label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kabupaten" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueDistricts.map((district) => (
-                    <SelectItem key={district} value={district}>
-                      {district}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Commodity Filter */}
-            <div>
-              <label className="text-sm font-medium text-default-700 mb-2 block">
-                Komoditas
-              </label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih komoditas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueCommodities.map((commodity) => (
-                    <SelectItem key={commodity} value={commodity}>
-                      {commodity}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results Count */}
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-default-600">
-          Menampilkan {paginatedData.length} dari {filteredData.length} transaksi
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-default-900">Daftar Transaksi</h1>
+        <p className="text-default-600 mt-1">
+          Kelola transaksi permintaan obat pertanian
         </p>
-        
-        {permissions.canExport && (
-          <Button variant="outline" size="sm">
-            <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
-              <Icon icon="heroicons:arrow-down-tray" className="h-4 w-4 mr-2 flex-shrink-0" />
-            </HydrationSafe>
-            Export
-          </Button>
-        )}
       </div>
 
-      {/* Transaction Table */}
+      {/* Stats Cards with Inventory Style */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsCards.map((stat) => {
+          const colors = colorBank[stat.colorKey];
+          
+          return (
+            <Card
+              key={stat.id}
+              className={cn(
+                "transition-all duration-200 hover:shadow-lg border-2",
+                `${colors.bgLight} ${colors.border} hover:shadow-md`
+              )}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 pr-2">
+                    <div className={cn(
+                      "text-2xl font-bold mb-1",
+                      colors.text
+                    )}>
+                      {stat.value}
+                    </div>
+                    <div className={cn(
+                      "text-sm",
+                      colors.text
+                    )}>{stat.label}</div>
+                  </div>
+                  <div className={cn(
+                    "p-2 rounded-lg transition-colors flex-shrink-0",
+                    `${colors.bg} text-white opacity-80`
+                  )}>
+                    <Icon icon={stat.icon} className="w-5 h-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Transaction Table with Combined Filter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Daftar Transaksi</CardTitle>
-          <CardDescription>
-            Kelola dan monitor semua transaksi permintaan obat pertanian
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Daftar Transaksi</CardTitle>
+              <CardDescription>
+                Kelola dan monitor semua transaksi permintaan obat pertanian
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <div className="w-64">
+                <TransactionSearch
+                  value={filters.search}
+                  onChange={handleSearchChange}
+                  showAdvanced={false}
+                />
+              </div>
+              
+              {/* Filter Side Sheet */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Icon icon="heroicons:funnel" className="w-4 h-4" />
+                    Filter
+                    {(filters.status.length > 0 || filters.priority.length > 0 || filters.district.length > 0 || filters.commodity.length > 0) && (
+                      <Badge className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                        {filters.status.length + filters.priority.length + filters.district.length + filters.commodity.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-96 overflow-y-auto">
+                  <SheetHeader>
+                    <SheetTitle>Filter Transaksi</SheetTitle>
+                  </SheetHeader>
+                  
+                  <div className="space-y-6 mt-6">
+                    {/* Status Filter */}
+                    <div>
+                      <label className="text-sm font-medium text-default-700 mb-3 block">
+                        Status
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(['submitted', 'under_review', 'approved', 'completed', 'rejected'] as TransactionStatus[]).map((status) => (
+                          <div
+                            key={status}
+                            className="cursor-pointer"
+                            onClick={() => handleStatusFilter(status)}
+                          >
+                            <TransactionStatusIndicator 
+                              status={status} 
+                              showText={true}
+                              className={filters.status.includes(status) ? "opacity-100" : "opacity-50"}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Priority Filter */}
+                    <div>
+                      <label className="text-sm font-medium text-default-700 mb-3 block">
+                        Prioritas
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((priority) => (
+                          <Badge
+                            key={priority}
+                            className={`cursor-pointer text-xs ${filters.priority.includes(priority) ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                            onClick={() => handlePriorityFilter(priority)}
+                          >
+                            {priority}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* District Filter */}
+                    <div>
+                      <label className="text-sm font-medium text-default-700 mb-2 block">
+                        Kabupaten
+                      </label>
+                      <Select
+                        value={filters.district[0] || ""}
+                        onValueChange={(value) => {
+                          setFilters(prev => ({
+                            ...prev,
+                            district: value ? [value] : []
+                          }));
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kabupaten" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Semua Kabupaten</SelectItem>
+                          {uniqueDistricts.map((district) => (
+                            <SelectItem key={district} value={district}>
+                              {district}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Commodity Filter */}
+                    <div>
+                      <label className="text-sm font-medium text-default-700 mb-2 block">
+                        Komoditas
+                      </label>
+                      <Select
+                        value={filters.commodity[0] || ""}
+                        onValueChange={(value) => {
+                          setFilters(prev => ({
+                            ...prev,
+                            commodity: value ? [value] : []
+                          }));
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih komoditas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Semua Komoditas</SelectItem>
+                          {uniqueCommodities.map((commodity) => (
+                            <SelectItem key={commodity} value={commodity}>
+                              {commodity}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Reset Button */}
+                    <div className="pt-4 border-t">
+                      <Button 
+                        variant="outline" 
+                        onClick={resetFilters}
+                        className="w-full"
+                      >
+                        <Icon icon="heroicons:x-mark" className="h-4 w-4 mr-2" />
+                        Reset Filter
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {permissions.canExport && (
+                <Button variant="outline" size="sm">
+                  <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
+                    <Icon icon="heroicons:arrow-down-tray" className="h-4 w-4 mr-2 flex-shrink-0" />
+                  </HydrationSafe>
+                  Export
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
+          {/* Results Count */}
+          <div className="px-6 py-3 border-b flex justify-between items-center">
+            <p className="text-sm text-default-600">
+              Menampilkan {paginatedData.length} dari {filteredData.length} transaksi
+            </p>
+          </div>
+          
           <TransactionTable
             data={paginatedData}
             loading={loading}
