@@ -52,6 +52,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import SiteBreadcrumb from "@/components/site-breadcrumb";
 import { TagInput } from "@/components/form/tag-input";
 import { ImageUpload } from "@/components/form/image-upload";
+import { SelectWithOther } from "@/components/form/select-with-other";
 import {
   FormWizardStepper,
   FormWizardStepperCompact,
@@ -126,7 +127,7 @@ const addMedicineSchema = z.object({
   // Step 1: Basic Info
   producer: z.string().min(1, "Produsen obat wajib diisi"),
   name: z.string().min(1, "Merek obat wajib diisi").min(3, "Merek obat minimal 3 karakter"),
-  content: z.string().min(1, "Kandungan/Bahan aktif wajib diisi"),
+  content: z.array(z.string()).min(1, "Minimal 1 kandungan/bahan aktif wajib diisi"),
   category: z.string().min(1, "Kategori obat wajib dipilih"),
   sumber: z.string().min(1, "Sumber wajib dipilih"),
 
@@ -149,7 +150,14 @@ const addMedicineSchema = z.object({
         pricePerUnit: z.number().optional(),
       })
     )
-    .min(1, "Minimal 1 batch wajib diisi"),
+    .min(1, "Minimal 1 batch wajib diisi")
+    .refine(
+      (batches) => {
+        // This will be validated with entryDate in the main schema refine
+        return true;
+      },
+      { message: "Validasi tanggal kadaluarsa" }
+    ),
 
   // Step 3: OPT
   targetPest: z.array(z.string()).min(1, "Minimal 1 jenis OPT wajib diisi"),
@@ -180,7 +188,19 @@ const addMedicineSchema = z.object({
     .min(1, "Minimal 1 lokasi penyimpanan wajib diisi"),
   notes: z.string().optional(),
   images: z.array(z.any()).optional(),
-});
+})
+  .superRefine((data, ctx) => {
+    // Validate that all expiry dates are after entry date
+    data.batches.forEach((batch, index) => {
+      if (batch.expiryDate && batch.expiryDate < data.entryDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Tanggal kadaluarsa tidak boleh sebelum tanggal masuk",
+          path: ["batches", index, "expiryDate"],
+        });
+      }
+    });
+  });
 
 type AddMedicineFormData = z.infer<typeof addMedicineSchema>;
 
@@ -222,6 +242,15 @@ const AddMedicinePage: React.FC = () => {
   const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
   const [largePackUnitOptions, setLargePackUnitOptions] = useState(LARGE_PACK_UNITS);
 
+  // Dynamic options for categories and sources
+  // Filter out "Lainnya" from initial categories since it will be added as a special option
+  const [categoryOptions, setCategoryOptions] = useState(
+    DRUG_CATEGORIES.filter((cat) => cat !== "Lainnya").map((cat) => ({ value: cat, label: cat }))
+  );
+  const [sourceOptions, setSourceOptions] = useState(
+    SUMBER_OPTIONS.map((src) => ({ value: src, label: src }))
+  );
+
   // Check authorization
   useEffect(() => {
     if (userRole === "ppl") {
@@ -237,7 +266,7 @@ const AddMedicinePage: React.FC = () => {
     defaultValues: {
       producer: "",
       name: "",
-      content: "",
+      content: [],
       category: "",
       sumber: "",
       entryDate: new Date(),
@@ -274,7 +303,7 @@ const AddMedicinePage: React.FC = () => {
 
     switch (currentStep) {
       case 1:
-        fieldsToValidate = ["producer", "name", "content", "category", "sumber"];
+        fieldsToValidate = ["producer", "name", "content", "category", "sumber"] as (keyof AddMedicineFormData)[];
         break;
       case 2:
         fieldsToValidate = ["entryDate", "batches"];
@@ -317,15 +346,20 @@ const AddMedicinePage: React.FC = () => {
 
     try {
       // Prepare medicine data
+      // Join active ingredients array into string for backward compatibility
+      const activeIngredientsString = Array.isArray(data.content) 
+        ? data.content.join(", ") 
+        : data.content;
+
       const medicineData = {
         name: data.name,
         genericName: data.producer,
         categoryId: data.category,
         supplierId: data.sumber,
         description: data.notes || "",
-        activeIngredient: data.content,
+        activeIngredient: activeIngredientsString,
         dosageForm: data.batches[0]?.unit || "",
-        strength: data.content,
+        strength: activeIngredientsString,
         unit: data.batches[0]?.unit || "",
         barcode: "",
         sku: `${data.name.substring(0, 3).toUpperCase()}-${Date.now()}`,
@@ -466,15 +500,20 @@ const AddMedicinePage: React.FC = () => {
                           <Info className="w-3.5 h-3.5 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Kandungan bahan aktif dan konsentrasinya</p>
+                          <p>Kandungan bahan aktif dan konsentrasinya. Bisa lebih dari satu, pisahkan dengan koma atau tekan Enter</p>
                         </TooltipContent>
                       </Tooltip>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Contoh: Deltamethrin 25 g/l" {...field} />
+                      <TagInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Contoh: Deltamethrin 25 g/l (tekan Enter atau koma untuk menambah)"
+                        maxTags={10}
+                      />
                     </FormControl>
                     <FormDescription>
-                      Sebutkan bahan aktif beserta konsentrasi atau kadarnya
+                      Sebutkan bahan aktif beserta konsentrasi atau kadarnya. Untuk multiple bahan aktif, pisahkan dengan koma atau tekan Enter
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -494,24 +533,32 @@ const AddMedicinePage: React.FC = () => {
                           <Info className="w-3.5 h-3.5 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Jenis kategori pestisida</p>
+                          <p>Jenis kategori pestisida. Pilih "Lainnya" untuk menambah kategori baru</p>
                         </TooltipContent>
                       </Tooltip>
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kategori obat" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {DRUG_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SelectWithOther
+                        options={categoryOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Pilih kategori obat"
+                        onAddNew={(newCategory) => {
+                          // Add new category to options if not already exists
+                          if (!categoryOptions.some((opt) => opt.value === newCategory)) {
+                            setCategoryOptions((prev) => [
+                              ...prev,
+                              { value: newCategory, label: newCategory },
+                            ]);
+                          }
+                        }}
+                        otherOptionLabel="Lainnya"
+                        customInputPlaceholder="Masukkan kategori baru..."
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Pilih kategori yang sesuai atau pilih "Lainnya" untuk menambah kategori baru
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -530,24 +577,32 @@ const AddMedicinePage: React.FC = () => {
                           <Info className="w-3.5 h-3.5 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Sumber pendanaan atau asal obat</p>
+                          <p>Sumber pendanaan atau asal obat. Pilih "Lainnya" untuk menambah sumber baru</p>
                         </TooltipContent>
                       </Tooltip>
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih sumber" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {SUMBER_OPTIONS.map((sumber) => (
-                          <SelectItem key={sumber} value={sumber}>
-                            {sumber}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SelectWithOther
+                        options={sourceOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Pilih sumber"
+                        onAddNew={(newSource) => {
+                          // Add new source to options if not already exists
+                          if (!sourceOptions.some((opt) => opt.value === newSource)) {
+                            setSourceOptions((prev) => [
+                              ...prev,
+                              { value: newSource, label: newSource },
+                            ]);
+                          }
+                        }}
+                        otherOptionLabel="Lainnya"
+                        customInputPlaceholder="Masukkan sumber baru..."
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Pilih sumber yang sesuai atau pilih "Lainnya" untuk menambah sumber baru
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -613,6 +668,7 @@ const AddMedicinePage: React.FC = () => {
                       onAddLargePackUnit={(unit) =>
                         setLargePackUnitOptions([...largePackUnitOptions, unit])
                       }
+                      entryDate={form.watch("entryDate")}
                     />
                   </FormControl>
                   <FormMessage />

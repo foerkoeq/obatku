@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Plus, Trash2, Calendar, PackageOpen } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Trash2, Calendar, PackageOpen, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 export interface ExpiryBatch {
   id: string;
@@ -36,6 +37,8 @@ interface MultiDateExpiryManagerProps {
   onAddUnit?: (unit: string) => void;
   onAddLargePackUnit?: (unit: string) => void;
   className?: string;
+  /** Entry date to set minimum date for expiry date picker */
+  entryDate?: Date;
 }
 
 export const MultiDateExpiryManager: React.FC<MultiDateExpiryManagerProps> = ({
@@ -46,7 +49,81 @@ export const MultiDateExpiryManager: React.FC<MultiDateExpiryManagerProps> = ({
   onAddUnit,
   onAddLargePackUnit,
   className,
+  entryDate,
 }) => {
+  // Track which batches have manually overridden itemsPerLargePack
+  // This prevents auto-calculation from overriding user input
+  const manualOverrideRef = useRef<Set<string>>(new Set());
+
+  /**
+   * Calculate itemsPerLargePack automatically from quantity / largePackQuantity
+   * Only calculates if both values are valid and largePackQuantity > 0
+   */
+  const calculateItemsPerLargePack = (
+    quantity: number,
+    largePackQuantity?: number
+  ): number | undefined => {
+    if (
+      quantity > 0 &&
+      largePackQuantity !== undefined &&
+      largePackQuantity > 0
+    ) {
+      const calculated = Math.floor(quantity / largePackQuantity);
+      return calculated > 0 ? calculated : 1;
+    }
+    return undefined;
+  };
+
+  /**
+   * Update batch with auto-calculation logic
+   * Respects manual overrides - only auto-calculates if user hasn't manually set the value
+   */
+  const updateBatch = (id: string, updates: Partial<ExpiryBatch>) => {
+    const updatedBatches = batches.map((batch) => {
+      if (batch.id !== id) return batch;
+
+      const updatedBatch = { ...batch, ...updates };
+
+      // Auto-calculate itemsPerLargePack if:
+      // 1. User hasn't manually overridden it for this batch
+      // 2. Both quantity and largePackQuantity are being set or already exist
+      // 3. The update includes quantity or largePackQuantity
+      const shouldAutoCalculate =
+        !manualOverrideRef.current.has(id) &&
+        (updates.quantity !== undefined ||
+          updates.largePackQuantity !== undefined ||
+          (updatedBatch.quantity > 0 && updatedBatch.largePackQuantity));
+
+      if (shouldAutoCalculate) {
+        const calculated = calculateItemsPerLargePack(
+          updatedBatch.quantity,
+          updatedBatch.largePackQuantity
+        );
+        if (calculated !== undefined) {
+          updatedBatch.itemsPerLargePack = calculated;
+        }
+      }
+
+      return updatedBatch;
+    });
+
+    onChange(updatedBatches);
+  };
+
+  /**
+   * Handle manual input for itemsPerLargePack
+   * Marks the batch as manually overridden to prevent auto-calculation
+   */
+  const handleItemsPerLargePackChange = (
+    id: string,
+    value: number
+  ) => {
+    manualOverrideRef.current.add(id);
+    updateBatch(id, {
+      itemsPerLargePack: value || 1,
+    });
+  };
+
   const addBatch = () => {
     const newBatch: ExpiryBatch = {
       id: `batch-${Date.now()}`,
@@ -63,19 +140,24 @@ export const MultiDateExpiryManager: React.FC<MultiDateExpiryManagerProps> = ({
 
   const removeBatch = (id: string) => {
     if (batches.length > 1) {
+      manualOverrideRef.current.delete(id);
       onChange(batches.filter((batch) => batch.id !== id));
     }
-  };
-
-  const updateBatch = (id: string, updates: Partial<ExpiryBatch>) => {
-    onChange(
-      batches.map((batch) => (batch.id === id ? { ...batch, ...updates } : batch))
-    );
   };
 
   const getTotalQuantity = () => {
     return batches.reduce((sum, batch) => sum + (batch.quantity || 0), 0);
   };
+
+  // Clean up manual override ref when batches are removed
+  useEffect(() => {
+    const batchIds = new Set(batches.map((b) => b.id));
+    manualOverrideRef.current.forEach((id) => {
+      if (!batchIds.has(id)) {
+        manualOverrideRef.current.delete(id);
+      }
+    });
+  }, [batches]);
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -231,18 +313,59 @@ export const MultiDateExpiryManager: React.FC<MultiDateExpiryManagerProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs">Jumlah Satuan per Kemasan</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    value={batch.itemsPerLargePack || ""}
-                    onChange={(e) =>
-                      updateBatch(batch.id, {
-                        itemsPerLargePack: parseInt(e.target.value) || 1,
-                      })
-                    }
-                  />
+                  <Label className="text-xs flex items-center gap-1">
+                    Jumlah Satuan per Kemasan
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Calculator className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Otomatis dihitung dari: Jumlah Stok Satuan ÷ Jumlah Kemasan Besar.
+                          <br />
+                          Bisa diubah manual jika perlu.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="1"
+                      value={batch.itemsPerLargePack || ""}
+                      onChange={(e) =>
+                        handleItemsPerLargePackChange(
+                          batch.id,
+                          parseInt(e.target.value) || 1
+                        )
+                      }
+                      className="pr-8"
+                    />
+                    {batch.quantity > 0 &&
+                      batch.largePackQuantity &&
+                      batch.largePackQuantity > 0 &&
+                      !manualOverrideRef.current.has(batch.id) && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Calculator className="w-3.5 h-3.5 text-primary" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Nilai dihitung otomatis</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
+                  </div>
+                  {batch.quantity > 0 &&
+                    batch.largePackQuantity &&
+                    batch.largePackQuantity > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {batch.quantity} ÷ {batch.largePackQuantity} ={" "}
+                        {Math.floor(batch.quantity / batch.largePackQuantity) || 1}
+                      </p>
+                    )}
                 </div>
               </div>
 
@@ -251,11 +374,31 @@ export const MultiDateExpiryManager: React.FC<MultiDateExpiryManagerProps> = ({
                 <Label className="text-xs flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   Tanggal Kadaluarsa *
+                  {entryDate && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Tanggal kadaluarsa harus setelah tanggal masuk:{" "}
+                          {entryDate.toLocaleDateString("id-ID")}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </Label>
                 <DatePicker
                   value={batch.expiryDate || undefined}
                   onChange={(date) => updateBatch(batch.id, { expiryDate: date || null })}
+                  minDate={entryDate}
+                  placeholder="Pilih tanggal kadaluarsa"
                 />
+                {entryDate && batch.expiryDate && batch.expiryDate < entryDate && (
+                  <p className="text-xs text-destructive">
+                    Tanggal kadaluarsa tidak boleh sebelum tanggal masuk
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
