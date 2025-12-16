@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Sprout, Plus, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -40,49 +40,90 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
   const [customCommodity, setCustomCommodity] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  const toggleCommodity = (commodity: string) => {
-    const existingIndex = commodities.findIndex((c) => c.commodity === commodity);
-    
-    if (existingIndex >= 0) {
-      // Toggle selection
-      const updated = [...commodities];
-      updated[existingIndex].selected = !updated[existingIndex].selected;
-      onChange(updated);
-    } else {
-      // Add new commodity
-      onChange([
-        ...commodities,
-        {
-          commodity,
-          selected: true,
-          dosageAmount: 0,
-          dosageUnit: "",
-          landArea: 0,
-        },
-      ]);
-    }
-  };
+  // Filter out empty or invalid commodities for display
+  // This ensures empty commodities don't show up as checkboxes
+  const validCommodities = useMemo(
+    () => commodities.filter((c) => c.commodity && c.commodity.trim() !== ""),
+    [commodities]
+  );
 
-  const updateDosage = (
-    commodity: string,
-    updates: Partial<Omit<CommodityDosage, "commodity">>
-  ) => {
-    onChange(
-      commodities.map((c) =>
-        c.commodity === commodity ? { ...c, ...updates } : c
-      )
-    );
-  };
+  // Memoized toggle function to prevent infinite loops
+  const toggleCommodity = useCallback(
+    (commodity: string) => {
+      if (!commodity || commodity.trim() === "") return;
 
-  const addCustomCommodity = () => {
-    if (customCommodity.trim() && !commodities.find(c => c.commodity === customCommodity.trim())) {
-      toggleCommodity(customCommodity.trim());
+      const trimmedCommodity = commodity.trim();
+      const existingIndex = validCommodities.findIndex((c) => c.commodity === trimmedCommodity);
+
+      if (existingIndex >= 0) {
+        // Toggle selection - only update if state actually changes
+        const currentCommodity = validCommodities[existingIndex];
+        const newSelectedState = !currentCommodity.selected;
+        
+        // Prevent unnecessary updates if state is already what we want
+        if (currentCommodity.selected === newSelectedState) return;
+
+        const updated = validCommodities.map((c, idx) =>
+          idx === existingIndex ? { ...c, selected: newSelectedState } : c
+        );
+        onChange(updated);
+      } else {
+        // Add new commodity - check if it doesn't already exist
+        const alreadyExists = validCommodities.some((c) => c.commodity === trimmedCommodity);
+        if (alreadyExists) return;
+
+        onChange([
+          ...validCommodities,
+          {
+            commodity: trimmedCommodity,
+            selected: true,
+            dosageAmount: 0,
+            dosageUnit: "",
+            landArea: 0,
+          },
+        ]);
+      }
+    },
+    [validCommodities, onChange]
+  );
+
+  // Memoized update dosage function
+  const updateDosage = useCallback(
+    (
+      commodity: string,
+      updates: Partial<Omit<CommodityDosage, "commodity">>
+    ) => {
+      onChange(
+        validCommodities.map((c) =>
+          c.commodity === commodity ? { ...c, ...updates } : c
+        )
+      );
+    },
+    [validCommodities, onChange]
+  );
+
+  // Memoized add custom commodity function
+  const addCustomCommodity = useCallback(() => {
+    const trimmed = customCommodity.trim();
+    if (trimmed && !validCommodities.find((c) => c.commodity === trimmed)) {
+      toggleCommodity(trimmed);
       setCustomCommodity("");
       setShowCustomInput(false);
     }
-  };
+  }, [customCommodity, validCommodities, toggleCommodity]);
 
-  const selectedCommodities = commodities.filter((c) => c.selected);
+  // Memoized selected commodities
+  const selectedCommodities = useMemo(
+    () => validCommodities.filter((c) => c.selected),
+    [validCommodities]
+  );
+
+  // Memoized custom commodities (non-default)
+  const customCommodities = useMemo(
+    () =>
+      validCommodities.filter((c) => !defaultCommodities.includes(c.commodity)),
+    [validCommodities]
+  );
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -107,24 +148,23 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
       {/* Commodity Selection */}
       <Card>
         <CardContent className="pt-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Default commodities */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {defaultCommodities.map((commodity) => {
-                const commodityData = commodities.find((c) => c.commodity === commodity);
+                const commodityData = validCommodities.find((c) => c.commodity === commodity);
                 const isSelected = commodityData?.selected || false;
 
                 return (
                   <div
                     key={commodity}
                     className={cn(
-                      "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
+                      "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all",
                       {
                         "border-primary bg-primary/5": isSelected,
                         "border-default-200 hover:border-primary/50": !isSelected,
                       }
                     )}
-                    onClick={() => toggleCommodity(commodity)}
                   >
                     <Checkbox
                       id={`commodity-${commodity}`}
@@ -134,7 +174,7 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
                     />
                     <Label
                       htmlFor={`commodity-${commodity}`}
-                      className="text-sm font-medium cursor-pointer"
+                      className="text-sm font-medium cursor-pointer flex-1"
                     >
                       {commodity}
                     </Label>
@@ -143,41 +183,45 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
               })}
             </div>
 
-            {/* Custom commodities */}
-            <div className="space-y-2">
-              {commodities
-                .filter((c) => !defaultCommodities.includes(c.commodity))
-                .map((commodityData) => (
-                  <div
-                    key={`custom-${commodityData.commodity}`}
-                    className={cn(
-                      "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
-                      {
-                        "border-primary bg-primary/5": commodityData.selected,
-                        "border-default-200 hover:border-primary/50": !commodityData.selected,
-                      }
-                    )}
-                    onClick={() => toggleCommodity(commodityData.commodity)}
-                  >
-                    <Checkbox
-                      id={`commodity-custom-${commodityData.commodity}`}
-                      checked={commodityData.selected}
-                      onCheckedChange={() => toggleCommodity(commodityData.commodity)}
-                      color="primary"
-                    />
-                    <Label
-                      htmlFor={`commodity-custom-${commodityData.commodity}`}
-                      className="text-sm font-medium cursor-pointer"
+            {/* Custom commodities - only show if there are any */}
+            {customCommodities.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground font-medium mb-2">
+                  Komoditas Tambahan:
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {customCommodities.map((commodityData) => (
+                    <div
+                      key={`custom-${commodityData.commodity}`}
+                      className={cn(
+                        "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all",
+                        {
+                          "border-primary bg-primary/5": commodityData.selected,
+                          "border-default-200 hover:border-primary/50": !commodityData.selected,
+                        }
+                      )}
                     >
-                      {commodityData.commodity}
-                    </Label>
-                  </div>
-                ))}
-            </div>
+                      <Checkbox
+                        id={`commodity-custom-${commodityData.commodity}`}
+                        checked={commodityData.selected}
+                        onCheckedChange={() => toggleCommodity(commodityData.commodity)}
+                        color="primary"
+                      />
+                      <Label
+                        htmlFor={`commodity-custom-${commodityData.commodity}`}
+                        className="text-sm font-medium cursor-pointer flex-1"
+                      >
+                        {commodityData.commodity}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* Add custom commodity */}
+            {/* Add custom commodity - unified button */}
             {showCustomInput ? (
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2 border-t">
                 <Input
                   placeholder="Nama komoditas lainnya..."
                   value={customCommodity}
@@ -186,14 +230,20 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
                     if (e.key === "Enter") {
                       e.preventDefault();
                       addCustomCommodity();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setShowCustomInput(false);
+                      setCustomCommodity("");
                     }
                   }}
                   autoFocus
+                  className="flex-1"
                 />
                 <Button
                   type="button"
                   onClick={addCustomCommodity}
                   size="sm"
+                  disabled={!customCommodity.trim()}
                 >
                   Tambah
                 </Button>
