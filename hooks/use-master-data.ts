@@ -334,10 +334,11 @@ export const usePestTypes = (params?: {
 // Returns: Districts state and operations
 // Dependencies: masterDataService
 
-export const useDistricts = () => {
+export const useDistricts = (options?: { showErrorToast?: boolean }) => {
   const [districts, setDistricts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const showErrorToast = options?.showErrorToast ?? true; // Default to true
 
   const fetchDistricts = useCallback(async () => {
     setLoading(true);
@@ -352,11 +353,13 @@ export const useDistricts = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch districts';
       setError(errorMessage);
-      toast.error(errorMessage);
+      if (showErrorToast) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showErrorToast]);
 
   useEffect(() => {
     fetchDistricts();
@@ -377,14 +380,18 @@ export const useDistricts = () => {
 // Returns: Villages state and operations
 // Dependencies: masterDataService
 
-export const useVillages = (district?: string) => {
+export const useVillages = (district?: string, options?: { showErrorToast?: boolean }) => {
   const [villages, setVillages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasShownError, setHasShownError] = useState(false);
+  const showErrorToast = options?.showErrorToast ?? false;
 
   const fetchVillages = useCallback(async () => {
     if (!district) {
       setVillages([]);
+      setError(null);
+      setHasShownError(false);
       return;
     }
 
@@ -393,18 +400,23 @@ export const useVillages = (district?: string) => {
     try {
       const response = await masterDataService.getVillages(district);
       if (response.success) {
-        setVillages(response.data);
+        setVillages(response.data || []);
+        setHasShownError(false); // Reset error flag on success
       } else {
         throw new Error(response.message || 'Failed to fetch villages');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch villages';
       setError(errorMessage);
-      toast.error(errorMessage);
+      // Only show toast if explicitly requested and haven't shown error for this fetch
+      if (showErrorToast && !hasShownError) {
+        toast.error(errorMessage);
+        setHasShownError(true);
+      }
     } finally {
       setLoading(false);
     }
-  }, [district]);
+  }, [district, showErrorToast, hasShownError]);
 
   useEffect(() => {
     fetchVillages();

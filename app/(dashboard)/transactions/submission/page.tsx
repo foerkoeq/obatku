@@ -28,7 +28,6 @@ export default function SubmissionPage() {
     <div className="space-y-6">
       <PageTitle 
         title="Pengajuan Permintaan Obat" 
-        description="Buat pengajuan permintaan obat baru untuk kelompok tani" 
       />
       
       <SubmissionWizard />

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="e7a1e16f-f3d8-464c-b805-19981e59057f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/medicine-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/medicine-card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/schema.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/schema.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/step-1-basic-info.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/step-1-basic-info.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/step-2-farming-details.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/step-2-farming-details.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/step-3-medicine-request.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/step-3-medicine-request.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/step-4-documents.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/step-4-documents.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/transactions/submission/submission-wizard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/transactions/submission/submission-wizard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/use-master-data.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/use-master-data.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="38ScQ3qve55416RiSt06zKP2Twr" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "D:/Lain Lain/KODING/git-new/obatku",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e7a1e16f-f3d8-464c-b805-19981e59057f" name="Changes" comment="" />
+      <created>1768796392581</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1768796392581</updated>
+      <workItem from="1768796393767" duration="224000" />
+    </task>
+    <servers />
+  </component>
+</project>

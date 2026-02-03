@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
+import { useEffect } from "react";
 import {
   FormField,
   FormItem,
@@ -13,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { MultiSelectWithCreate, SelectOption } from "@/components/form/multi-select-with-create";
 import { useCommodities, usePestTypes } from "@/hooks/use-master-data";
 import { SubmissionFormData } from "./schema";
-import { useEffect, useMemo } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info, Sprout, Bug } from "lucide-react";
 
 const DEFAULT_COMMODITIES = [
   "Padi", "Jagung", "Cabai", "Bawang Merah", "Tembakau", "Kacang Tanah"
@@ -22,56 +24,101 @@ const DEFAULT_COMMODITIES = [
 export function Step2FarmingDetails() {
   const { control, setValue, watch } = useFormContext<SubmissionFormData>();
   
+  // Watch land area from step 1 (auto-filled from farmer group)
+  const landAreaFromGroup = watch("landArea");
+  const currentLandArea = watch("landArea");
+  
   // Data Hooks
   const { commodities, createCommodity, loading: loadingCommodities } = useCommodities({ status: 'ACTIVE' });
   const { pestTypes, createPestType, loading: loadingPests } = usePestTypes({ status: 'ACTIVE' });
 
+  // Auto-fill land area from farmer group data (but allow manual override)
+  useEffect(() => {
+    if (landAreaFromGroup && landAreaFromGroup > 0 && !currentLandArea) {
+      setValue("landArea", landAreaFromGroup);
+    }
+  }, [landAreaFromGroup, currentLandArea, setValue]);
+
   // Transform options
-  const commodityOptions: SelectOption[] = useMemo(() => {
-    // Merge defaults with fetched
-    const all = [...commodities];
-    // Ensure defaults exist if not in fetched (mock logic)
-    DEFAULT_COMMODITIES.forEach(def => {
-      if (!all.find(c => c.name === def)) {
-        all.push({ id: def.toLowerCase(), name: def, category: "Umum" } as any);
-      }
-    });
-    
-    return all.map(c => ({
-      value: c.name, // Use name as value for simplicity as per requirement
-      label: c.name,
-      description: c.category
-    }));
-  }, [commodities]);
+  const commodityOptions: SelectOption[] = [
+    // Add default commodities first
+    ...DEFAULT_COMMODITIES.map(name => ({
+      value: name,
+      label: name,
+      description: "Komoditas default"
+    })),
+    // Then add fetched commodities (avoid duplicates)
+    ...commodities
+      .filter(c => !DEFAULT_COMMODITIES.includes(c.name))
+      .map(c => ({
+        value: c.name,
+        label: c.name,
+        description: c.category || "Komoditas"
+      }))
+  ];
 
   const pestOptions: SelectOption[] = pestTypes.map(p => ({
     value: p.name,
     label: p.name,
-    description: p.category
+    description: p.category || "OPT"
   }));
 
   const handleCreateCommodity = async (data: any) => {
-    // Call API
-    const newCommodity = await createCommodity(data) as any;
-    // Return as SelectOption
-    return {
-      value: newCommodity?.name || data.name,
-      label: newCommodity?.name || data.name,
-      description: newCommodity?.category || "Baru"
-    };
+    try {
+      const newCommodity = await createCommodity({
+        name: data.name || data,
+        category: "Umum"
+      } as any);
+      
+      return {
+        value: newCommodity?.name || data.name || data,
+        label: newCommodity?.name || data.name || data,
+        description: newCommodity?.category || "Baru"
+      };
+    } catch (error) {
+      console.error("Error creating commodity:", error);
+      // Return the input as fallback
+      return {
+        value: data.name || data,
+        label: data.name || data,
+        description: "Baru"
+      };
+    }
   };
 
   const handleCreatePest = async (data: any) => {
-    const newPest = await createPestType(data) as any;
-    return {
-      value: newPest?.name || data.name,
-      label: newPest?.name || data.name,
-      description: newPest?.category || "Baru"
-    };
+    try {
+      const newPest = await createPestType({
+        name: data.name || data,
+        category: "Umum"
+      } as any);
+      
+      return {
+        value: newPest?.name || data.name || data,
+        label: newPest?.name || data.name || data,
+        description: newPest?.category || "Baru"
+      };
+    } catch (error) {
+      console.error("Error creating pest type:", error);
+      return {
+        value: data.name || data,
+        label: data.name || data,
+        description: "Baru"
+      };
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Info Alert */}
+      <Alert className="bg-primary/5 border-primary/20">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          Isi detail pertanian termasuk luas lahan, komoditas yang ditanam, dan jenis OPT yang menyerang. 
+          Luas lahan akan terisi otomatis dari data kelompok tani jika tersedia.
+        </AlertDescription>
+      </Alert>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Land Area */}
         <FormField
@@ -79,17 +126,29 @@ export function Step2FarmingDetails() {
           name="landArea"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Luas Lahan (Ha)</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Sprout className="w-4 h-4 text-muted-foreground" />
+                Luas Lahan (Ha) *
+              </FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
                   step="0.01" 
+                  min="0"
                   {...field} 
-                  onChange={e => field.onChange(e.target.valueAsNumber)}
+                  onChange={e => {
+                    const value = e.target.valueAsNumber || 0;
+                    field.onChange(value);
+                  }}
+                  value={field.value || ""}
+                  placeholder="0.00"
                 />
               </FormControl>
               <FormDescription>
-                Total luas lahan yang dimiliki kelompok tani.
+                Total luas lahan yang dimiliki kelompok tani. 
+                {landAreaFromGroup && landAreaFromGroup > 0 && (
+                  <span className="text-primary font-medium"> Terisi otomatis dari data kelompok tani.</span>
+                )}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -102,17 +161,26 @@ export function Step2FarmingDetails() {
           name="affectedArea"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Luas Lahan Terserang (Ha)</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Bug className="w-4 h-4 text-muted-foreground" />
+                Luas Lahan Terserang (Ha) *
+              </FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
                   step="0.01" 
+                  min="0"
                   {...field} 
-                  onChange={e => field.onChange(e.target.valueAsNumber)}
+                  onChange={e => {
+                    const value = e.target.valueAsNumber || 0;
+                    field.onChange(value);
+                  }}
+                  value={field.value || ""}
+                  placeholder="0.00"
                 />
               </FormControl>
               <FormDescription>
-                Luas lahan yang terkena serangan OPT.
+                Luas lahan yang terkena serangan OPT. Tidak boleh melebihi luas lahan total.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -126,19 +194,23 @@ export function Step2FarmingDetails() {
             name="commodities"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Komoditas</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Sprout className="w-4 h-4 text-muted-foreground" />
+                  Komoditas *
+                </FormLabel>
                 <FormControl>
                   <MultiSelectWithCreate
                     options={commodityOptions}
                     value={field.value || []}
                     onChange={field.onChange}
                     onCreate={handleCreateCommodity}
-                    placeholder="Pilih Komoditas"
+                    placeholder="Pilih atau tambah komoditas (bisa lebih dari satu)"
                     loading={loadingCommodities}
                   />
                 </FormControl>
                 <FormDescription>
-                  Pilih satu atau lebih komoditas yang ditanam.
+                  Pilih satu atau lebih komoditas yang ditanam. Komoditas default: Padi, Jagung, Cabai, Bawang Merah, Tembakau, Kacang Tanah. 
+                  Anda dapat menambah komoditas baru yang akan tersimpan untuk pengajuan berikutnya.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -153,17 +225,23 @@ export function Step2FarmingDetails() {
             name="pestTypes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Jenis OPT (Organisme Pengganggu Tumbuhan)</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Bug className="w-4 h-4 text-muted-foreground" />
+                  Jenis OPT (Organisme Pengganggu Tumbuhan) *
+                </FormLabel>
                 <FormControl>
                   <MultiSelectWithCreate
                     options={pestOptions}
                     value={field.value || []}
                     onChange={field.onChange}
                     onCreate={handleCreatePest}
-                    placeholder="Pilih Jenis OPT"
+                    placeholder="Pilih atau tambah jenis OPT (bisa lebih dari satu)"
                     loading={loadingPests}
                   />
                 </FormControl>
+                <FormDescription>
+                  Pilih satu atau lebih jenis OPT yang menyerang tanaman. Data ini akan digunakan untuk rekomendasi obat yang sesuai.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

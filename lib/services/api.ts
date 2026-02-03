@@ -25,60 +25,60 @@ export const API_ENDPOINTS = {
   
   // Inventory
   INVENTORY: {
-    MEDICINES: '/inventory/medicines',
-    CATEGORIES: '/inventory/categories',
-    STOCK: '/inventory/stock',
-    SUPPLIERS: '/inventory/suppliers',
-    EXPIRY: '/inventory/expiry',
+    MEDICINES: '/v1/inventory/medicines',
+    CATEGORIES: '/v1/inventory/categories',
+    STOCK: '/v1/inventory/stock',
+    SUPPLIERS: '/v1/inventory/suppliers',
+    EXPIRY: '/v1/inventory/expiry',
   },
   
   // Transactions
   TRANSACTIONS: {
-    BASE: '/transactions',
-    SALES: '/transactions/sales',
-    PURCHASES: '/transactions/purchases',
-    RETURNS: '/transactions/returns',
-    APPROVALS: '/transactions/approvals',
+    BASE: '/v1/transactions',
+    SALES: '/v1/transactions/sales',
+    PURCHASES: '/v1/transactions/purchases',
+    RETURNS: '/v1/transactions/returns',
+    APPROVALS: '/v1/transactions/approvals',
   },
   
   // Berita Acara
   BERITA_ACARA: {
-    BASE: '/berita-acara',
-    TEMPLATES: '/berita-acara/templates',
-    GENERATE: '/berita-acara/generate',
+    BASE: '/v1/berita-acara',
+    TEMPLATES: '/v1/berita-acara/templates',
+    GENERATE: '/v1/berita-acara/generate',
   },
   
   // System Management
   SYSTEM: {
-    SETTINGS: '/system/settings',
-    LOGS: '/system/logs',
-    BACKUP: '/system/backup',
-    HEALTH: '/system/health',
+    SETTINGS: '/v1/system/settings',
+    LOGS: '/v1/system/logs',
+    BACKUP: '/v1/system/backup',
+    HEALTH: '/v1/system/health',
   },
   
   // Dashboard
   DASHBOARD: {
-    STATS: '/dashboard/stats',
-    RECENT_TRANSACTIONS: '/dashboard/recent-transactions',
-    LOW_STOCK: '/dashboard/low-stock',
-    SALES_CHART: '/dashboard/sales-chart',
+    STATS: '/v1/dashboard/stats',
+    RECENT_TRANSACTIONS: '/v1/dashboard/recent-transactions',
+    LOW_STOCK: '/v1/dashboard/low-stock',
+    SALES_CHART: '/v1/dashboard/sales-chart',
   },
   
   // Reports
   REPORTS: {
-    SALES: '/reports/sales',
-    INVENTORY: '/reports/inventory',
-    TRANSACTIONS: '/reports/transactions',
-    EXPIRY: '/reports/expiry',
+    SALES: '/v1/reports/sales',
+    INVENTORY: '/v1/reports/inventory',
+    TRANSACTIONS: '/v1/reports/transactions',
+    EXPIRY: '/v1/reports/expiry',
   },
   
   // Master Data
   MASTER_DATA: {
-    FARMER_GROUPS: '/master-data/farmer-groups',
-    COMMODITIES: '/master-data/commodities',
-    PEST_TYPES: '/master-data/pest-types',
-    DISTRICTS: '/master-data/districts',
-    VILLAGES: '/master-data/villages',
+    FARMER_GROUPS: '/v1/master-data/farmer-groups',
+    COMMODITIES: '/v1/master-data/commodities',
+    PEST_TYPES: '/v1/master-data/pest-types',
+    DISTRICTS: '/v1/master-data/districts',
+    VILLAGES: '/v1/master-data/villages',
   },
 } as const;
 

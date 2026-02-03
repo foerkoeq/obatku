@@ -4,6 +4,7 @@ import prisma from '@/core/database/prisma.client';
 
 // Import route modules
 import userRoutes from '../../features/users/users.routes';
+import { masterDataRoutes } from '../../features/master-data';
 import { createAuthSystem } from '../../features/auth';
 
 // Initialize authentication system
@@ -63,6 +64,7 @@ export const setupRoutes = (app: Express): void => {
 
   // Feature routes (Phase 2 - User Management)
   app.use(`${API_BASE}/users`, userRoutes);
+  app.use(`${API_BASE}/master-data`, masterDataRoutes);
   
   // Future routes will be added here as features are implemented
   // app.use(`${API_BASE}/inventory`, inventoryRoutes);

@@ -7,7 +7,7 @@ export const submissionSchema = z.object({
   farmerGroupId: z.string().min(1, "Kelompok tani wajib dipilih"),
   farmerGroupName: z.string().min(1, "Nama kelompok tani wajib diisi"),
   groupLeader: z.string().min(1, "Ketua kelompok tani wajib diisi"),
-  phoneNumber: z.string().min(1, "Nomor HP wajib diisi"), // New field
+  phoneNumber: z.string().optional(), // Optional field
   
   // Step 2: Farming Details
   landArea: z.coerce
@@ -41,7 +41,13 @@ export const submissionSchema = z.object({
   }),
   pickupDate: z.date({
     required_error: "Rencana pengambilan wajib diisi",
-  }).min(new Date(new Date().setHours(0, 0, 0, 0)), "Tanggal tidak boleh mundur"),
+  }).refine((date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date >= today;
+  }, {
+    message: "Tanggal tidak boleh mundur dari hari ini",
+  }),
   letterFile: z.any().optional(), // Handle file validation separately or refine
   poptRecommendationFile: z.any().optional(),
 }).refine((data) => data.affectedArea <= data.landArea, {
