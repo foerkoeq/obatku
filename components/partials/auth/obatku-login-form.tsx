@@ -168,7 +168,7 @@ const LoginForm = () => {
             <DialogTitle>Reset Password</DialogTitle>
             <DialogDescription className="space-y-2">
               <p>Untuk keamanan sistem, password hanya dapat direset oleh administrator.</p>
-              <p>Dengan menekan tombol "Kirim Permintaan", admin akan segera mereset password Anda dan mengirimkan password baru melalui kontak yang terdaftar.</p>
+              <p>Dengan menekan tombol &quot;Kirim Permintaan&quot;, admin akan segera mereset password Anda dan mengirimkan password baru melalui kontak yang terdaftar.</p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-0">

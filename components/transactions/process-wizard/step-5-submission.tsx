@@ -368,7 +368,7 @@ export const Step5Submission: React.FC<Step5SubmissionProps> = ({
                 <Icon icon="lucide:info" className="h-4 w-4" />
                 <AlertDescription>
                   Pastikan semua tahap telah diselesaikan dengan benar. Setelah submit, 
-                  status transaksi akan berubah menjadi "Selesai" dan notifikasi akan 
+                  status transaksi akan berubah menjadi &quot;Selesai&quot; dan notifikasi akan 
                   dikirim ke semua pihak terkait.
                 </AlertDescription>
               </Alert>

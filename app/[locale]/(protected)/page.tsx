@@ -327,7 +327,7 @@ const DashboardPage = () => {
       {/* Role indicator for development */}
       <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
         <p className="text-xs text-primary-700">
-          <strong>Mode Development:</strong> Saat ini menampilkan dashboard untuk role "{userRole}". 
+          <strong>Mode Development:</strong> Saat ini menampilkan dashboard untuk role &quot;{userRole}&quot;. 
           Ubah MOCK_USER.role di kode untuk melihat dashboard role lain.
         </p>
       </div>

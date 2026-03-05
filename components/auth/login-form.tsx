@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { LoginCredentials } from '@/lib/services'
+import Link from 'next/link'
 
 // Login form validation schema
 const loginSchema = z.object({
@@ -165,17 +166,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         {/* Additional links */}
         <div className="text-center space-y-2">
-          <a
+          <Link
             href="/forgot-password"
             className="text-sm text-primary hover:underline"
           >
             Forgot your password?
-          </a>
+          </Link>
           <div className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <a href="/register" className="text-primary hover:underline">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-primary hover:underline">
               Sign up
-            </a>
+            </Link>
           </div>
         </div>
       </CardContent>

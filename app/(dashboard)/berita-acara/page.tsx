@@ -229,10 +229,10 @@ export default function BeritaAcaraPage() {
           <div className="pt-3 border-t">
             <h4 className="font-medium mb-2">Tips:</h4>
             <ul className="space-y-1 text-sm text-muted-foreground">
-              <li>• Gunakan tombol "Print" untuk mencetak langsung</li>
+              <li>• Gunakan tombol &quot;Print&quot; untuk mencetak langsung</li>
               <li>• Pastikan semua data sudah benar sebelum mencetak</li>
               <li>• Narasi kustom bersifat opsional, jika kosong akan menggunakan template default</li>
-              <li>• Format tanggal menggunakan penulisan lengkap (contoh: "Delapan Juli")</li>
+              <li>• Format tanggal menggunakan penulisan lengkap (contoh: &quot;Delapan Juli&quot;)</li>
             </ul>
           </div>
         </CardContent>

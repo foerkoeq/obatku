@@ -292,7 +292,7 @@ const CategoryManagementForm: React.FC<CategoryManagementFormProps> = ({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Hapus Kategori</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Apakah Anda yakin ingin menghapus kategori "{category.name}"? 
+                        Apakah Anda yakin ingin menghapus kategori &quot;{category.name}&quot;? 
                         Tindakan ini tidak dapat dibatalkan.
                       </AlertDialogDescription>
                     </AlertDialogHeader>

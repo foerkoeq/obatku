@@ -312,7 +312,7 @@ export const Step3DocumentGeneration: React.FC<Step3DocumentGenerationProps> = (
                 </div>
                 <p className="text-sm text-green-600 dark:text-green-400">
                   Dokumen telah dibuat dan siap untuk dicetak. 
-                  Gunakan tombol "Cetak Dokumen" untuk mencetak.
+                  Gunakan tombol &quot;Cetak Dokumen&quot; untuk mencetak.
                 </p>
               </div>
 
