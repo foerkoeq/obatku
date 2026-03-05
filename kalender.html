@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Imsakiyah Ramadan 1447H - Kab. Tuban (Kemenag)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Font Setup */
+        .font-arab { font-family: 'Amiri', serif; }
+        .font-sans-indo { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        /* Print Configuration - FORCED SINGLE PAGE */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0; /* Zero margin from printer driver, we handle padding manually */
+            }
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                background-color: white;
+                height: 297mm; /* Exact A4 height */
+                overflow: hidden; /* Prevent spillover */
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                width: 210mm;
+                height: 297mm; /* Force height */
+                margin: 0;
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+
+        /* Screen Preview Styling */
+        body {
+            background-color: #525252;
+        }
+        .print-container {
+            width: 210mm;
+            height: 297mm; /* A4 Height */
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Decorative Patterns */
+        .islamic-pattern {
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23064e3b' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="font-sans-indo text-gray-800">
+
+    <!-- Tombol Print -->
+    <div class="no-print fixed top-4 right-4 z-50 flex gap-2">
+        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all flex items-center gap-2 border-2 border-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Cetak (A4)
+        </button>
+    </div>
+
+    <!-- Canvas A4 -->
+    <div class="print-container islamic-pattern">
+        
+        <!-- Header Compact -->
+        <div class="relative w-full h-[6.5rem] overflow-hidden shrink-0">
+            <!-- Arch Background -->
+            <div class="absolute -top-24 left-1/2 transform -translate-x-1/2 w-[130%] h-64 bg-emerald-900 rounded-[50%] z-0"></div>
+            <div class="absolute -top-20 left-1/2 transform -translate-x-1/2 w-[125%] h-64 bg-emerald-800 rounded-[50%] z-0 opacity-50"></div>
+            
+            <!-- Lanterns (Adjusted position) -->
+            <div class="absolute top-2 left-6 z-10">
+                <svg width="30" height="60" viewBox="0 0 40 80" fill="none">
+                    <line x1="20" y1="0" x2="20" y2="20" stroke="#FCD34D" stroke-width="2"/>
+                    <path d="M10 20H30L35 30H5L10 20Z" fill="#047857"/>
+                    <path d="M5 30H35V60C35 70 20 80 20 80C20 80 5 70 5 60V30Z" fill="#D1FAE5" stroke="#047857"/>
+                    <circle cx="20" cy="50" r="6" fill="#FBBF24"/>
+                </svg>
+            </div>
+            <div class="absolute top-6 right-6 z-10">
+                <svg width="25" height="50" viewBox="0 0 40 80" fill="none">
+                    <line x1="20" y1="0" x2="20" y2="20" stroke="#FCD34D" stroke-width="2"/>
+                    <path d="M10 20H30L35 30H5L10 20Z" fill="#047857"/>
+                    <path d="M5 30H35V60C35 70 20 80 20 80C20 80 5 70 5 60V30Z" fill="#D1FAE5" stroke="#047857"/>
+                    <circle cx="20" cy="50" r="6" fill="#FBBF24"/>
+                </svg>
+            </div>
+
+            <!-- Header Text -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center z-20 text-white">
+                <h2 class="text-[10px] font-semibold tracking-[0.3em] text-yellow-300 uppercase mb-0.5">Jadwal Imsakiyah</h2>
+                <h1 class="text-3xl font-bold font-arab mt-0 mb-1 text-white drop-shadow-md">Ramadan 1447 H</h1>
+                <div class="flex items-center gap-2 bg-emerald-700/50 px-3 py-0.5 rounded-full border border-emerald-500/50 backdrop-blur-sm">
+                    <span class="text-[10px] font-medium text-yellow-100">Kabupaten Tuban (Sumber: Kemenag & BMKG)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-grow px-5 pt-2 pb-1 flex flex-col">
+            <!-- Table Container -->
+            <div class="border border-emerald-600 rounded-lg overflow-hidden shadow-sm flex-grow flex flex-col">
+                <table class="w-full text-center text-[11px] leading-tight border-collapse h-full">
+                    <thead>
+                        <tr class="bg-emerald-800 text-white h-7">
+                            <th class="font-semibold w-8 border-r border-emerald-700">Ram</th>
+                            <th class="font-semibold w-20 border-r border-emerald-700">Tanggal</th>
+                            <th class="bg-emerald-900 text-yellow-300 font-bold border-r border-emerald-700 tracking-wide w-14">IMSAK</th>
+                            <th class="bg-emerald-700 font-bold border-r border-emerald-600 w-14">SHUBUH</th>
+                            <th class="font-medium text-emerald-100 border-r border-emerald-700 w-14">ZUHUR</th>
+                            <th class="font-medium text-emerald-100 border-r border-emerald-700 w-14">ASAR</th>
+                            <th class="bg-yellow-500 text-emerald-950 font-bold border-r border-yellow-600 w-14">MAGRIB</th>
+                            <th class="font-medium text-emerald-100 w-14">ISYA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody" class="bg-white">
+                        <!-- JS generated rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer Compact -->
+        <div class="px-5 pb-1.5 shrink-0">
+            <div class="flex justify-between items-center border-t border-emerald-200 pt-1.5 mb-1.5">
+                <div class="text-[8.5px] text-gray-500 space-y-0.5">
+                    <p class="font-bold text-emerald-800">Keterangan:</p>
+                    <ul class="list-disc pl-3 space-y-0">
+                        <li>Awal Ramadan & Syawal menunggu keputusan Sidang Isbat Pemerintah RI.</li>
+                        <li>Waktu diatas adalah waktu daerah, sudah ditambah <em>ihtiyat</em> (pengaman).</li>
+                        <li>Untuk area pedesaan/pegunungan, sesuaikan jam dengan masjid setempat.</li>
+                    </ul>
+                </div>
+                <div class="text-right">
+                    <div class="font-arab text-lg text-emerald-800 leading-tight">صوما مقبولا</div>
+                    <p class="text-[8px] font-semibold text-gray-400 uppercase tracking-wider">Selamat Menjalankan Ibadah Puasa</p>
+                </div>
+            </div>
+            <!-- Bottom Pattern Bar -->
+            <div class="h-1.5 w-full bg-emerald-800 flex rounded-full overflow-hidden">
+                <div class="h-full w-1/3 bg-yellow-500"></div>
+                <div class="h-full w-1/3 bg-emerald-600"></div>
+                <div class="h-full w-1/3 bg-emerald-800"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data provided by User (Kemenag & BMKG Tuban)
+        const rawData = [
+            { d: "19 Feb 2026", im: "04:10", su: "04:20", zu: "11:49", as: "14:58", ma: "17:58", is: "19:08" },
+            { d: "20 Feb 2026", im: "04:10", su: "04:20", zu: "11:49", as: "14:58", ma: "17:57", is: "19:07" },
+            { d: "21 Feb 2026", im: "04:10", su: "04:20", zu: "11:49", as: "14:57", ma: "17:57", is: "19:07" },
+            { d: "22 Feb 2026", im: "04:10", su: "04:20", zu: "11:49", as: "14:56", ma: "17:57", is: "19:07" },
+            { d: "23 Feb 2026", im: "04:11", su: "04:21", zu: "11:49", as: "14:55", ma: "17:56", is: "19:06" },
+            { d: "24 Feb 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:54", ma: "17:56", is: "19:06" },
+            { d: "25 Feb 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:53", ma: "17:56", is: "19:05" },
+            { d: "26 Feb 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:53", ma: "17:55", is: "19:05" },
+            { d: "27 Feb 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:52", ma: "17:55", is: "19:04" },
+            { d: "28 Feb 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:51", ma: "17:55", is: "19:04" },
+            { d: "01 Mar 2026", im: "04:11", su: "04:21", zu: "11:48", as: "14:50", ma: "17:54", is: "19:04" },
+            { d: "02 Mar 2026", im: "04:11", su: "04:21", zu: "11:47", as: "14:49", ma: "17:54", is: "19:03" },
+            { d: "03 Mar 2026", im: "04:11", su: "04:21", zu: "11:47", as: "14:48", ma: "17:53", is: "19:03" },
+            { d: "04 Mar 2026", im: "04:11", su: "04:21", zu: "11:47", as: "14:48", ma: "17:53", is: "19:02" },
+            { d: "05 Mar 2026", im: "04:12", su: "04:22", zu: "11:47", as: "14:48", ma: "17:53", is: "19:02" },
+            { d: "06 Mar 2026", im: "04:12", su: "04:22", zu: "11:47", as: "14:49", ma: "17:52", is: "19:01" },
+            { d: "07 Mar 2026", im: "04:12", su: "04:22", zu: "11:46", as: "14:49", ma: "17:52", is: "19:01" },
+            { d: "08 Mar 2026", im: "04:12", su: "04:22", zu: "11:46", as: "14:50", ma: "17:51", is: "19:00" },
+            { d: "09 Mar 2026", im: "04:12", su: "04:22", zu: "11:46", as: "14:50", ma: "17:51", is: "19:00" },
+            { d: "10 Mar 2026", im: "04:12", su: "04:22", zu: "11:46", as: "14:50", ma: "17:50", is: "18:59" },
+            { d: "11 Mar 2026", im: "04:12", su: "04:22", zu: "11:45", as: "14:51", ma: "17:50", is: "18:59" },
+            { d: "12 Mar 2026", im: "04:12", su: "04:22", zu: "11:45", as: "14:51", ma: "17:50", is: "18:58" },
+            { d: "13 Mar 2026", im: "04:12", su: "04:22", zu: "11:45", as: "14:51", ma: "17:49", is: "18:58" },
+            { d: "14 Mar 2026", im: "04:11", su: "04:21", zu: "11:44", as: "14:52", ma: "17:49", is: "18:57" },
+            { d: "15 Mar 2026", im: "04:11", su: "04:21", zu: "11:44", as: "14:52", ma: "17:48", is: "18:57" },
+            { d: "16 Mar 2026", im: "04:11", su: "04:21", zu: "11:44", as: "14:52", ma: "17:48", is: "18:56" },
+            { d: "17 Mar 2026", im: "04:11", su: "04:21", zu: "11:44", as: "14:52", ma: "17:47", is: "18:56" },
+            { d: "18 Mar 2026", im: "04:11", su: "04:21", zu: "11:43", as: "14:53", ma: "17:47", is: "18:55" },
+            { d: "19 Mar 2026", im: "04:11", su: "04:21", zu: "11:43", as: "14:53", ma: "17:46", is: "18:55" },
+            { d: "20 Mar 2026", im: "04:11", su: "04:21", zu: "11:43", as: "14:53", ma: "17:46", is: "18:54" }
+        ];
+
+        const tbody = document.getElementById('scheduleBody');
+
+        rawData.forEach((data, index) => {
+            const tr = document.createElement('tr');
+            const dayNum = index + 1;
+            
+            // Zebra striping - very subtle for print
+            tr.className = index % 2 === 0 ? "bg-white" : "bg-emerald-50/50";
+            if (index === 14) tr.className += " border-b border-emerald-300"; // Marker tengah bulan
+
+            // Styling for cells
+            // Adjust padding to py-0.5 or py-1 to fit page
+            const pyClass = "py-[2.5px]"; 
+            
+            tr.innerHTML = `
+                <td class="${pyClass} font-bold text-emerald-800 border-r border-emerald-100">${dayNum}</td>
+                <td class="${pyClass} text-gray-600 border-r border-emerald-100 font-medium">${data.d}</td>
+                <td class="${pyClass} font-bold text-emerald-900 bg-emerald-100/50 border-r border-emerald-100">${data.im}</td>
+                <td class="${pyClass} font-bold text-white bg-emerald-700/90 border-r border-emerald-600">${data.su}</td>
+                <td class="${pyClass} text-gray-700 border-r border-emerald-100">${data.zu}</td>
+                <td class="${pyClass} text-gray-700 border-r border-emerald-100">${data.as}</td>
+                <td class="${pyClass} font-bold text-emerald-950 bg-yellow-400/30 border-r border-yellow-100">${data.ma}</td>
+                <td class="${pyClass} text-gray-700">${data.is}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    </script>
+</body>
+</html>

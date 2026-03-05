@@ -5,24 +5,12 @@ const nextConfig = {
     CUSTOM_KEY: process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
   },
 
-  // Development proxy configuration
+  // Frontend-only mode: backend rewrites disabled
   async rewrites() {
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        {
-          source: '/api/:path*',
-          destination: 'http://localhost:3001/api/:path*',
-        },
-        {
-          source: '/uploads/:path*',
-          destination: 'http://localhost:3001/uploads/:path*',
-        },
-      ];
-    }
     return [];
   },
 
-  // CORS configuration for development
+  // Frontend-only mode: no backend CORS coupling
   async headers() {
     return [
       {
@@ -30,9 +18,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'development' 
-              ? 'http://localhost:3001' 
-              : 'https://api.obatku.com',
+            value: '*',
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -44,7 +30,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Credentials',
-            value: 'true',
+            value: 'false',
           },
         ],
       },
@@ -74,16 +60,8 @@ const nextConfig = {
         protocol: "https",
         hostname: "i.pravatar.cc",
       },
-      // Add local development backend
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "3001",
-        pathname: "/uploads/**",
-      },
     ],
-    // Allow local development images
-    domains: process.env.NODE_ENV === 'development' ? ['localhost'] : [],
+    domains: [],
   },
 
   // Development optimizations

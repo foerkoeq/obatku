@@ -1,617 +1,507 @@
-// # START OF Transaction List Page - Main transaction management page
-// Purpose: Display transaction list with search, filter, and role-based functionality
-// Features: Search, filter, table, pagination, modals, role-based access
-// Returns: Complete transaction list interface
-// Dependencies: Transaction components, pagination, toast
+// # START OF Transaction List Page - Revamped transaction management page
+// Purpose: Display transaction list with search, filter, table, modals
+// Features: Mobile-first, responsive, status filter chips, detail/process/delete modals
+// Dependencies: New TrxList components, transaction-list types & mock data
 
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Icon } from "@iconify/react";
-import { HydrationSafe } from "@/components/ui/hydration-safe";
 import { toast } from "sonner";
-import SiteBreadcrumb from "@/components/site-breadcrumb";
-import { colorBank, ColorBankKey } from "@/components/ui/color-bank";
 import { cn } from "@/lib/utils";
+import SiteBreadcrumb from "@/components/site-breadcrumb";
 
-// Import transaction components
+// New components
+import TrxListTable from "@/components/transactions/trx-list-table";
+import TrxDetailModal from "@/components/transactions/trx-detail-modal";
+import TrxProcessModal from "@/components/transactions/trx-process-modal";
+import TrxDeleteDialog from "@/components/transactions/trx-delete-dialog";
+
+// Types & data
 import {
-  TransactionTable,
-  TransactionStatusIndicator,
-  TransactionDetailModal,
-  TransactionSearch
-} from "@/components/transactions";
-
-// Import types and data
+  TrxListItem,
+  TrxStatus,
+  TrxListFilters,
+  ALL_TRX_STATUSES,
+  TRX_STATUS_CONFIG,
+  SelectedMedicine,
+  TrxSortDirection,
+  TrxSortKey,
+} from "@/lib/types/transaction-list";
 import {
-  Transaction,
-  TransactionStatus,
-  TransactionFilters,
-  TransactionPaginationConfig,
-  UserRole,
-  Priority,
-  getRolePermissions
-} from "@/lib/types/transaction";
+  mockTrxList,
+  getTrxStats,
+  getUniqueKecamatan,
+  getUniqueYears,
+} from "@/lib/data/transaction-list-mock";
 
-import { mockTransactionData, getTransactionStats } from "@/lib/data/transaction-demo";
-import { transactionService } from '@/lib/services/transaction.service';
+// ========== Constants ==========
 
-// Mock user data - in real app, get from auth context
-const MOCK_USER = {
-  id: 'PPL-001',
-  role: 'admin' as UserRole,
-  name: 'Admin User',
-  district: 'Sragen'
-};
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+
+// ========== Main Page Component ==========
 
 const TransactionListPage: React.FC = () => {
-  const [user] = useState(MOCK_USER);
-  const [data, setData] = useState<Transaction[]>([]);
-  const [filteredData, setFilteredData] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const router = useRouter();
 
-  // Filters and search
-  const [filters, setFilters] = useState<TransactionFilters>({
-    search: '',
+  // Data state
+  const [data] = useState<TrxListItem[]>(mockTrxList);
+  const [loading, setLoading] = useState(true);
+
+  // Filter state
+  const [filters, setFilters] = useState<TrxListFilters>({
+    search: "",
     status: [],
-    priority: [],
-    district: [],
-    commodity: [],
-    pestType: [],
-    dateRange: {},
-    bppOfficer: [],
-    approvedBy: [],
+    kecamatan: "",
+    tahun: "",
   });
 
-  // Pagination
-  const [pagination, setPagination] = useState<TransactionPaginationConfig>({
-    page: 1,
-    limit: 10,
-    total: 0,
-  });
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortKey, setSortKey] = useState<TrxSortKey>("tanggalDiajukan");
+  const [sortDirection, setSortDirection] = useState<TrxSortDirection>("desc");
 
-  // Get permissions for current user
-  const permissions = getRolePermissions(user.role);
-  const stats = getTransactionStats();
+  // Modal state
+  const [detailItem, setDetailItem] = useState<TrxListItem | null>(null);
+  const [processItem, setProcessItem] = useState<TrxListItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<TrxListItem | null>(null);
 
-  // Load data based on user role
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Call backend list endpoint - here we keep simple querystring for pagination
-      const resp = await transactionService.list(`?page=${pagination.page}&limit=${pagination.limit}`);
-      if (resp && resp.success) {
-        // resp.data expected to be PaginationResponse<Transaction>
-        const payload: any = resp.data;
-        setData(payload.data || []);
-        setPagination(prev => ({ ...prev, total: payload.pagination?.total || (payload.data||[]).length }));
-      } else {
-        // Fallback to mock data if API unavailable
-        setData(mockTransactionData);
-      }
-    } catch (error) {
-      toast.error("Gagal memuat data transaksi");
-    } finally {
-      setLoading(false);
-    }
-  }, [user.role, user.id, permissions.viewScope]);
+  // Simulate initial load
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Filter data based on search and filters
-  const applyFilters = useCallback(() => {
-    let filtered = [...data];
+  // Derived data
+  const stats = useMemo(() => getTrxStats(), []);
+  const kecamatanList = useMemo(() => getUniqueKecamatan(), []);
+  const yearList = useMemo(() => getUniqueYears(), []);
 
-    // Role-based filtering
-    if (user.role === 'ppl') {
-      // PPL: hanya data yang mereka usulkan
-      filtered = filtered.filter(item => item.createdBy === user.id || item.bppOfficer.id === user.id);
-    } else if (user.role === 'popt') {
-      // POPT: hanya data di kecamatan mereka
-      filtered = filtered.filter(item => 
-        item.farmerGroup.subDistrict.toLowerCase() === user.district?.toLowerCase() ||
-        item.farmerGroup.district.toLowerCase() === user.district?.toLowerCase()
-      );
-    }
-    // Admin dan Dinas: semua data (tidak perlu filter)
+  // ========== Filtering ==========
+
+  const filteredData = useMemo(() => {
+    let result = [...data];
 
     // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.letterNumber.toLowerCase().includes(searchLower) ||
-        item.bppOfficer.name.toLowerCase().includes(searchLower) ||
-        item.farmerGroup.name.toLowerCase().includes(searchLower) ||
-        item.farmerGroup.leader.toLowerCase().includes(searchLower) ||
-        item.farmingDetails.commodity.toLowerCase().includes(searchLower)
+    if (filters.search.trim()) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.poktan.nama.toLowerCase().includes(q) ||
+          item.poktan.kecamatan.toLowerCase().includes(q) ||
+          item.poktan.ketua.toLowerCase().includes(q) ||
+          item.opt.some((o) => o.toLowerCase().includes(q)) ||
+          item.permintaanObat.some((o) => o.toLowerCase().includes(q)) ||
+          (item.persetujuanObat?.some((o) => o.toLowerCase().includes(q)) ?? false) ||
+          (item.noBast?.toLowerCase().includes(q) ?? false) ||
+          item.diajukanOleh.nama.toLowerCase().includes(q) ||
+          item.id.toLowerCase().includes(q)
       );
     }
 
     // Status filter
     if (filters.status.length > 0) {
-      filtered = filtered.filter(item => filters.status.includes(item.status));
+      result = result.filter((item) => filters.status.includes(item.status));
     }
 
-    // Priority filter
-    if (filters.priority.length > 0) {
-      filtered = filtered.filter(item => filters.priority.includes(item.priority));
+    // Kecamatan filter
+    if (filters.kecamatan) {
+      result = result.filter((item) => item.poktan.kecamatan === filters.kecamatan);
     }
 
-    // District filter
-    if (filters.district.length > 0) {
-      filtered = filtered.filter(item => 
-        filters.district.some(district => 
-          item.farmerGroup.district.toLowerCase().includes(district.toLowerCase())
-        )
-      );
+    // Tahun filter
+    if (filters.tahun) {
+      const selectedYear = Number(filters.tahun);
+      result = result.filter((item) => item.tanggalDiajukan.getFullYear() === selectedYear);
     }
 
-    // Commodity filter
-    if (filters.commodity.length > 0) {
-      filtered = filtered.filter(item =>
-        filters.commodity.some(commodity =>
-          item.farmingDetails.commodity.toLowerCase().includes(commodity.toLowerCase())
-        )
-      );
-    }
+    return result;
+  }, [data, filters]);
 
-    setFilteredData(filtered);
-    setPagination(prev => ({
-      ...prev,
-      total: filtered.length,
-      page: 1 // Reset to first page when filtering
-    }));
-  }, [data, filters, user.role, user.id, user.district]);
+  const sortedData = useMemo(() => {
+    const sorted = [...filteredData];
 
-  // Paginated data
+    sorted.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortKey) {
+        case "tanggalDiajukan": {
+          comparison = a.tanggalDiajukan.getTime() - b.tanggalDiajukan.getTime();
+          break;
+        }
+        case "tahun": {
+          comparison = a.tanggalDiajukan.getFullYear() - b.tanggalDiajukan.getFullYear();
+          break;
+        }
+        case "status": {
+          comparison = TRX_STATUS_CONFIG[a.status].order - TRX_STATUS_CONFIG[b.status].order;
+          break;
+        }
+        case "poktan": {
+          comparison = a.poktan.nama.localeCompare(b.poktan.nama, "id");
+          break;
+        }
+        case "kecamatan": {
+          comparison = a.poktan.kecamatan.localeCompare(b.poktan.kecamatan, "id");
+          break;
+        }
+        case "luasTerserang": {
+          comparison = a.luasTerserang - b.luasTerserang;
+          break;
+        }
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [filteredData, sortDirection, sortKey]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedData.length / pageSize);
   const paginatedData = useMemo(() => {
-    const startIndex = (pagination.page - 1) * pagination.limit;
-    const endIndex = startIndex + pagination.limit;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, pagination.page, pagination.limit]);
+    const start = (page - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, page, pageSize]);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(pagination.total / pagination.limit);
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
 
-  // Event handlers
-  const handleSearchChange = (value: string) => {
-    setFilters(prev => ({ ...prev, search: value }));
-  };
+  // ========== Handlers ==========
 
-  const handleStatusFilter = (status: TransactionStatus) => {
-    setFilters(prev => ({
+  const handleSearchChange = useCallback((value: string) => {
+    setFilters((prev) => ({ ...prev, search: value }));
+  }, []);
+
+  const toggleStatusFilter = useCallback((status: TrxStatus) => {
+    setFilters((prev) => ({
       ...prev,
       status: prev.status.includes(status)
-        ? prev.status.filter(s => s !== status)
-        : [...prev.status, status]
+        ? prev.status.filter((s) => s !== status)
+        : [...prev.status, status],
     }));
-  };
+  }, []);
 
-  const handlePriorityFilter = (priority: Priority) => {
-    setFilters(prev => ({
-      ...prev,
-      priority: prev.priority.includes(priority)
-        ? prev.priority.filter(p => p !== priority)
-        : [...prev.priority, priority]
-    }));
-  };
+  const handleKecamatanChange = useCallback((value: string) => {
+    setFilters((prev) => ({ ...prev, kecamatan: value === "all" ? "" : value }));
+  }, []);
 
-  const handleRowClick = (transaction: Transaction) => {
-    // Fetch fresh detail from API
-    (async () => {
-      try {
-        setLoading(true);
-        const resp = await transactionService.get(transaction.id);
-        if (resp && resp.success) {
-          setSelectedTransaction(resp.data as Transaction);
-        } else {
-          setSelectedTransaction(transaction);
-        }
-        setShowDetailModal(true);
-      } catch (err) {
-        console.error(err);
-        toast.error('Gagal memuat detail transaksi');
-        setSelectedTransaction(transaction);
-        setShowDetailModal(true);
-      } finally {
-        setLoading(false);
+  const clearFilters = useCallback(() => {
+    setFilters({ search: "", status: [], kecamatan: "", tahun: "" });
+  }, []);
+
+  const handleYearChange = useCallback((value: string) => {
+    setFilters((prev) => ({ ...prev, tahun: value === "all" ? "" : value }));
+  }, []);
+
+  const handleSortChange = useCallback((key: TrxSortKey) => {
+    setSortKey((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
       }
-    })();
-  };
 
-  const handleViewDetails = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setShowDetailModal(true);
-  };
-
-  const handleApprove = (transaction: Transaction) => {
-    router.push(`/transactions/${transaction.id}/approval`);
-  };
-
-  const handleDistribute = (transaction: Transaction) => {
-    router.push(`/transactions/${transaction.id}/distribution`);
-  };
-
-  const handleEdit = (transaction: Transaction) => {
-    router.push(`/transactions/${transaction.id}/edit`);
-  };
-
-  const handleDelete = (transaction: Transaction) => {
-    // TODO: Implement delete functionality
-    toast.success(`Transaction ${transaction.letterNumber} deleted`);
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      search: '',
-      status: [],
-      priority: [],
-      district: [],
-      commodity: [],
-      pestType: [],
-      dateRange: {},
-      bppOfficer: [],
-      approvedBy: [],
+      setSortDirection(key === "tanggalDiajukan" ? "desc" : "asc");
+      return key;
     });
-  };
+  }, []);
 
-  // Effects
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const handleRowClick = useCallback((item: TrxListItem) => {
+    setDetailItem(item);
+  }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
+  const handleProcess = useCallback((item: TrxListItem) => {
+    setProcessItem(item);
+  }, []);
 
-  // Get unique values for filters
-  const uniqueDistricts = useMemo(() => 
-    [...new Set(data.map(t => t.farmerGroup.district))].sort()
-  , [data]);
-
-  const uniqueCommodities = useMemo(() => 
-    [...new Set(data.map(t => t.farmingDetails.commodity))].sort()
-  , [data]);
-
-  // Stats cards configuration with inventory style
-  const statsCards = [
-    {
-      id: 'total',
-      label: 'Total Transaksi',
-      value: stats.total,
-      icon: 'heroicons:document-text',
-      colorKey: 'blue' as ColorBankKey,
+  const handleEdit = useCallback(
+    (item: TrxListItem) => {
+      router.push(`/transactions/${item.id}/edit`);
     },
-    {
-      id: 'pending',
-      label: 'Menunggu Persetujuan',
-      value: stats.pendingApprovals,
-      icon: 'heroicons:clock',
-      colorKey: 'amber' as ColorBankKey,
+    [router]
+  );
+
+  const handleDelete = useCallback((item: TrxListItem) => {
+    setDeleteItem(item);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteItem) return;
+    // Simulate delete
+    toast.success("Transaksi berhasil dihapus", {
+      description: `Transaksi ${deleteItem.id} telah dihapus`,
+    });
+    setDeleteItem(null);
+  }, [deleteItem]);
+
+  const handleProcessApproved = useCallback(
+    (item: TrxListItem, medicines: SelectedMedicine[]) => {
+      // In real app, this would call the API
+      console.log("Approved:", item.id, medicines);
     },
-    {
-      id: 'ready',
-      label: 'Siap Distribusi',
-      value: stats.pendingDistributions,
-      icon: 'heroicons:truck',
-      colorKey: 'emerald' as ColorBankKey,
-    },
-    {
-      id: 'completed',
-      label: 'Selesai',
-      value: stats.completed,
-      icon: 'heroicons:check-circle',
-      colorKey: 'rose' as ColorBankKey,
-    },
-  ];
+    []
+  );
+
+  const activeFilterCount =
+    filters.status.length + (filters.kecamatan ? 1 : 0) + (filters.tahun ? 1 : 0) + (filters.search ? 1 : 0);
+
+  // ========== Render ==========
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Breadcrumb */}
       <SiteBreadcrumb>
-        {permissions.canEdit && (
-          <Button onClick={() => router.push('/transactions/submission')}>
-            <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
-              <Icon icon="heroicons:plus" className="h-4 w-4 mr-2 flex-shrink-0" />
-            </HydrationSafe>
-            Buat Pengajuan
-          </Button>
-        )}
+        <Button
+          onClick={() => router.push("/transactions/submission")}
+          size="sm"
+          className="gap-2 h-9 px-3 sm:h-10 sm:px-5 sm:text-sm"
+        >
+          <Icon icon="heroicons:plus" className="h-4 w-4" />
+          <span className="hidden sm:inline">Buat Pengajuan</span>
+          <span className="sm:hidden">Baru</span>
+        </Button>
       </SiteBreadcrumb>
 
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-default-900">Daftar Transaksi</h1>
-        <p className="text-default-600 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-default-900">Daftar Transaksi</h1>
+        <p className="text-default-500 text-sm mt-0.5">
           Kelola transaksi permintaan obat pertanian
         </p>
       </div>
 
-      {/* Stats Cards with Inventory Style */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((stat) => {
-          const colors = colorBank[stat.colorKey];
-          
-          return (
-            <Card
-              key={stat.id}
-              className={cn(
-                "transition-all duration-200 hover:shadow-lg border-2",
-                `${colors.bgLight} ${colors.border} hover:shadow-md`
-              )}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 pr-2">
-                    <div className={cn(
-                      "text-2xl font-bold mb-1",
-                      colors.text
-                    )}>
-                      {stat.value}
-                    </div>
-                    <div className={cn(
-                      "text-sm",
-                      colors.text
-                    )}>{stat.label}</div>
-                  </div>
-                  <div className={cn(
-                    "p-2 rounded-lg transition-colors flex-shrink-0",
-                    `${colors.bg} text-white opacity-80`
-                  )}>
-                    <Icon icon={stat.icon} className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Stats Summary Cards */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        {[
+          { key: "total", label: "Total", value: stats.total, icon: "heroicons:document-text", color: "text-blue-600 bg-blue-50 border-blue-200" },
+          { key: "pengajuan", label: "Pengajuan", value: stats.pengajuan_dinas, icon: "heroicons:paper-airplane", color: "text-purple-600 bg-purple-50 border-purple-200" },
+          { key: "proses", label: "Proses", value: (stats.persetujuan_dinas || 0) + (stats.proses_gudang || 0), icon: "heroicons:cog-6-tooth", color: "text-amber-600 bg-amber-50 border-amber-200" },
+          { key: "selesai", label: "Selesai", value: stats.selesai, icon: "heroicons:check-badge", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+        ].map((stat) => (
+          <div
+            key={stat.key}
+            className={cn(
+              "rounded-xl border p-2.5 sm:p-4 transition-shadow hover:shadow-sm",
+              stat.color
+            )}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-white/60">
+                <Icon icon={stat.icon} className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-lg sm:text-2xl font-bold leading-none">{stat.value}</p>
+                <p className="text-[11px] sm:text-xs mt-0.5 opacity-80">{stat.label}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Transaction Table with Combined Filter */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Daftar Transaksi</CardTitle>
-              <CardDescription>
-                Kelola dan monitor semua transaksi permintaan obat pertanian
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="w-64">
-                <TransactionSearch
-                  value={filters.search}
-                  onChange={handleSearchChange}
-                  showAdvanced={false}
-                />
-              </div>
-              
-              {/* Filter Side Sheet */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Icon icon="heroicons:funnel" className="w-4 h-4" />
-                    Filter
-                    {(filters.status.length > 0 || filters.priority.length > 0 || filters.district.length > 0 || filters.commodity.length > 0) && (
-                      <Badge className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
-                        {filters.status.length + filters.priority.length + filters.district.length + filters.commodity.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:w-96 overflow-y-auto">
-                  <SheetHeader>
-                    <SheetTitle>Filter Transaksi</SheetTitle>
-                  </SheetHeader>
-                  
-                  <div className="space-y-6 mt-6">
-                    {/* Status Filter */}
-                    <div>
-                      <label className="text-sm font-medium text-default-700 mb-3 block">
-                        Status
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['submitted', 'under_review', 'approved', 'completed', 'rejected'] as TransactionStatus[]).map((status) => (
-                          <div
-                            key={status}
-                            className="cursor-pointer"
-                            onClick={() => handleStatusFilter(status)}
-                          >
-                            <TransactionStatusIndicator 
-                              status={status} 
-                              showText={true}
-                              className={filters.status.includes(status) ? "opacity-100" : "opacity-50"}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Priority Filter */}
-                    <div>
-                      <label className="text-sm font-medium text-default-700 mb-3 block">
-                        Prioritas
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['urgent', 'high', 'medium', 'low'] as Priority[]).map((priority) => (
-                          <Badge
-                            key={priority}
-                            className={`cursor-pointer text-xs ${filters.priority.includes(priority) ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
-                            onClick={() => handlePriorityFilter(priority)}
-                          >
-                            {priority}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* District Filter */}
-                    <div>
-                      <label className="text-sm font-medium text-default-700 mb-2 block">
-                        Kabupaten
-                      </label>
-                      <Select
-                        value={filters.district[0] || ""}
-                        onValueChange={(value) => {
-                          setFilters(prev => ({
-                            ...prev,
-                            district: value ? [value] : []
-                          }));
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kabupaten" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Semua Kabupaten</SelectItem>
-                          {uniqueDistricts.map((district) => (
-                            <SelectItem key={district} value={district}>
-                              {district}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Commodity Filter */}
-                    <div>
-                      <label className="text-sm font-medium text-default-700 mb-2 block">
-                        Komoditas
-                      </label>
-                      <Select
-                        value={filters.commodity[0] || ""}
-                        onValueChange={(value) => {
-                          setFilters(prev => ({
-                            ...prev,
-                            commodity: value ? [value] : []
-                          }));
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih komoditas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Semua Komoditas</SelectItem>
-                          {uniqueCommodities.map((commodity) => (
-                            <SelectItem key={commodity} value={commodity}>
-                              {commodity}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Reset Button */}
-                    <div className="pt-4 border-t">
-                      <Button 
-                        variant="outline" 
-                        onClick={resetFilters}
-                        className="w-full"
-                      >
-                        <Icon icon="heroicons:x-mark" className="h-4 w-4 mr-2" />
-                        Reset Filter
-                      </Button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              {permissions.canExport && (
-                <Button variant="outline" size="sm">
-                  <HydrationSafe fallback={<div className="h-4 w-4 mr-2 bg-current opacity-50 rounded-sm" />}>
-                    <Icon icon="heroicons:arrow-down-tray" className="h-4 w-4 mr-2 flex-shrink-0" />
-                  </HydrationSafe>
-                  Export
+      {/* Main Card: Filters + Table */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3 space-y-3">
+          {/* Search + Kecamatan filter row */}
+          <div className="flex flex-col lg:flex-row gap-2 sm:gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Icon
+                icon="heroicons:magnifying-glass"
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400"
+              />
+              <Input
+                placeholder="Cari poktan, kecamatan, OPT, obat..."
+                value={filters.search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+              {filters.search && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => handleSearchChange("")}
+                >
+                  <Icon icon="heroicons:x-mark" className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 sm:gap-3 lg:w-auto">
+              {/* Kecamatan dropdown */}
+              <Select value={filters.kecamatan || "all"} onValueChange={handleKecamatanChange}>
+                <SelectTrigger className="h-9 w-full sm:min-w-[180px] text-sm">
+                  <SelectValue placeholder="Semua Kecamatan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kecamatan</SelectItem>
+                  {kecamatanList.map((kec) => (
+                    <SelectItem key={kec} value={kec}>
+                      {kec}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Tahun dropdown */}
+              <Select value={filters.tahun || "all"} onValueChange={handleYearChange}>
+                <SelectTrigger className="h-9 w-full sm:min-w-[120px] text-sm">
+                  <SelectValue placeholder="Semua Tahun" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tahun</SelectItem>
+                  {yearList.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear filters */}
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 text-xs text-default-500 gap-1 flex-shrink-0"
+              >
+                <Icon icon="heroicons:x-mark" className="h-3.5 w-3.5" />
+                Hapus filter
+              </Button>
+            )}
+          </div>
+
+          {/* Status filter chips */}
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_TRX_STATUSES.map((status) => {
+              const config = TRX_STATUS_CONFIG[status];
+              const isActive = filters.status.includes(status);
+              const count = data.filter((d) => d.status === status).length;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => toggleStatusFilter(status)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                    isActive
+                      ? cn(config.bgColor, config.color, config.borderColor, "ring-1 ring-offset-1", config.borderColor.replace("border-", "ring-"))
+                      : "bg-default-50 text-default-500 border-default-200 hover:bg-default-100"
+                  )}
+                >
+                  <Icon icon={config.icon} className="h-3 w-3 flex-shrink-0" />
+                  <span className="hidden xs:inline">{config.label}</span>
+                  <span className="xs:hidden">{config.label.split(" ")[0]}</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold",
+                      isActive ? "bg-white/80 text-inherit" : "bg-default-200 text-default-600"
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          {/* Results Count */}
-          <div className="px-6 py-3 border-b flex justify-between items-center">
-            <p className="text-sm text-default-600">
-              Menampilkan {paginatedData.length} dari {filteredData.length} transaksi
-            </p>
+
+        {/* Results count */}
+        <div className="px-4 sm:px-6 py-2.5 border-t border-b bg-default-50/40 flex items-center justify-between">
+          <p className="text-xs text-default-500">
+            Menampilkan{" "}
+            <span className="font-medium text-default-700">{paginatedData.length}</span> dari{" "}
+            <span className="font-medium text-default-700">{sortedData.length}</span> transaksi
+          </p>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-xs text-default-500">Per halaman:</span>
+            <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+              <SelectTrigger className="h-7 w-[65px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={String(opt)}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          <TransactionTable
-            data={paginatedData}
-            loading={loading}
-            userRole={user.role}
-            onRowClick={handleRowClick}
-            onViewDetails={handleViewDetails}
-            onApprove={handleApprove}
-            onDistribute={handleDistribute}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        </CardContent>
+        </div>
+
+        {/* Table */}
+        <TrxListTable
+          data={paginatedData}
+          loading={loading}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={handleSortChange}
+          onRowClick={handleRowClick}
+          onProcess={handleProcess}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center">
+        <div className="flex justify-center pb-4">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setPagination(prev => ({ 
-                    ...prev, 
-                    page: Math.max(1, prev.page - 1) 
-                  }))}
-                  className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={cn(
+                    "cursor-pointer",
+                    page === 1 && "pointer-events-none opacity-50"
+                  )}
                 />
               </PaginationItem>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <PaginationItem key={p}>
                   <PaginationLink
-                    onClick={() => setPagination(prev => ({ ...prev, page }))}
-                    isActive={pagination.page === page}
+                    onClick={() => setPage(p)}
+                    isActive={page === p}
                     className="cursor-pointer"
                   >
-                    {page}
+                    {p}
                   </PaginationLink>
                 </PaginationItem>
               ))}
-              
+
               <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setPagination(prev => ({ 
-                    ...prev, 
-                    page: Math.min(totalPages, prev.page + 1) 
-                  }))}
-                  className={pagination.page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                <PaginationNext
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className={cn(
+                    "cursor-pointer",
+                    page === totalPages && "pointer-events-none opacity-50"
+                  )}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -619,18 +509,32 @@ const TransactionListPage: React.FC = () => {
         </div>
       )}
 
-      {/* Transaction Detail Modal */}
-      <TransactionDetailModal
-        isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setSelectedTransaction(null);
-        }}
-        transaction={selectedTransaction}
-        onApprove={handleApprove}
-        onDistribute={handleDistribute}
+      {/* ===== Modals ===== */}
+
+      {/* Detail Modal */}
+      <TrxDetailModal
+        open={!!detailItem}
+        onClose={() => setDetailItem(null)}
+        item={detailItem}
+        onProcess={handleProcess}
         onEdit={handleEdit}
-        userRole={user.role}
+        onDelete={handleDelete}
+      />
+
+      {/* Process Modal */}
+      <TrxProcessModal
+        open={!!processItem}
+        onClose={() => setProcessItem(null)}
+        item={processItem}
+        onApproved={handleProcessApproved}
+      />
+
+      {/* Delete Dialog */}
+      <TrxDeleteDialog
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={confirmDelete}
+        transactionId={deleteItem?.id}
       />
     </div>
   );
@@ -638,4 +542,4 @@ const TransactionListPage: React.FC = () => {
 
 export default TransactionListPage;
 
-// # END OF Transaction List Page 
+// # END OF Transaction List Page

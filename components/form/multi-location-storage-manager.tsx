@@ -22,11 +22,14 @@ export interface StorageLocation {
   warehouse: string;
   storageArea: string;
   rack: string;
+  quantity: number;
+  quantityUnit: string;
 }
 
 interface MultiLocationStorageManagerProps {
   locations: StorageLocation[];
   onChange: (locations: StorageLocation[]) => void;
+  largePackUnitOptions?: string[];
   className?: string;
 }
 
@@ -34,10 +37,12 @@ interface MultiLocationStorageManagerProps {
 const defaultWarehouses = ["Gudang A", "Gudang B", "Gudang C", "Gudang Utama"];
 const defaultStorageAreas = ["Area 1", "Area 2", "Area 3", "Area Khusus"];
 const defaultRacks = ["Rak 1", "Rak 2", "Rak 3", "Rak 4", "Rak 5"];
+const defaultLargePackUnits = ["Dus", "Box", "Karton", "Drum", "Pack", "Bundle", "Krat"];
 
 export const MultiLocationStorageManager: React.FC<MultiLocationStorageManagerProps> = ({
   locations,
   onChange,
+  largePackUnitOptions,
   className,
 }) => {
   const [warehouses, setWarehouses] = useState(defaultWarehouses);
@@ -58,6 +63,8 @@ export const MultiLocationStorageManager: React.FC<MultiLocationStorageManagerPr
       warehouse: "",
       storageArea: "",
       rack: "",
+      quantity: 0,
+      quantityUnit: "",
     };
     onChange([...locations, newLocation]);
   };
@@ -355,6 +362,38 @@ export const MultiLocationStorageManager: React.FC<MultiLocationStorageManagerPr
                 </div>
               </div>
 
+              {/* Quantity & Unit Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-3 bg-muted/30 rounded-lg border border-dashed">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Jumlah Satuan Besar *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Contoh: 20"
+                    value={location.quantity || ""}
+                    onChange={(e) => updateLocation(location.id, { quantity: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Satuan Kemasan Besar *</Label>
+                  <Select
+                    value={location.quantityUnit}
+                    onValueChange={(value) => updateLocation(location.id, { quantityUnit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih satuan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(largePackUnitOptions || defaultLargePackUnits).map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Location summary */}
               {location.warehouse && location.storageArea && location.rack && (
                 <div className="mt-3 p-2 bg-primary/5 rounded-md border border-primary/20">
@@ -362,6 +401,11 @@ export const MultiLocationStorageManager: React.FC<MultiLocationStorageManagerPr
                     📍 <span className="font-medium">{location.warehouse}</span> →{" "}
                     <span className="font-medium">{location.storageArea}</span> →{" "}
                     <span className="font-medium">{location.rack}</span>
+                    {location.quantity > 0 && location.quantityUnit && (
+                      <>
+                        {" "}→ <span className="font-semibold text-primary">{location.quantity} {location.quantityUnit}</span>
+                      </>
+                    )}
                   </p>
                 </div>
               )}

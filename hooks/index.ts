@@ -17,6 +17,9 @@ export * from './use-menu-hover'
 export * from './use-media-query'
 export * from './use-config'
 
+// QR Scanner
+export * from './use-qr-scanner'
+
 // ============================================================================
 // HOOKS DOCUMENTATION
 // ============================================================================

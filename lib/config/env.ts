@@ -32,6 +32,7 @@ export interface EnvironmentConfig {
   enableAnalytics: boolean;
   enableNotifications: boolean;
   enableOfflineMode: boolean;
+  frontendOnlyMode: boolean;
   
   // External Services
   googleMapsApiKey: string;
@@ -75,6 +76,7 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     enableAnalytics: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
     enableNotifications: process.env.NEXT_PUBLIC_ENABLE_NOTIFICATIONS === 'true',
     enableOfflineMode: process.env.NEXT_PUBLIC_ENABLE_OFFLINE_MODE === 'true',
+    frontendOnlyMode: process.env.NEXT_PUBLIC_FRONTEND_ONLY_MODE !== 'false',
     
     // External Services
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',

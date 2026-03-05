@@ -4,6 +4,7 @@
  */
 
 import { api, API_ENDPOINTS, ListResponse, SingleResponse, MessageResponse, ApiServiceError, QueryBuilder, PaginationParams, SearchFilterParams } from './api';
+import { getDummyExportBlob } from '@/lib/api/mock-router';
 
 // User interfaces
 export interface User {
@@ -349,17 +350,8 @@ class UserService {
       queryBuilder.addFilter({ format });
       const queryString = queryBuilder.build();
       
-      const response = await fetch(`${API_ENDPOINTS.USERS.BASE}/export${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${api.getAccessToken()}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-      
-      return await response.blob();
+      const exportEndpoint = `${API_ENDPOINTS.USERS.BASE}/export${queryString}`;
+      return getDummyExportBlob(exportEndpoint);
     } catch (error) {
       throw new ApiServiceError(
         error instanceof Error ? error.message : 'Export failed',

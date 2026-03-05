@@ -56,6 +56,14 @@ export function getMenuList(pathname: string): Group[] {
           icon: "heroicons-outline:cube",
           submenus: [],
         },
+        {
+          id: "stock_opname",
+          href: "/stock-opname",
+          label: "Stock Opname",
+          active: pathname.includes("/stock-opname"),
+          icon: "heroicons-outline:inbox-stack",
+          submenus: [],
+        },
       ],
     },
     {
@@ -63,53 +71,42 @@ export function getMenuList(pathname: string): Group[] {
       id: "transactions",
       menus: [
         {
-          id: "transactions",
-          href: "/transactions",
-          label: "Transaksi",
-          active: pathname.includes("/transactions"),
-          icon: "heroicons-outline:document-text",
-          submenus: [
-            {
-              href: "/transactions/list",
-              label: "Daftar Transaksi",
-              active: pathname.includes("/transactions/list"),
-              icon: "heroicons-outline:list-bullet",
-              submenus: [],
-              children: [],
+          id: "transactions_list",
+          href: "/transactions/list",
+          label: "Daftar Transaksi",
+          active: pathname.includes("/transactions/list"),
+          icon: "heroicons-outline:list-bullet",
+          submenus: [],
+        },  
+          {
+            id: "transactions_submission",
+            href: "/transactions/submission",
+            label: "Pengajuan",
+            active: pathname.includes("/transactions/submission"),
+            icon: "heroicons-outline:document-plus",
+            submenus: [],
             },
             {
-              href: "/transactions/submission",
-              label: "Pengajuan",
-              active: pathname.includes("/transactions/submission"),
-              icon: "heroicons-outline:document-plus",
-              submenus: [],
-              children: [],
-            },
-            {
+              id: "transactions_approval",
               href: "/transactions/approval",
               label: "Persetujuan",
               active: pathname.includes("/transactions/approval"),
               icon: "heroicons-outline:check-circle",
               submenus: [],
-              children: [],
             },
             {
+              id: "transactions_outgoing",
               href: "/transactions/outgoing",
               label: "Transaksi Keluar",
               active: pathname.includes("/transactions/outgoing"),
               icon: "heroicons-outline:check-circle",
               submenus: [],
-              children: [],
             },
           ],
-        },
-      ],
     },
-    
-    
     {
-      groupLabel: "Pengaturan Template",
-      id: "template-settings",
+      groupLabel: "Pengaturan Admin",
+      id: "admin-settings",
       menus: [
         {
           id: "template-settings",
@@ -136,12 +133,6 @@ export function getMenuList(pathname: string): Group[] {
             },
           ],
         },
-      ],
-    },
-    {
-      groupLabel: "Pengguna",
-      id: "users",
-      menus: [
         {
           id: "users",
           href: "/users",
@@ -150,12 +141,6 @@ export function getMenuList(pathname: string): Group[] {
           icon: "heroicons-outline:user-group",
           submenus: [],
         },
-      ],
-    },
-    {
-      groupLabel: "Manajemen Data",
-      id: "data-management",
-      menus: [
         {
           id: "data-management",
           href: "/data-management",
@@ -181,12 +166,6 @@ export function getMenuList(pathname: string): Group[] {
             },
           ],
         },
-      ],
-    },
-    {
-      groupLabel: "Manajemen Sistem",
-      id: "system-management",
-      menus: [
         {
           id: "system-management",
           href: "/system-management",
@@ -226,6 +205,14 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "Pengaturan",
       id: "settings",
       menus: [
+        {
+          id: "data-petani",
+          href: "/farmers",
+          label: "Data Poktan",
+          active: pathname.includes("/farmers"),
+          icon: "heroicons-outline:finger-print",
+          submenus: [],
+        },
         {
           id: "settings",
           href: "/settings",

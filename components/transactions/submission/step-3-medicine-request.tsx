@@ -1,358 +1,663 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useFormContext, useFieldArray } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { Search, AlertCircle, Info, Sparkles } from "lucide-react";
-import { MedicineCard } from "./medicine-card";
-import { SubmissionFormData } from "./schema";
-import { inventoryService } from "@/lib/services/inventory.service";
-import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState, useMemo, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Info,
+  Sparkles,
+  Bug,
+  ShieldCheck,
+  Leaf,
+  FlaskConical,
+  Check,
+  SkipForward,
+  Package,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  SubmissionFormData,
+  PoktanPreferenceData,
+  PoktanAttackData,
+} from "./schema";
+import {
+  mockMedicineStock,
+} from "@/lib/data/transaction-list-mock";
+import { type MedicineStockItem } from "@/lib/types/transaction-list";
 
-interface MedicineWithStock {
-  id: string;
-  name: string;
-  category: string;
-  activeIngredient?: string;
-  unit: string;
-  stock: number;
-  pestTypes?: string[];
-  dosagePerHa?: number; // Dosis per hektar dalam satuan kecil (kg, liter, botol, sachet, dll)
-  image?: string;
-  pricePerUnit?: number;
+interface Step3MedicineRequestProps {
+  formData: SubmissionFormData;
+  onChange: (updates: Partial<SubmissionFormData>) => void;
 }
 
-export function Step3MedicineRequest() {
-  const { control, watch } = useFormContext<SubmissionFormData>();
-  const { fields, append, remove, update } = useFieldArray({
-    control,
-    name: "drugItems",
-  });
+const JENIS_PESTISIDA_OPTIONS = [
+  {
+    value: "kimia" as const,
+    label: "Pestisida Kimia/Sintetik",
+    icon: <FlaskConical className="w-4 h-4" />,
+    color: "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20",
+  },
+  {
+    value: "nabati" as const,
+    label: "Pestisida Nabati",
+    icon: <Leaf className="w-4 h-4" />,
+    color: "text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20",
+  },
+  {
+    value: "agen_hayati" as const,
+    label: "Agen Hayati",
+    icon: <Bug className="w-4 h-4" />,
+    color:
+      "text-purple-600 border-purple-200 bg-purple-50 dark:bg-purple-900/20",
+  },
+];
 
-  const [medicines, setMedicines] = useState<MedicineWithStock[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  // Watch form values for recommendations
-  const pestTypes = watch("pestTypes") || [];
-  const affectedArea = watch("affectedArea") || 0;
-  const commodities = watch("commodities") || [];
-
-  // Fetch medicines with stock data
+export function Step3MedicineRequest({
+  formData,
+  onChange,
+}: Step3MedicineRequestProps) {
+  // Initialize preferences from attacks
   useEffect(() => {
-    const fetchMedicines = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch medicines from API
-        const response = await inventoryService.getMedicines(
-          { page: 1, limit: 100 },
-          { isActive: true }
-        );
-
-        if (response.success && response.data) {
-          // Transform API response to our format
-          const medicinesData: MedicineWithStock[] = (Array.isArray(response.data) ? response.data : response.data.items || []).map((med: any) => {
-            // Calculate total stock from stocks array
-            const totalStock = med.stocks?.reduce((sum: number, stock: any) => {
-              return sum + (Number(stock.currentStock) || 0);
-            }, 0) || 0;
-
-            // Parse pest types (can be JSON string or array)
-            let pestTypesArray: string[] = [];
-            if (med.pestTypes) {
-              if (typeof med.pestTypes === 'string') {
-                try {
-                  pestTypesArray = JSON.parse(med.pestTypes);
-                } catch {
-                  pestTypesArray = [med.pestTypes];
-                }
-              } else if (Array.isArray(med.pestTypes)) {
-                pestTypesArray = med.pestTypes;
-              }
-            }
-
-            // Extract dosage info (if available in description or separate field)
-            // Default dosage: assume 1-2 units per hectare for most medicines
-            const dosagePerHa = med.dosagePerHa || med.dosage?.amount || 1.5;
-
-            return {
-              id: med.id,
-              name: med.name,
-              category: med.category || "Umum",
-              activeIngredient: med.activeIngredient || med.genericName || "",
-              unit: med.unit || "pcs",
-              stock: totalStock,
-              pestTypes: pestTypesArray,
-              dosagePerHa: dosagePerHa,
-              image: med.image,
-              pricePerUnit: med.pricePerUnit ? Number(med.pricePerUnit) : undefined,
-            };
-          });
-
-          setMedicines(medicinesData);
-        } else {
-          throw new Error("Failed to fetch medicines");
-        }
-      } catch (err) {
-        console.error("Failed to fetch medicines", err);
-        const errorMessage = err instanceof Error ? err.message : "Gagal memuat data obat";
-        setError(errorMessage);
-        
-        // Show toast only once
-        if (!error) {
-          toast.error(errorMessage);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMedicines();
-  }, []); // Only fetch once on mount
-
-  // Calculate recommended quantity based on affected area and dosage
-  const calculateRecommendedQuantity = (medicine: MedicineWithStock): number => {
-    if (!affectedArea || affectedArea <= 0) return 1;
-    if (!medicine.dosagePerHa) return Math.ceil(affectedArea); // Default: 1 unit per ha
-    
-    // Calculate: affectedArea (ha) * dosagePerHa (units/ha) = total units needed
-    const calculated = affectedArea * medicine.dosagePerHa;
-    return Math.ceil(calculated); // Round up
-  };
-
-  const handleSelectMedicine = (medicine: MedicineWithStock) => {
-    // Check if already selected
-    const index = fields.findIndex(f => f.medicineId === medicine.id);
-    if (index !== -1) {
-      // Already selected, just show info
-      toast.info("Obat ini sudah dipilih. Gunakan input jumlah untuk mengubah kuantitas.");
-      return;
+    if (
+      formData.poktanAttacks.length > 0 &&
+      (!formData.poktanPreferences || formData.poktanPreferences.length === 0)
+    ) {
+      const prefs: PoktanPreferenceData[] = formData.poktanAttacks.map((a) => ({
+        poktanId: a.poktanId,
+        namaPoktan: a.namaPoktan,
+        opt: a.opt
+          .map((optName) =>
+            optName === "Lainnya" ? a.optLainnya || "Lainnya" : optName
+          )
+          .join(", "),
+        jenisPestisida: undefined,
+        selectedMedicineIds: [],
+        skipped: false,
+      }));
+      onChange({ poktanPreferences: prefs });
     }
+  }, [formData.poktanAttacks, formData.poktanPreferences, onChange]);
 
-    // Calculate recommended quantity
-    const recommendedQty = calculateRecommendedQuantity(medicine);
-    const finalQty = Math.min(recommendedQty, medicine.stock); // Don't exceed stock
-    
-    // Add to form
-    append({
-      medicineId: medicine.id,
-      name: medicine.name,
-      quantity: finalQty,
-      unit: medicine.unit,
-      maxStock: medicine.stock
-    });
-
-    // Show info toast
-    if (affectedArea > 0) {
-      toast.success(
-        `Obat "${medicine.name}" ditambahkan`,
-        {
-          description: `Jumlah otomatis: ${finalQty} ${medicine.unit} (berdasarkan luas terserang ${affectedArea} Ha dan dosis ${medicine.dosagePerHa || 1.5} ${medicine.unit}/Ha)`
-        }
-      );
-    } else {
-      toast.success(`Obat "${medicine.name}" ditambahkan`);
-    }
-  };
-
-  const handleQuantityChange = (medicineId: string, qty: number) => {
-    const index = fields.findIndex(f => f.medicineId === medicineId);
-    if (index !== -1) {
-      if (qty <= 0) {
-        remove(index);
-        toast.info("Obat dihapus dari daftar");
-      } else {
-        const medicine = medicines.find(m => m.id === medicineId);
-        const maxStock = medicine?.stock || 0;
-        
-        if (qty > maxStock) {
-          toast.warning(
-            `Jumlah melebihi stok tersedia (${maxStock} ${medicine?.unit || 'unit'})`,
-            { duration: 3000 }
-          );
-        }
-        
-        update(index, { 
-          ...fields[index], 
-          quantity: qty,
-          maxStock: maxStock
-        });
-      }
-    }
-  };
-
-  // Filter and sort medicines
-  const filteredMedicines = useMemo(() => {
-    let filtered = medicines;
-
-    // Apply search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.name.toLowerCase().includes(searchLower) ||
-        m.category.toLowerCase().includes(searchLower) ||
-        m.activeIngredient?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Sort: Recommended first (based on pest types match), then by name
-    return [...filtered].sort((a, b) => {
-      const aRecommended = a.pestTypes?.some(p => pestTypes.includes(p)) || false;
-      const bRecommended = b.pestTypes?.some(p => pestTypes.includes(p)) || false;
-      
-      if (aRecommended && !bRecommended) return -1;
-      if (!aRecommended && bRecommended) return 1;
-      return a.name.localeCompare(b.name);
-    });
-  }, [medicines, searchTerm, pestTypes]);
-
-  // Group medicines: Recommended vs Others
-  const recommendedMedicines = useMemo(() => {
-    return filteredMedicines.filter(m => 
-      m.pestTypes?.some(p => pestTypes.includes(p))
+  const updatePreference = (
+    poktanId: string,
+    updates: Partial<PoktanPreferenceData>
+  ) => {
+    const updated = (formData.poktanPreferences || []).map((p) =>
+      p.poktanId === poktanId ? { ...p, ...updates } : p
     );
-  }, [filteredMedicines, pestTypes]);
+    onChange({ poktanPreferences: updated });
+  };
 
-  const otherMedicines = useMemo(() => {
-    return filteredMedicines.filter(m => 
-      !m.pestTypes?.some(p => pestTypes.includes(p))
-    );
-  }, [filteredMedicines, pestTypes]);
+  const skipAll = () => {
+    const updated = (formData.poktanPreferences || []).map((p) => ({
+      ...p,
+      skipped: true,
+    }));
+    onChange({ poktanPreferences: updated });
+  };
+
+  const allSkipped = (formData.poktanPreferences || []).every((p) => p.skipped);
 
   return (
-    <div className="space-y-6">
-      {/* Info Alert */}
-      <Alert className="bg-primary/5 border-primary/20">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertDescription className="text-sm">
-          Pilih obat yang dibutuhkan. Sistem akan memberikan rekomendasi berdasarkan jenis OPT yang dipilih. 
-          Jumlah akan dihitung otomatis berdasarkan luas lahan terserang dan dosis, namun tetap bisa diubah manual.
+    <div className="space-y-5">
+      {/* Info */}
+      <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
+        <Info className="h-4 w-4 text-amber-600 flex-shrink-0" />
+        <AlertDescription className="text-xs sm:text-sm text-amber-800 dark:text-amber-300">
+          <strong>Opsional:</strong> Pilih preferensi jenis obat untuk setiap
+          poktan, atau skip agar dipilihkan oleh Dinas.
         </AlertDescription>
       </Alert>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Cari obat berdasarkan nama, kategori, atau bahan aktif..." 
-          className="pl-9"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Skip All Button */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant={allSkipped ? "default" : "outline"}
+          size="sm"
+          onClick={skipAll}
+          className="text-xs"
+        >
+          <SkipForward className="w-3.5 h-3.5 mr-1.5" />
+          {allSkipped ? "Semua Di-skip" : "Skip Semua (Dipilihkan Dinas)"}
+        </Button>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Memuat data obat...</p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && !loading && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}. Silakan refresh halaman atau coba lagi nanti.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Recommended Medicines Section */}
-      {!loading && !error && recommendedMedicines.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Rekomendasi Obat</h3>
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              Cocok dengan OPT yang dipilih
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {recommendedMedicines.map((medicine, index) => {
-              const field = fields.find(f => f.medicineId === medicine.id);
-              const isSelected = !!field;
-              const quantity = field?.quantity || 0;
-              const recommendedQty = calculateRecommendedQuantity(medicine);
-
-              return (
-                <MedicineCard
-                  key={medicine.id}
-                  medicine={medicine}
-                  isSelected={isSelected}
-                  quantity={quantity}
-                  recommendedQuantity={recommendedQty}
-                  onSelect={() => handleSelectMedicine(medicine)}
-                  onQuantityChange={(qty) => handleQuantityChange(medicine.id, qty)}
-                  recommended={true}
-                  affectedArea={affectedArea}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Other Medicines Section */}
-      {!loading && !error && otherMedicines.length > 0 && (
-        <div className="space-y-4">
-          {recommendedMedicines.length > 0 && (
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Obat Lainnya</h3>
-            </div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {otherMedicines.map((medicine) => {
-              const field = fields.find(f => f.medicineId === medicine.id);
-              const isSelected = !!field;
-              const quantity = field?.quantity || 0;
-              const recommendedQty = calculateRecommendedQuantity(medicine);
-
-              return (
-                <MedicineCard
-                  key={medicine.id}
-                  medicine={medicine}
-                  isSelected={isSelected}
-                  quantity={quantity}
-                  recommendedQuantity={recommendedQty}
-                  onSelect={() => handleSelectMedicine(medicine)}
-                  onQuantityChange={(qty) => handleQuantityChange(medicine.id, qty)}
-                  recommended={false}
-                  affectedArea={affectedArea}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && filteredMedicines.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg font-medium mb-2">Tidak ada obat yang ditemukan</p>
-          <p className="text-sm">
-            {searchTerm 
-              ? "Coba gunakan kata kunci lain untuk mencari obat"
-              : "Belum ada data obat dalam sistem"}
-          </p>
-        </div>
-      )}
-
-      {/* Selected Items Summary */}
-      {fields.length > 0 && (
-        <Alert className="bg-success/5 border-success/20">
-          <Info className="h-4 w-4 text-success" />
-          <AlertDescription className="text-sm">
-            <strong>{fields.length} obat</strong> telah dipilih. Lanjutkan ke langkah berikutnya untuk melengkapi dokumen.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Per-Poktan Preference Cards */}
+      <div className="space-y-4">
+        {(formData.poktanPreferences || []).map((pref, index) => {
+          const attack = formData.poktanAttacks.find(
+            (a) => a.poktanId === pref.poktanId
+          );
+          return (
+            <PoktanPreferenceCard
+              key={pref.poktanId}
+              preference={pref}
+              attack={attack}
+              index={index}
+              total={(formData.poktanPreferences || []).length}
+              onUpdate={(updates) => updatePreference(pref.poktanId, updates)}
+            />
+          );
+        })}
+      </div>
     </div>
+  );
+}
+
+// =============================================
+// Sub-component: Poktan Preference Card
+// =============================================
+
+function PoktanPreferenceCard({
+  preference,
+  attack,
+  index,
+  total,
+  onUpdate,
+}: {
+  preference: PoktanPreferenceData;
+  attack?: PoktanAttackData;
+  index: number;
+  total: number;
+  onUpdate: (updates: Partial<PoktanPreferenceData>) => void;
+}) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <Card
+      className={cn(
+        "border-2 overflow-hidden transition-all",
+        preference.skipped
+          ? "opacity-60 border-muted"
+          : preference.selectedMedicineIds.length > 0
+          ? "border-green-200 dark:border-green-800"
+          : "border-border"
+      )}
+    >
+      <CardHeader className="p-3 pb-2 bg-muted/30">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold">{index + 1}</span>
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold truncate">
+                {preference.namaPoktan}
+              </h4>
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                {attack && (
+                  <>
+                    <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
+                      {attack.komoditas}
+                    </span>
+                    <span className="inline-flex items-center rounded-md border border-red-200 px-1.5 py-0.5 text-[10px] font-medium text-red-600">
+                      <Bug className="w-2.5 h-2.5 mr-0.5" />
+                      {attack.opt.length > 0
+                        ? attack.opt
+                            .map((optName) =>
+                              optName === "Lainnya"
+                                ? attack.optLainnya || "Lainnya"
+                                : optName
+                            )
+                            .join(", ")
+                        : "-"}
+                    </span>
+                    <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
+                      {attack.luasSerangan} Ha
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {preference.skipped && (
+              <Badge
+                color="secondary"
+                className="text-[10px]"
+              >
+                Skipped
+              </Badge>
+            )}
+            {preference.selectedMedicineIds.length > 0 && (
+              <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                <Check className="w-2.5 h-2.5 mr-0.5" />
+                {preference.selectedMedicineIds.length} obat
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-3 space-y-3">
+        {/* Toggle Skip */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {preference.skipped
+              ? "Akan dipilihkan oleh Dinas"
+              : "Pilih preferensi obat"}
+          </span>
+          <Button
+            type="button"
+            variant={preference.skipped ? "outline" : "ghost"}
+            size="sm"
+            onClick={() =>
+              onUpdate({
+                skipped: !preference.skipped,
+                jenisPestisida: undefined,
+                selectedMedicineIds: [],
+              })
+            }
+            className="text-xs h-7"
+          >
+            {preference.skipped ? "Pilih Sendiri" : "Skip"}
+          </Button>
+        </div>
+
+        {/* Preference Form */}
+        {!preference.skipped && (
+          <>
+            <Separator />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsModalOpen(true)}
+              className="w-full justify-center gap-2 h-10"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              {preference.selectedMedicineIds.length > 0
+                ? `${preference.selectedMedicineIds.length} obat dipilih — Ubah`
+                : "Preferensi Pengendalian"}
+            </Button>
+
+            {/* Selected Medicines Summary */}
+            {preference.selectedMedicineIds.length > 0 && (
+              <div className="space-y-1">
+                {preference.selectedMedicineIds.map((id) => {
+                  const med = mockMedicineStock.find((m) => m.id === id);
+                  if (!med) return null;
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between rounded-md bg-muted/50 px-2.5 py-1.5"
+                    >
+                      <span className="text-xs font-medium truncate">
+                        {med.nama}
+                      </span>
+                      <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
+                        {med.jenis === "kimia"
+                          ? "Kimia"
+                          : med.jenis === "nabati"
+                          ? "Nabati"
+                          : "Agen Hayati"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+
+      {/* Preference Modal */}
+      <PreferenceModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        preference={preference}
+        optNames={
+          attack
+            ? attack.opt.map((optName) =>
+                optName === "Lainnya"
+                  ? attack.optLainnya || "Lainnya"
+                  : optName
+              )
+            : []
+        }
+        onConfirm={(jenis, medicineIds) => {
+          onUpdate({
+            jenisPestisida: jenis,
+            selectedMedicineIds: medicineIds,
+            skipped: false,
+          });
+          setIsModalOpen(false);
+        }}
+      />
+    </Card>
+  );
+}
+
+// =============================================
+// Sub-component: Preference Modal
+// =============================================
+
+function PreferenceModal({
+  open,
+  onOpenChange,
+  preference,
+  optNames,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  preference: PoktanPreferenceData;
+  optNames: string[];
+  onConfirm: (
+    jenis: "kimia" | "nabati" | "agen_hayati" | undefined,
+    medicineIds: string[]
+  ) => void;
+}) {
+  const [selectedJenis, setSelectedJenis] = useState<
+    "kimia" | "nabati" | "agen_hayati" | undefined
+  >(preference.jenisPestisida);
+  const [selectedIds, setSelectedIds] = useState<string[]>(
+    preference.selectedMedicineIds
+  );
+
+  // Reset when modal opens
+  useEffect(() => {
+    if (open) {
+      setSelectedJenis(preference.jenisPestisida);
+      setSelectedIds([...preference.selectedMedicineIds]);
+    }
+  }, [open, preference.jenisPestisida, preference.selectedMedicineIds]);
+
+  // Filter medicines by jenis and OPT match
+  const recommendations = useMemo(() => {
+    if (!selectedJenis) return [];
+
+    const normalizedOptNames = optNames
+      .map((name) => name.toLowerCase().trim())
+      .filter(Boolean);
+
+    const matchesAnyOPT = (targets: string[]) => {
+      if (normalizedOptNames.length === 0) return false;
+      return targets.some((target) => {
+        const normalizedTarget = target.toLowerCase();
+        return normalizedOptNames.some(
+          (optName) =>
+            normalizedTarget.includes(optName) ||
+            optName.includes(normalizedTarget)
+        );
+      });
+    };
+
+    return mockMedicineStock
+      .filter((m) => m.jenis === selectedJenis)
+      .sort((a, b) => {
+        const aMatch = matchesAnyOPT(a.targetOpt);
+        const bMatch = matchesAnyOPT(b.targetOpt);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return a.nama.localeCompare(b.nama);
+      });
+  }, [selectedJenis, optNames]);
+
+  const matchedMeds = recommendations.filter((m) =>
+    m.targetOpt.some((target) =>
+      optNames.some((optName) => {
+        const normalizedTarget = target.toLowerCase();
+        const normalizedOptName = optName.toLowerCase();
+        return (
+          normalizedTarget.includes(normalizedOptName) ||
+          normalizedOptName.includes(normalizedTarget)
+        );
+      })
+    )
+  );
+  const otherMeds = recommendations.filter(
+    (m) =>
+      !m.targetOpt.some(
+        (target) =>
+          optNames.some((optName) => {
+            const normalizedTarget = target.toLowerCase();
+            const normalizedOptName = optName.toLowerCase();
+            return (
+              normalizedTarget.includes(normalizedOptName) ||
+              normalizedOptName.includes(normalizedTarget)
+            );
+          })
+      )
+  );
+
+  const toggleMedicine = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] max-h-[85svh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            Preferensi Pengendalian
+          </DialogTitle>
+          <DialogDescription className="text-sm">
+            {preference.namaPoktan} — OPT: {optNames.join(", ") || "-"}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Content — native scroll for reliable mobile scrolling */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6">
+          <div className="space-y-4 py-3">
+            {/* Jenis Pestisida */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Jenis Pestisida</Label>
+              <RadioGroup
+                value={selectedJenis || ""}
+                onValueChange={(v) => {
+                  setSelectedJenis(v as "kimia" | "nabati" | "agen_hayati");
+                  setSelectedIds([]);
+                }}
+                className="grid grid-cols-1 gap-2"
+              >
+                {JENIS_PESTISIDA_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-all",
+                      selectedJenis === opt.value
+                        ? `${opt.color} ring-1 ring-offset-1`
+                        : "border-border hover:border-primary/30"
+                    )}
+                  >
+                    <RadioGroupItem value={opt.value} />
+                    <span className="flex items-center gap-2">
+                      {opt.icon}
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {/* Medicine Recommendations */}
+            {selectedJenis && (
+              <>
+                <Separator />
+
+                {/* Matched */}
+                {matchedMeds.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <h4 className="text-sm font-semibold">
+                        Rekomendasi untuk OPT terpilih
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {matchedMeds.map((med) => (
+                        <MedicinePickCard
+                          key={med.id}
+                          medicine={med}
+                          isSelected={selectedIds.includes(med.id)}
+                          onToggle={() => toggleMedicine(med.id)}
+                          recommended
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Others */}
+                {otherMeds.length > 0 && (
+                  <div className="space-y-2">
+                    {matchedMeds.length > 0 && (
+                      <h4 className="text-sm font-semibold text-muted-foreground">
+                        Obat Lainnya
+                      </h4>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {otherMeds.map((med) => (
+                        <MedicinePickCard
+                          key={med.id}
+                          medicine={med}
+                          isSelected={selectedIds.includes(med.id)}
+                          onToggle={() => toggleMedicine(med.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recommendations.length === 0 && (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">
+                      Tidak ada obat tersedia untuk jenis ini
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="px-4 sm:px-6 pb-4 sm:pb-6 pt-3 border-t">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Batal
+          </Button>
+          <Button onClick={() => onConfirm(selectedJenis, selectedIds)}>
+            <Check className="w-4 h-4 mr-2" />
+            Simpan ({selectedIds.length} obat)
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =============================================
+// Sub-component: Medicine Pick Card (E-commerce style)
+// =============================================
+
+function MedicinePickCard({
+  medicine,
+  isSelected,
+  onToggle,
+  recommended = false,
+}: {
+  medicine: MedicineStockItem;
+  isSelected: boolean;
+  onToggle: () => void;
+  recommended?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "relative w-full text-left rounded-xl border-2 p-3 transition-all duration-200",
+        "focus:outline-none focus:ring-2 focus:ring-primary/30",
+        isSelected
+          ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+          : "border-border hover:border-primary/40 hover:shadow-sm"
+      )}
+    >
+      {/* Recommended badge */}
+      {recommended && !isSelected && (
+        <div className="absolute -top-2 -right-1">
+          <Badge
+            color="primary"
+            className="text-[9px] px-1.5 py-0 shadow-sm"
+          >
+            <Sparkles className="w-2.5 h-2.5 mr-0.5" />
+            Cocok
+          </Badge>
+        </div>
+      )}
+
+      {/* Selected check */}
+      {isSelected && (
+        <div className="absolute top-2 right-2">
+          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+            <Check className="w-3 h-3 text-white" />
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="space-y-1.5 pr-6">
+        <h5 className="text-sm font-semibold line-clamp-1">{medicine.nama}</h5>
+        <p className="text-[11px] text-muted-foreground line-clamp-1">
+          {medicine.bahanAktif}
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-medium",
+              medicine.jenis === "kimia"
+                ? "text-blue-600 border-blue-200"
+                : medicine.jenis === "nabati"
+                ? "text-green-600 border-green-200"
+                : "text-purple-600 border-purple-200"
+            )}
+          >
+            {medicine.jenis === "kimia"
+              ? "Kimia"
+              : medicine.jenis === "nabati"
+              ? "Nabati"
+              : "Agen Hayati"}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            Stok: {medicine.stokBesar} {medicine.satuanBesar}
+          </span>
+        </div>
+        {medicine.targetOpt.length > 0 && (
+          <div className="flex gap-1 flex-wrap">
+            {medicine.targetOpt.slice(0, 3).map((opt: string) => (
+              <Badge
+                key={opt}
+                color="secondary"
+                className="text-[9px] px-1 py-0"
+              >
+                {opt}
+              </Badge>
+            ))}
+            {medicine.targetOpt.length > 3 && (
+              <span className="text-[9px] text-muted-foreground">
+                +{medicine.targetOpt.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </button>
   );
 }

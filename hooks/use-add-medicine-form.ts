@@ -56,23 +56,19 @@ const createMedicine = async (data: AddMedicineFormData) => {
     createdBy: 'Current User', // In real app, get from auth context
   };
 
-  // In real app, make actual API call
+  // Frontend-only mode: use local dummy flow
   console.log('Adding medicine:', medicineData);
-  
-  // Simulate API call with proper error handling
-  const response = await fetch('/api/medicines', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+
+  await new Promise((resolve) => setTimeout(resolve, 350));
+
+  return {
+    success: true,
+    message: 'Medicine created (dummy)',
+    data: {
+      id: `medicine-${Date.now()}`,
+      ...medicineData,
     },
-    body: JSON.stringify(medicineData),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to create medicine');
-  }
-
-  return response.json();
+  };
 };
 
 interface UseAddMedicineFormOptions {

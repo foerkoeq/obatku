@@ -40,6 +40,51 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
   const [customCommodity, setCustomCommodity] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
+  // Local string state for numeric inputs to allow typing decimals like "0.25"
+  // Without this, React controlled number inputs clear "0" before user can type ".25"
+  const [localNumericValues, setLocalNumericValues] = useState<Record<string, string>>({});
+
+  const getLocalKey = (commodity: string, field: string) => `${commodity}__${field}`;
+
+  const getNumericDisplayValue = (commodity: string, field: string, numericValue: number): string => {
+    const key = getLocalKey(commodity, field);
+    if (localNumericValues[key] !== undefined) return localNumericValues[key];
+    return numericValue > 0 ? String(numericValue) : "";
+  };
+
+  const handleNumericChange = (
+    commodity: string,
+    field: "dosageAmount" | "landArea",
+    rawValue: string
+  ) => {
+    const key = getLocalKey(commodity, field);
+    setLocalNumericValues((prev) => ({ ...prev, [key]: rawValue }));
+    const numVal = parseFloat(rawValue.replace(",", "."));
+    if (!isNaN(numVal)) {
+      updateDosage(commodity, { [field]: numVal });
+    }
+  };
+
+  const handleNumericBlur = (
+    commodity: string,
+    field: "dosageAmount" | "landArea",
+    rawValue: string
+  ) => {
+    const key = getLocalKey(commodity, field);
+    const numVal = parseFloat(rawValue.replace(",", "."));
+    if (isNaN(numVal) || rawValue === "") {
+      updateDosage(commodity, { [field]: 0 });
+      setLocalNumericValues((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } else {
+      updateDosage(commodity, { [field]: numVal });
+      setLocalNumericValues((prev) => ({ ...prev, [key]: String(numVal) }));
+    }
+  };
+
   // Filter out empty or invalid commodities for display
   // This ensures empty commodities don't show up as checkboxes
   const validCommodities = useMemo(
@@ -302,16 +347,12 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
                       Jumlah Dosis *
                     </Label>
                     <Input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      placeholder="0"
-                      value={commodityData.dosageAmount || ""}
-                      onChange={(e) =>
-                        updateDosage(commodityData.commodity, {
-                          dosageAmount: parseFloat(e.target.value) || 0,
-                        })
-                      }
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Contoh: 2.5"
+                      value={getNumericDisplayValue(commodityData.commodity, "dosageAmount", commodityData.dosageAmount)}
+                      onChange={(e) => handleNumericChange(commodityData.commodity, "dosageAmount", e.target.value)}
+                      onBlur={(e) => handleNumericBlur(commodityData.commodity, "dosageAmount", e.target.value)}
                     />
                   </div>
 
@@ -335,17 +376,14 @@ export const CommodityDosageManager: React.FC<CommodityDosageManagerProps> = ({
                       Luas Lahan (ha) *
                     </Label>
                     <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={commodityData.landArea || ""}
-                      onChange={(e) =>
-                        updateDosage(commodityData.commodity, {
-                          landArea: parseFloat(e.target.value) || 0,
-                        })
-                      }
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Contoh: 0.25"
+                      value={getNumericDisplayValue(commodityData.commodity, "landArea", commodityData.landArea)}
+                      onChange={(e) => handleNumericChange(commodityData.commodity, "landArea", e.target.value)}
+                      onBlur={(e) => handleNumericBlur(commodityData.commodity, "landArea", e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground">Bisa desimal, contoh: 0.25 ha</p>
                   </div>
                 </div>
               </CardContent>

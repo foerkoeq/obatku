@@ -1,0 +1,49 @@
+/* Stock Opname Print Styles */
+/* This file provides print-specific styles for the stock opname report */
+
+@media print {
+  /* Force landscape orientation */
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  /* Hide everything except print content */
+  body > *:not(.stock-opname-print-wrapper) {
+    display: none !important;
+  }
+
+  .stock-opname-print-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 99999;
+  }
+
+  /* Ensure no page break inside the table */
+  .stock-opname-print-wrapper table {
+    page-break-inside: auto;
+  }
+
+  .stock-opname-print-wrapper tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .stock-opname-print-wrapper thead {
+    display: table-header-group;
+  }
+
+  /* Reset shadows and backgrounds */
+  .stock-opname-print-wrapper * {
+    box-shadow: none !important;
+  }
+
+  /* Black borders for print */
+  .stock-opname-print-wrapper table,
+  .stock-opname-print-wrapper th,
+  .stock-opname-print-wrapper td {
+    border-color: black !important;
+  }
+}

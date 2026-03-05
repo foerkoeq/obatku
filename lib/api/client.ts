@@ -4,6 +4,7 @@
  */
 
 import { env, getApiUrl } from '../config/env';
+import { getDummyApiResponse } from './mock-router';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -172,6 +173,10 @@ class ApiClient {
       timeout = this.defaultTimeout,
       withCredentials = true,
     } = config;
+
+    if (env.frontendOnlyMode) {
+      return await getDummyApiResponse(endpoint, method, body) as ApiResponse<T>;
+    }
 
     const url = endpoint.startsWith('http') ? endpoint : getApiUrl(endpoint);
     const requestHeaders = this.getHeaders(headers);
@@ -404,9 +409,6 @@ class ApiClient {
 
 // Export singleton instance
 export const apiClient = new ApiClient();
-
-// Export types
-export type { ApiResponse, ApiError, ApiRequestConfig };
 
 // Export convenience methods
 export const api = {

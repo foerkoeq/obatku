@@ -3,6 +3,7 @@ import LayoutContentProvider from "@/providers/content.provider";
 import DashCodeSidebar from "@/components/partials/sidebar";
 import DashCodeFooter from "@/components/partials/footer";
 import DashCodeHeader from "@/components/partials/header";
+import { QrScannerProvider } from "@/components/qr-scanner";
 
 export default function DashboardLayout({
   children,
@@ -15,6 +16,7 @@ export default function DashboardLayout({
       <DashCodeSidebar />
       <LayoutContentProvider>{children}</LayoutContentProvider>
       <DashCodeFooter />
+      <QrScannerProvider />
     </LayoutProvider>
   );
 } 

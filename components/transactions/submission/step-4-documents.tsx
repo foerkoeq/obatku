@@ -1,329 +1,470 @@
-"use client";
+﻿"use client";
 
-import { useFormContext } from "react-hook-form";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
-import { SubmissionFormData } from "./schema";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, FileText, Upload, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Info,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  File,
+  Plus,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { SubmissionFormData, UploadedFile } from "./schema";
 
-// File Upload Component for Documents
-const DocumentUpload = ({ 
-  value, 
-  onChange, 
-  label, 
+interface Step4DocumentsProps {
+  formData: SubmissionFormData;
+  onChange: (updates: Partial<SubmissionFormData>) => void;
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function createUploadedFile(file: File): UploadedFile {
+  return {
+    file,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    preview: file.type.startsWith("image/")
+      ? URL.createObjectURL(file)
+      : undefined,
+  };
+}
+
+export function Step4Documents({ formData, onChange }: Step4DocumentsProps) {
+  return (
+    <div className="space-y-5">
+      {/* Info */}
+      <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+        <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
+        <AlertDescription className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
+          Unggah dokumen pendukung. Surat Pengajuan dari BPP wajib diunggah
+          dalam format PDF.
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-4">
+        {/* 1. Surat Pengajuan BPP (Required, PDF only) */}
+        <SingleFileUpload
+          label="Surat Pengajuan / Rekomendasi BPP"
+          description="Surat rekomendasi dari Balai Penyuluhan Pertanian (BPP)"
+          required
+          nomorSurat={formData.nomorSuratPengajuanBPP}
+          onNomorSuratChange={(value) =>
+            onChange({ nomorSuratPengajuanBPP: value })
+          }
+          accept=".pdf"
+          acceptLabel="PDF"
+          icon={<FileText className="w-5 h-5" />}
+          file={formData.suratPengajuanBPP}
+          onFileChange={(file) => onChange({ suratPengajuanBPP: file })}
+        />
+
+        {/* 2. Rekomendasi POPT (Optional, PDF only) */}
+        <SingleFileUpload
+          label="Rekomendasi POPT"
+          description="Surat rekomendasi dari Pengamat Organisme Pengganggu Tumbuhan"
+          nomorSurat={formData.nomorSuratRekomendasiPOPT}
+          onNomorSuratChange={(value) =>
+            onChange({ nomorSuratRekomendasiPOPT: value })
+          }
+          accept=".pdf"
+          acceptLabel="PDF"
+          icon={<FileText className="w-5 h-5" />}
+          file={formData.rekomendasiPOPT}
+          onFileChange={(file) => onChange({ rekomendasiPOPT: file })}
+        />
+
+        <Separator />
+
+        {/* 3. Dokumen Lainnya (Optional, multiple, images & docs) */}
+        <MultiFileUpload
+          label="Dokumen Pendukung Lainnya"
+          description="Foto lapangan, foto serangan, atau dokumen pendukung lainnya"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+          acceptLabel="PDF, JPG, PNG, DOC"
+          files={formData.dokumenLainnya}
+          onFilesChange={(files) => onChange({ dokumenLainnya: files })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// Sub-component: Single File Upload
+// =============================================
+
+function SingleFileUpload({
+  label,
   description,
-  accept = "image/*,.pdf",
-  maxSize = 10 // MB
+  required = false,
+  nomorSurat,
+  onNomorSuratChange,
+  accept,
+  acceptLabel,
+  icon,
+  file,
+  onFileChange,
 }: {
-  value?: File | null;
-  onChange: (file: File | null) => void;
   label: string;
-  description?: string;
-  accept?: string;
-  maxSize?: number;
-}) => {
-  const [dragActive, setDragActive] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  description: string;
+  required?: boolean;
+  nomorSurat: string;
+  onNomorSuratChange: (value: string) => void;
+  accept: string;
+  acceptLabel: string;
+  icon: React.ReactNode;
+  file: UploadedFile | null;
+  onFileChange: (file: UploadedFile | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string>("");
 
-  const handleFile = (file: File) => {
-    // Validate file type
-    const isImage = file.type.startsWith('image/');
-    const isPDF = file.type === 'application/pdf';
-    
-    if (!isImage && !isPDF) {
-      toast.error("Format file tidak didukung. Gunakan gambar (JPG, PNG) atau PDF.");
-      return;
-    }
+  const handleFile = useCallback(
+    (f: File) => {
+      setError("");
+      // Validate type
+      const exts = accept.split(",").map((e) => e.trim().toLowerCase());
+      const ext = "." + f.name.split(".").pop()?.toLowerCase();
+      if (!exts.includes(ext)) {
+        setError(`Format tidak valid. Gunakan: ${acceptLabel}`);
+        return;
+      }
+      // Validate size
+      if (f.size > MAX_FILE_SIZE) {
+        setError("Ukuran file maksimal 10 MB");
+        return;
+      }
+      onFileChange(createUploadedFile(f));
+    },
+    [accept, acceptLabel, onFileChange]
+  );
 
-    // Validate file size
-    if (file.size > maxSize * 1024 * 1024) {
-      toast.error(`Ukuran file terlalu besar. Maksimal ${maxSize}MB.`);
-      return;
-    }
-
-    onChange(file);
-
-    // Create preview for images
-    if (isImage) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setPreview(null);
-    }
-
-    toast.success("File berhasil dipilih");
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
-    }
-  };
-
-  const removeFile = () => {
-    onChange(null);
-    setPreview(null);
-  };
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      if (e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    },
+    [handleFile]
+  );
 
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">{label}</Label>
-      
-      {!value ? (
-        <div
-          className={`
-            relative border-2 border-dashed rounded-lg p-6 transition-colors
-            ${dragActive 
-              ? "border-primary bg-primary/5" 
-              : "border-muted-foreground/25 hover:border-primary/50"
-            }
-          `}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <input
-            type="file"
-            accept={accept}
-            onChange={handleChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            id={`file-upload-${label.replace(/\s+/g, '-').toLowerCase()}`}
-          />
-          <div className="flex flex-col items-center justify-center gap-2 text-center">
-            <Upload className="w-8 h-8 text-muted-foreground" />
-            <div>
-              <span className="text-sm font-medium text-primary">Klik untuk upload</span>
-              <span className="text-sm text-muted-foreground"> atau drag & drop</span>
+    <Card className="border overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold">{label}</Label>
+              {required && (
+                <Badge
+                  color="destructive"
+                  className="text-[9px] px-1.5 py-0"
+                >
+                  Wajib
+                </Badge>
+              )}
+              {!required && (
+                <Badge
+                  color="secondary"
+                  className="text-[9px] px-1.5 py-0"
+                >
+                  Opsional
+                </Badge>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {accept.includes('pdf') ? 'Gambar (JPG, PNG) atau PDF' : 'Gambar (JPG, PNG)'} • Maks {maxSize}MB
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {description}
             </p>
           </div>
         </div>
-      ) : (
-        <div className="border rounded-lg p-4 bg-muted/30">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              {preview ? (
-                <img 
-                  src={preview} 
-                  alt="Preview" 
-                  className="w-16 h-16 object-cover rounded border"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{value.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(value.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={removeFile}
-              className="shrink-0"
-            >
-              <span className="sr-only">Hapus file</span>
-              ×
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
-    </div>
-  );
-};
 
-export function Step4Documents() {
-  const { control, watch } = useFormContext<SubmissionFormData>();
-  const letterDate = watch("letterDate");
-  
-  // Get today's date at midnight for comparison
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+        {/* Upload area or file preview */}
+        <div className="space-y-1.5">
+          <Label className="text-xs sm:text-sm font-medium">
+            No. Surat {required && <span className="text-destructive">*</span>}
+          </Label>
+          <Input
+            value={nomorSurat}
+            onChange={(event) => onNomorSuratChange(event.target.value)}
+            placeholder={
+              required
+                ? "Contoh: 521/BPP-JN/III/2026"
+                : "Opsional, isi jika tersedia"
+            }
+            className="h-9"
+          />
+        </div>
+
+        {!file ? (
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onClick={() => inputRef.current?.click()}
+            className={cn(
+              "relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30"
+            )}
+          >
+            <Upload
+              className={cn(
+                "w-8 h-8 mx-auto mb-2 transition-colors",
+                dragOver ? "text-primary" : "text-muted-foreground/40"
+              )}
+            />
+            <p className="text-sm font-medium text-muted-foreground">
+              Klik atau seret file ke sini
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {acceptLabel} • Maks. 10 MB
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept={accept}
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleFile(e.target.files[0]);
+                  e.target.value = "";
+                }
+              }}
+              className="hidden"
+            />
+          </div>
+        ) : (
+          <FilePreview
+            file={file}
+            onRemove={() => {
+              if (file.preview) URL.revokeObjectURL(file.preview);
+              onFileChange(null);
+            }}
+          />
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-1.5 text-destructive">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-xs">{error}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================
+// Sub-component: Multi File Upload
+// =============================================
+
+function MultiFileUpload({
+  label,
+  description,
+  accept,
+  acceptLabel,
+  files,
+  onFilesChange,
+}: {
+  label: string;
+  description: string;
+  accept: string;
+  acceptLabel: string;
+  files: UploadedFile[];
+  onFilesChange: (files: UploadedFile[]) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string>("");
+
+  const handleFiles = useCallback(
+    (newFiles: FileList) => {
+      setError("");
+      const exts = accept.split(",").map((e) => e.trim().toLowerCase());
+      const added: UploadedFile[] = [];
+
+      for (let i = 0; i < newFiles.length; i++) {
+        const f = newFiles[i];
+        const ext = "." + f.name.split(".").pop()?.toLowerCase();
+        if (!exts.includes(ext)) {
+          setError(`"${f.name}" format tidak valid. Gunakan: ${acceptLabel}`);
+          continue;
+        }
+        if (f.size > MAX_FILE_SIZE) {
+          setError(`"${f.name}" melebihi batas 10 MB`);
+          continue;
+        }
+        added.push(createUploadedFile(f));
+      }
+
+      if (added.length > 0) {
+        onFilesChange([...files, ...added]);
+      }
+    },
+    [accept, acceptLabel, files, onFilesChange]
+  );
+
+  const removeFile = (index: number) => {
+    const updated = [...files];
+    const removed = updated.splice(index, 1)[0];
+    if (removed.preview) URL.revokeObjectURL(removed.preview);
+    onFilesChange(updated);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Info Alert */}
-      <Alert className="bg-primary/5 border-primary/20">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertDescription className="text-sm">
-          Lengkapi dokumen pengajuan. Pastikan semua dokumen sudah diunggah dan tanggal tidak mundur dari hari ini.
-        </AlertDescription>
-      </Alert>
+    <Card className="border overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 text-muted-foreground">
+            <ImageIcon className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold">{label}</Label>
+              <Badge color="secondary" className="text-[9px] px-1.5 py-0">
+                Opsional
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {description}
+            </p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Letter Number */}
-        <FormField
-          control={control}
-          name="letterNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                Nomor Surat Pengajuan *
-              </FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Contoh: 400/123/414.123/2025" />
-              </FormControl>
-              <FormDescription>
-                Nomor surat pengajuan resmi dari kelompok tani
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+        {/* Existing files */}
+        {files.length > 0 && (
+          <div className="space-y-2">
+            {files.map((f, i) => (
+              <FilePreview key={i} file={f} onRemove={() => removeFile(i)} />
+            ))}
+          </div>
+        )}
+
+        {/* Add more button */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          className="w-full border-dashed text-xs h-9"
+        >
+          <Plus className="w-3.5 h-3.5 mr-1.5" />
+          Tambah Dokumen
+        </Button>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          multiple
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFiles(e.target.files);
+              e.target.value = "";
+            }
+          }}
+          className="hidden"
         />
 
-        {/* Letter Date */}
-        <FormField
-          control={control}
-          name="letterDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                Tanggal Surat *
-              </FormLabel>
-              <FormControl>
-                <DatePicker 
-                  value={field.value} 
-                  onChange={field.onChange}
-                  maxDate={new Date()} // Cannot be in the future
-                />
-              </FormControl>
-              <FormDescription>
-                Tanggal surat pengajuan (tidak boleh lebih dari hari ini)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Info */}
+        <p className="text-[10px] text-muted-foreground text-center">
+          {acceptLabel} • Maks. 10 MB per file
+        </p>
 
-        {/* Pickup Date */}
-        <FormField
-          control={control}
-          name="pickupDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                Rencana Pengambilan *
-              </FormLabel>
-              <FormControl>
-                <DatePicker 
-                  value={field.value} 
-                  onChange={field.onChange}
-                  minDate={today} // Cannot be in the past
-                />
-              </FormControl>
-              <FormDescription>
-                Tanggal rencana pengambilan obat. Tidak boleh mundur dari hari ini.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-1.5 text-destructive">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-xs">{error}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================
+// Sub-component: File Preview
+// =============================================
+
+function FilePreview({
+  file,
+  onRemove,
+}: {
+  file: UploadedFile;
+  onRemove: () => void;
+}) {
+  const isPdf = file.type === "application/pdf";
+  const isImage = file.type.startsWith("image/");
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2.5">
+      {/* Icon or preview */}
+      <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center bg-muted">
+        {isImage && file.preview ? (
+          <img
+            src={file.preview}
+            alt={file.name}
+            className="w-full h-full object-cover"
+          />
+        ) : isPdf ? (
+          <FileText className="w-5 h-5 text-red-500" />
+        ) : (
+          <File className="w-5 h-5 text-muted-foreground" />
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Letter File Upload */}
-        <FormField
-          control={control}
-          name="letterFile"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <DocumentUpload
-                  value={field.value as File | null}
-                  onChange={(file) => field.onChange(file)}
-                  label="Unggah Surat Pengajuan"
-                  description="Unggah scan/foto surat pengajuan resmi dalam format JPG, PNG, atau PDF (maks 10MB)"
-                  accept="image/*,.pdf"
-                  maxSize={10}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* POPT Recommendation File Upload */}
-        <FormField
-          control={control}
-          name="poptRecommendationFile"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <DocumentUpload
-                  value={field.value as File | null}
-                  onChange={(file) => field.onChange(file)}
-                  label="Unggah Rekomendasi Petugas POPT"
-                  description="Unggah dokumen rekomendasi dari petugas POPT setempat dalam format JPG, PNG, atau PDF (maks 10MB)"
-                  accept="image/*,.pdf"
-                  maxSize={10}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* File info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{file.name}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[10px] text-muted-foreground">
+            {formatFileSize(file.size)}
+          </span>
+          <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0" />
+          <span className="text-[10px] text-green-600">Siap diunggah</span>
+        </div>
       </div>
 
-      {/* Summary Info */}
-      <Alert className="bg-muted/50">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm">
-          <strong>Catatan:</strong> Pastikan semua dokumen sudah diunggah dengan jelas dan dapat dibaca. 
-          Dokumen yang tidak jelas dapat menyebabkan pengajuan ditolak.
-        </AlertDescription>
-      </Alert>
+      {/* Remove */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+      >
+        <X className="w-4 h-4" />
+      </Button>
     </div>
   );
 }

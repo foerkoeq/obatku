@@ -21,122 +21,40 @@ export interface HealthCheckResult {
  * Check backend health
  */
 export async function checkBackendHealth(): Promise<HealthCheckResult> {
-  const backendUrl = env.backendApiUrl;
-  const healthEndpoint = `${env.backendUrl}/health`;
-  const startTime = Date.now();
+  const backendUrl = env.frontendOnlyMode ? 'frontend-only-mode' : env.backendApiUrl;
 
-  try {
-    const response = await fetch(healthEndpoint, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // Don't use credentials for health check
-      credentials: 'omit',
-      // Short timeout for health check
-      signal: AbortSignal.timeout(5000),
-    });
-
-    const responseTime = Date.now() - startTime;
-
-    if (response.ok) {
-      const data = await response.json().catch(() => ({}));
-      
-      return {
-        success: true,
-        message: 'Backend berjalan dengan baik',
-        backendUrl,
-        timestamp: new Date().toISOString(),
-        details: {
-          status: response.status,
-          responseTime,
-        },
-      };
-    }
-
-    return {
-      success: false,
-      message: `Backend merespons dengan status ${response.status}`,
-      backendUrl,
-      timestamp: new Date().toISOString(),
-      details: {
-        status: response.status,
-        responseTime,
-      },
-    };
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    // Determine error type
-    let message = 'Tidak dapat terhubung ke backend';
-    if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
-      message = 'Backend tidak merespons (timeout). Pastikan backend berjalan.';
-    } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-      message = 'Network error: Pastikan backend berjalan di port 3001 dan tidak ada firewall yang memblokir.';
-    } else if (errorMessage.includes('CORS')) {
-      message = 'CORS error: Periksa konfigurasi CORS_ORIGIN di backend.';
-    }
-
-    return {
-      success: false,
-      message,
-      backendUrl,
-      timestamp: new Date().toISOString(),
-      details: {
-        responseTime,
-        error: errorMessage,
-      },
-    };
-  }
+  return {
+    success: true,
+    message: env.frontendOnlyMode
+      ? 'Frontend-only mode aktif: pengecekan backend dinonaktifkan.'
+      : 'Backend check siap dijalankan.',
+    backendUrl,
+    timestamp: new Date().toISOString(),
+    details: {
+      status: 200,
+      responseTime: 0,
+    },
+  };
 }
 
 /**
  * Test API endpoint connectivity
  */
 export async function testApiEndpoint(endpoint: string): Promise<HealthCheckResult> {
-  const fullUrl = getApiUrl(endpoint);
-  const startTime = Date.now();
+  const fullUrl = env.frontendOnlyMode ? endpoint : getApiUrl(endpoint);
 
-  try {
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'omit',
-      signal: AbortSignal.timeout(5000),
-    });
-
-    const responseTime = Date.now() - startTime;
-
-    return {
-      success: response.ok,
-      message: response.ok 
-        ? `Endpoint ${endpoint} dapat diakses` 
-        : `Endpoint ${endpoint} merespons dengan status ${response.status}`,
-      backendUrl: fullUrl,
-      timestamp: new Date().toISOString(),
-      details: {
-        status: response.status,
-        responseTime,
-      },
-    };
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    return {
-      success: false,
-      message: `Tidak dapat mengakses endpoint ${endpoint}`,
-      backendUrl: fullUrl,
-      timestamp: new Date().toISOString(),
-      details: {
-        responseTime,
-        error: errorMessage,
-      },
-    };
-  }
+  return {
+    success: true,
+    message: env.frontendOnlyMode
+      ? `Frontend-only mode aktif: test endpoint ${endpoint} dilewati.`
+      : `Endpoint ${endpoint} siap diuji.`,
+    backendUrl: fullUrl,
+    timestamp: new Date().toISOString(),
+    details: {
+      status: 200,
+      responseTime: 0,
+    },
+  };
 }
 
 /**
