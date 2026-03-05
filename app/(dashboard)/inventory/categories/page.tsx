@@ -6,12 +6,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,7 +20,7 @@ import PageTitle from "@/components/page-title";
 import CategoryManagementForm from "@/components/inventory/category-management-form";
 
 // Services
-import { inventoryService } from "@/lib/services/inventory.service";
+import { Category, inventoryService } from "@/lib/services/inventory.service";
 
 const CategoryManagementPage: React.FC = () => {
   const router = useRouter();
@@ -31,31 +31,29 @@ const CategoryManagementPage: React.FC = () => {
     subCategories: 0,
   });
 
+  const loadStats = async () => {
+    try {
+      const response = await inventoryService.getCategories();
+      const categories: Category[] = response.data?.data ?? [];
+      const rootCategories = categories.filter((cat) => !cat.parentId);
+      const subCategories = categories.filter((cat) => !!cat.parentId);
+      const activeCategories = categories.filter((cat) => cat.isActive);
+
+      setStats({
+        totalCategories: categories.length,
+        activeCategories: activeCategories.length,
+        rootCategories: rootCategories.length,
+        subCategories: subCategories.length,
+      });
+    } catch (error) {
+      console.error("Error loading stats:", error);
+    }
+  };
+
   // Load stats on component mount
-  useState(() => {
-    const loadStats = async () => {
-      try {
-        const response = await inventoryService.getCategories();
-        if (response.data) {
-          const categories = response.data;
-          const rootCategories = categories.filter(cat => !cat.parentId);
-          const subCategories = categories.filter(cat => cat.parentId);
-          const activeCategories = categories.filter(cat => cat.isActive);
-
-          setStats({
-            totalCategories: categories.length,
-            activeCategories: activeCategories.length,
-            rootCategories: rootCategories.length,
-            subCategories: subCategories.length,
-          });
-        }
-      } catch (error) {
-        console.error('Error loading stats:', error);
-      }
-    };
-
+  useEffect(() => {
     loadStats();
-  });
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -63,27 +61,6 @@ const CategoryManagementPage: React.FC = () => {
 
   const handleSuccess = () => {
     // Refresh stats after successful operation
-    const loadStats = async () => {
-      try {
-        const response = await inventoryService.getCategories();
-        if (response.data) {
-          const categories = response.data;
-          const rootCategories = categories.filter(cat => !cat.parentId);
-          const subCategories = categories.filter(cat => cat.parentId);
-          const activeCategories = categories.filter(cat => cat.isActive);
-
-          setStats({
-            totalCategories: categories.length,
-            activeCategories: activeCategories.length,
-            rootCategories: rootCategories.length,
-            subCategories: subCategories.length,
-          });
-        }
-      } catch (error) {
-        console.error('Error loading stats:', error);
-      }
-    };
-
     loadStats();
   };
 
@@ -101,8 +78,10 @@ const CategoryManagementPage: React.FC = () => {
         
         <PageTitle 
           title="Manajemen Kategori" 
-          description="Kelola kategori obat untuk organisasi inventory yang lebih baik"
         />
+        <p className="text-sm text-muted-foreground mt-1">
+          Kelola kategori obat untuk organisasi inventory yang lebih baik
+        </p>
       </div>
 
       {/* Statistics Cards */}
@@ -123,7 +102,7 @@ const CategoryManagementPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Kategori Aktif</CardTitle>
-            <Badge variant="default" className="h-4 w-4 bg-green-500" />
+            <Badge color="green" className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.activeCategories}</div>
