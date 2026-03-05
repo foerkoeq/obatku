@@ -176,6 +176,31 @@ const MedicineDetailPage: React.FC = () => {
     }).format(amount);
   };
 
+  const formatExpiryDate = (value: DrugInventory['expiryDate']) => {
+    if (value instanceof Date) {
+      return format(value, 'dd MMMM yyyy', { locale: id });
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '-';
+
+      return value
+        .map((item) => {
+          const parsedDate = item instanceof Date ? item : new Date(item.date);
+          const formattedDate = format(parsedDate, 'dd MMMM yyyy', { locale: id });
+
+          if (item instanceof Date) {
+            return formattedDate;
+          }
+
+          return `${formattedDate} (${item.percentage}%)`;
+        })
+        .join(', ');
+    }
+
+    return '-';
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -374,7 +399,7 @@ const MedicineDetailPage: React.FC = () => {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Tanggal Expired</label>
               <p className="text-sm">
-                {format(medicineData.expiryDate, 'dd MMMM yyyy', { locale: id })}
+                {formatExpiryDate(medicineData.expiryDate)}
               </p>
             </div>
             

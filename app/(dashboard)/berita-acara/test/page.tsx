@@ -308,8 +308,8 @@ export default function BeritaAcaraTestPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Badge variant="outline">{currentData.kategoriObat}</Badge>
-                <Badge variant="secondary">{currentData.daftarBarang.length} items</Badge>
+                <Badge className="border-border bg-transparent text-foreground">{currentData.kategoriObat}</Badge>
+                <Badge color="secondary">{currentData.daftarBarang.length} items</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
                 {dataVariations.find(v => v.key === selectedData)?.description}
@@ -376,7 +376,7 @@ export default function BeritaAcaraTestPage() {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span>Kategori:</span>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge className="border-border bg-transparent text-foreground text-xs">
                         {testDataVariations[variation.key].kategoriObat}
                       </Badge>
                     </div>
@@ -455,7 +455,7 @@ export default function BeritaAcaraTestPage() {
                         <span className="font-medium">{barang.merekDagang}</span>
                         <span className="text-muted-foreground ml-2">({barang.opt})</span>
                       </div>
-                      <Badge variant="outline">{barang.jumlah}</Badge>
+                      <Badge className="border-border bg-transparent text-foreground">{barang.jumlah}</Badge>
                     </div>
                   ))}
                 </div>

@@ -13,14 +13,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Save, ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Form,
@@ -40,10 +38,15 @@ import { TagInput } from "@/components/form/tag-input";
 import { ImageUpload } from "@/components/form/image-upload";
 
 // Services
-import { inventoryService } from "@/lib/services/inventory.service";
+import {
+  inventoryService,
+  Medicine,
+  Category,
+  Supplier,
+} from "@/lib/services/inventory.service";
 
 // Types
-import { DrugInventory, DrugCategory, Supplier, UserRole } from "@/lib/types/inventory";
+import { UserRole } from "@/lib/types/inventory";
 
 // Validation Schema - same as add form
 const editMedicineSchema = z.object({
@@ -94,10 +97,10 @@ const EditMedicinePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [userRole] = useState<UserRole>('admin'); // In real app, get from auth context
-  const [medicineData, setMedicineData] = useState<DrugInventory | null>(null);
+  const [medicineData, setMedicineData] = useState<Medicine | null>(null);
 
   // State for dynamic options
-  const [categories, setCategories] = useState<DrugCategory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [units, setUnits] = useState(unitOptions);
   const [largePackUnitsList, setLargePackUnitsList] = useState(largePackUnits);
@@ -147,19 +150,22 @@ const EditMedicinePage: React.FC = () => {
           // Load medicine data
           const medicineResponse = await inventoryService.getMedicineById(medicineId);
           const medicine = medicineResponse.data;
+          if (!medicine) {
+            throw new Error('Data obat tidak ditemukan');
+          }
           setMedicineData(medicine);
           
           // Load categories
           const categoriesResponse = await inventoryService.getCategories();
-          setCategories(categoriesResponse.data || []);
+          setCategories(categoriesResponse.data?.data ?? []);
           
           // Load suppliers
           const suppliersResponse = await inventoryService.getSuppliers();
-          setSuppliers(suppliersResponse.data || []);
+          setSuppliers(suppliersResponse.data?.data ?? []);
           
           // Load stock data
-          const stockResponse = await inventoryService.getStock({ medicineId });
-          const stock = stockResponse.data?.[0];
+          const stockResponse = await inventoryService.getStock(undefined, { medicineId });
+          const stock = stockResponse.data?.data?.[0];
           
           // Pre-populate form
           form.reset({
@@ -181,7 +187,7 @@ const EditMedicinePage: React.FC = () => {
             targetPest: [], // This would need to be fetched from a separate table
             storageLocation: stock?.location || '',
             notes: medicine.description || '',
-            images: medicine.image ? [medicine.image] : [],
+            images: [],
           });
           
         } catch (error) {
@@ -206,6 +212,9 @@ const EditMedicinePage: React.FC = () => {
       });
       
       const newCategoryObj = response.data;
+      if (!newCategoryObj) {
+        throw new Error('Kategori baru tidak valid');
+      }
       setCategories(prev => [...prev, newCategoryObj]);
       
       // Set the new category as selected
@@ -220,9 +229,15 @@ const EditMedicinePage: React.FC = () => {
 
   const handleAddSupplier = async (newSupplier: string) => {
     try {
+      const supplierCode = newSupplier
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 10) || 'SUPPLIER';
+
       const response = await inventoryService.createSupplier({
         name: newSupplier,
-        contact: '-',
+        code: supplierCode,
+        contactPerson: '-',
         email: '',
         phone: '',
         address: '',
@@ -233,6 +248,9 @@ const EditMedicinePage: React.FC = () => {
       });
       
       const newSupplierObj = response.data;
+      if (!newSupplierObj) {
+        throw new Error('Supplier baru tidak valid');
+      }
       setSuppliers(prev => [...prev, newSupplierObj]);
       
       // Set the new supplier as selected
@@ -280,16 +298,16 @@ const EditMedicinePage: React.FC = () => {
       // If images are uploaded, upload them
       if (data.images && data.images.length > 0) {
         for (const image of data.images) {
-          if (image instanceof File) {
-            await inventoryService.uploadMedicineImage(medicineId, image);
+          if (image?.file instanceof File) {
+            await inventoryService.uploadMedicineImage(medicineId, image.file);
           }
         }
       }
 
       // Update stock if changed
       if (medicineData) {
-        const stockResponse = await inventoryService.getStock({ medicineId });
-        const existingStock = stockResponse.data?.[0];
+        const stockResponse = await inventoryService.getStock(undefined, { medicineId });
+        const existingStock = stockResponse.data?.data?.[0];
         
         if (existingStock) {
           await inventoryService.updateStock(existingStock.id, {
@@ -366,7 +384,6 @@ const EditMedicinePage: React.FC = () => {
         
         <PageTitle 
           title="Edit Obat" 
-          description={`Edit data obat: ${medicineData.name}`}
         />
       </div>
 
@@ -621,8 +638,8 @@ const EditMedicinePage: React.FC = () => {
                       <FormLabel>Tanggal Masuk *</FormLabel>
                       <FormControl>
                         <DatePicker
-                          date={field.value}
-                          onSelect={field.onChange}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -638,8 +655,8 @@ const EditMedicinePage: React.FC = () => {
                       <FormLabel>Tanggal Expired *</FormLabel>
                       <FormControl>
                         <DatePicker
-                          date={field.value}
-                          onSelect={field.onChange}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -723,9 +740,7 @@ const EditMedicinePage: React.FC = () => {
                         value={field.value}
                         onChange={field.onChange}
                         maxFiles={5}
-                        maxSize={5 * 1024 * 1024} // 5MB
-                        accept="image/*"
-                        placeholder="Upload foto obat (maksimal 5 file, 5MB per file)"
+                        maxSize={5}
                       />
                     </FormControl>
                     <FormDescription>

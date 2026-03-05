@@ -12,6 +12,7 @@ import { ArrowLeft, Download, Printer, Share2, AlertCircle, Loader2 } from "luci
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { extractExpiryDates } from "@/lib/utils/date-utils";
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,6 +189,11 @@ const BarcodeViewPage: React.FC = () => {
     );
   }
 
+  const extractedExpiryDates = extractExpiryDates(medicineData.expiryDate);
+  const formattedExpiryDate = extractedExpiryDates[0]
+    ? format(extractedExpiryDates[0], 'dd/MM/yyyy', { locale: id })
+    : '-';
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       {/* Page Header */}
@@ -287,7 +293,7 @@ const BarcodeViewPage: React.FC = () => {
                     <div>
                       <span className="font-medium">Expired:</span>
                       <br />
-                      {format(medicineData.expiryDate, 'dd/MM/yyyy', { locale: id })}
+                      {formattedExpiryDate}
                     </div>
                     <div>
                       <span className="font-medium">Dicetak:</span>
