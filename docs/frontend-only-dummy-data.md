@@ -8,6 +8,7 @@ Mode frontend-only sekarang aktif default lewat `NEXT_PUBLIC_FRONTEND_ONLY_MODE=
 - `lib/data/user-demo.ts`
 - `lib/data/transaction-demo.ts`
 - `lib/data/tuban-data.ts`
+- `lib/data/settings-demo.ts`
 - Router dummy terpusat: `lib/api/mock-router.ts`
 
 ## Endpoint yang sudah disiapkan dummy
@@ -48,3 +49,4 @@ Berikut endpoint yang belum punya struktur dummy spesifik, jadi saat dipanggil a
 
 - Fallback generic tetap mengembalikan response `success: true` agar UI tidak putus, tetapi `data` bisa `null`.
 - Kalau halaman tertentu butuh shape data spesifik, tambahkan mapping endpoint tersebut di `lib/api/mock-router.ts`.
+- Untuk halaman pengaturan frontend-only, preferensi aplikasi sementara menggunakan mock lokal dari `lib/data/settings-demo.ts`.
