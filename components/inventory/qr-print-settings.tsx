@@ -27,6 +27,8 @@ export interface QRPrintOptions {
     includeItemInfo: boolean;
     includeDates: boolean;
     includeLocation: boolean;
+    paperSize: "A4" | "Letter";
+    orientation: "portrait" | "landscape";
   };
   totalLabels: number;
 }
@@ -51,6 +53,8 @@ const QRPrintSettings: React.FC<QRPrintSettingsProps> = ({
     includeItemInfo: true,
     includeDates: true,
     includeLocation: true,
+    paperSize: "A4",
+    orientation: "portrait",
   });
 
   // Calculate total labels based on current settings

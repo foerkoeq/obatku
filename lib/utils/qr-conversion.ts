@@ -7,8 +7,8 @@ interface PrintSettings {
   includeItemInfo: boolean;
   includeDates: boolean;
   includeLocation: boolean;
-  paperSize: "A4" | "Letter";
-  orientation: "portrait" | "landscape";
+  paperSize?: "A4" | "Letter";
+  orientation?: "portrait" | "landscape";
 }
 
 /**

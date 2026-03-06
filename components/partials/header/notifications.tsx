@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from '@/components/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { notifications, type Notification } from "./data";
+import { notifications } from "./data";
 import shortImage from "@/public/images/all-img/short-image-2.png";
 import { Icon } from "@/components/ui/icon";
 
@@ -52,7 +52,7 @@ const Notifications = () => {
                             >
                                 <div className="flex-none">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={item.image} />
+                                        <AvatarImage src={item.avatar || shortImage.src} />
                                         <AvatarFallback>{item.title.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 </div>
@@ -62,7 +62,7 @@ const Notifications = () => {
                                             className={cn(
                                                 "text-sm font-medium text-default-900",
                                                 {
-                                                    "text-default-600": item.unread,
+                                                    "text-default-600": item.unreadmessage,
                                                 }
                                             )}
                                         >
@@ -70,7 +70,7 @@ const Notifications = () => {
                                         </div>
                                         <div
                                             className={cn("text-xs  text-default-600 mt-1", {
-                                                "text-default-500": item.unread,
+                                                "text-default-500": item.unreadmessage,
                                             })}
                                         >
                                             {item.desc}
