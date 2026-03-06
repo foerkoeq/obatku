@@ -31,17 +31,11 @@ const Tooltip = TooltipPrimitive.Root
 const TooltipTrigger = TooltipPrimitive.Trigger
 const TooltipArrow = TooltipPrimitive.Arrow;
 
-const TooltipProvider = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Provider>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>
->(
-  ({ delayDuration = 0, ...props }, ref) => (
-    <TooltipPrimitive.Provider
-
-      {...props}
-      delayDuration={delayDuration}
-    />
-  )
+const TooltipProvider = ({
+  delayDuration = 0,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>) => (
+  <TooltipPrimitive.Provider {...props} delayDuration={delayDuration} />
 );
 TooltipProvider.displayName = TooltipPrimitive.Provider.displayName;
 
