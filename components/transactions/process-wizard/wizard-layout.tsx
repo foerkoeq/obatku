@@ -73,7 +73,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               )}
             </div>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge color="secondary" className="text-xs">
             {currentStep}/{steps.length}
           </Badge>
         </div>

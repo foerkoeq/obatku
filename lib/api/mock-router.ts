@@ -674,7 +674,7 @@ export async function getDummyApiResponse(
       return messageResponse('Transaksi dummy disetujui');
     }
     if (transactionId && method === 'POST' && path.endsWith('/process')) {
-      transactionStore = transactionStore.map((transaction) => transaction.id === transactionId ? { ...transaction, status: 'in_distribution', updatedAt: nowIso() } : transaction);
+      transactionStore = transactionStore.map((transaction) => transaction.id === transactionId ? { ...transaction, status: 'distributing', updatedAt: nowIso() } : transaction);
       return messageResponse('Transaksi dummy diproses');
     }
     if (transactionId && method === 'POST' && path.endsWith('/complete')) {

@@ -1,5 +1,6 @@
 import { DrugInventory } from "@/lib/types/inventory";
 import { MedicineData } from "@/components/print/qr-label-template";
+import { extractExpiryDates } from "@/lib/utils/date-utils";
 
 // Define print settings type locally to avoid circular import
 interface PrintSettings {
@@ -19,10 +20,22 @@ export const convertDrugToMedicine = (
   printSettings?: PrintSettings
 ): MedicineData => {
   // Format dates
-  const formatDate = (date: Date | string): string => {
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "";
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
     return d.toISOString().split('T')[0];
   };
+
+  const getPrimaryExpiryDate = (expiryDate: DrugInventory["expiryDate"]): Date | null => {
+    const dates = extractExpiryDates(expiryDate)
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    return dates[0] ?? null;
+  };
+
+  const primaryExpiryDate = getPrimaryExpiryDate(drug.expiryDate);
 
   // Create base medicine data
   const medicine: MedicineData = {
@@ -32,7 +45,7 @@ export const convertDrugToMedicine = (
     activeIngredient: printSettings?.includeItemInfo ? drug.content : "",
     source: drug.barcode || `OBAT-${drug.id}`, // Use barcode or generate from ID
     entryDate: printSettings?.includeDates ? formatDate(drug.entryDate) : "",
-    expiryDate: printSettings?.includeDates ? formatDate(drug.expiryDate) : "",
+    expiryDate: printSettings?.includeDates ? formatDate(primaryExpiryDate) : "",
     location: printSettings?.includeLocation ? drug.storageLocation : "",
   };
 
@@ -53,13 +66,17 @@ export const convertDrugsToMedicines = (
  * Generate QR code data string from DrugInventory
  */
 export const generateQRDataFromDrug = (drug: DrugInventory): string => {
+  const primaryExpiryDate = extractExpiryDates(drug.expiryDate)
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+
   const qrData = {
     type: "MEDICINE",
     id: drug.id,
     name: drug.name,
     barcode: drug.barcode,
     location: drug.storageLocation,
-    expiryDate: drug.expiryDate.toISOString().split('T')[0],
+    expiryDate: primaryExpiryDate ? primaryExpiryDate.toISOString().split('T')[0] : "",
     timestamp: new Date().toISOString(),
   };
 

@@ -383,14 +383,3 @@ class AuthService {
 
 // Export singleton instance
 export const authService = new AuthService();
-
-// Export types
-export type {
-  LoginCredentials,
-  LoginResponse,
-  RefreshTokenResponse,
-  UserProfile,
-  ChangePasswordRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
-};

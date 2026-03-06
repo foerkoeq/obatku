@@ -1,6 +1,6 @@
 import { atom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import { UserProfile, UserRole, UserPermission } from '@/lib/types'
+import { UserProfile, UserRole, UserPermission } from '@/lib/services'
 
 // ============================================================================
 // USER PROFILE STATE
@@ -192,12 +192,8 @@ export const userDisplayNameAtom = atom(
   (get) => {
     const userState = get(userStateAtom)
     if (!userState.profile) return 'Guest'
-    
-    if (userState.profile.firstName && userState.profile.lastName) {
-      return `${userState.profile.firstName} ${userState.profile.lastName}`
-    }
-    
-    return userState.profile.username || userState.profile.email || 'User'
+
+    return userState.profile.name || userState.profile.email || userState.profile.nip || 'User'
   }
 )
 

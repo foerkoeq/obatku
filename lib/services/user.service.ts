@@ -3,7 +3,7 @@
  * Handles user CRUD operations, role management, and permissions
  */
 
-import { api, API_ENDPOINTS, ListResponse, SingleResponse, MessageResponse, ApiServiceError, QueryBuilder, PaginationParams, SearchFilterParams } from './api';
+import { api, API_ENDPOINTS, ListResponse, SingleResponse, MessageResponse, ApiServiceError, QueryBuilder, PaginationParams, PaginationResponse, SearchFilterParams } from './api';
 import { getDummyExportBlob } from '@/lib/api/mock-router';
 
 // User interfaces
@@ -84,6 +84,21 @@ export interface RoleFilters extends SearchFilterParams {
   isActive?: boolean;
 }
 
+const USER_ROLES = ["Admin", "PPL", "Dinas", "POPT"] as const;
+type UserRoleValue = (typeof USER_ROLES)[number];
+
+const normalizeUserRole = (role: string): UserRoleValue => {
+  if (USER_ROLES.includes(role as UserRoleValue)) {
+    return role as UserRoleValue;
+  }
+  return "PPL";
+};
+
+const mapUserResponse = (user: User): User => ({
+  ...user,
+  role: normalizeUserRole(user.role),
+});
+
 /**
  * User Management Service Class
  */
@@ -107,16 +122,28 @@ class UserService {
         queryBuilder.addSort(filters.sort, filters.order);
         queryBuilder.addFilter(filters.filter);
         queryBuilder.addDateRange(filters.dateFrom, filters.dateTo);
-        queryBuilder.addStatus(filters.isActive ? 'active' : 'inactive');
+        if (filters.isActive !== undefined) {
+          queryBuilder.addStatus(filters.isActive ? 'active' : 'inactive');
+        }
         if (filters.role) {
           queryBuilder.addFilter({ role: filters.role });
         }
       }
       
       const queryString = queryBuilder.build();
-      const response = await api.get<User[]>(`${API_ENDPOINTS.USERS.BASE}${queryString}`);
-      
-      return response as ListResponse<User>;
+      const response = await api.get<PaginationResponse<User>>(`${API_ENDPOINTS.USERS.BASE}${queryString}`);
+
+      const normalizedData = response.data
+        ? {
+            ...response.data,
+            data: response.data.data.map(mapUserResponse),
+          }
+        : response.data;
+
+      return {
+        ...response,
+        data: normalizedData,
+      } as ListResponse<User>;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
     }
@@ -372,7 +399,13 @@ class UserService {
     recentRegistrations: number;
   }>> {
     try {
-      const response = await api.get(`${API_ENDPOINTS.USERS.BASE}/stats`);
+      const response = await api.get<{
+        totalUsers: number;
+        activeUsers: number;
+        inactiveUsers: number;
+        usersByRole: Record<string, number>;
+        recentRegistrations: number;
+      }>(`${API_ENDPOINTS.USERS.BASE}/stats`);
       return response;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
@@ -383,15 +416,4 @@ class UserService {
 // Export singleton instance
 export const userService = new UserService();
 
-// Export types
-export type {
-  User,
-  CreateUserRequest,
-  UpdateUserRequest,
-  UserRole,
-  CreateRoleRequest,
-  UpdateRoleRequest,
-  UserPermission,
-  UserFilters,
-  RoleFilters,
-};
+export type { PaginationParams } from './api';

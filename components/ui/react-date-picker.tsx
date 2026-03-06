@@ -74,7 +74,7 @@ export function ReactDatePickerWrapper({
   // Custom input component
   const CustomInput = React.forwardRef<
     HTMLButtonElement,
-    React.ButtonHTMLAttributes<HTMLButtonElement>
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">
   >(({ value: inputValue, onClick, ...inputProps }, ref) => (
     <div className="relative">
       <Button

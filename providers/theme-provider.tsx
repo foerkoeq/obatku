@@ -7,7 +7,6 @@ export function ThemeProvider({ children, ...props}: React.ComponentProps<typeof
   return (
     <NextThemesProvider 
       {...props}
-      suppressHydrationWarning
       enableSystem={false}
       defaultTheme="light"
       attribute="class"

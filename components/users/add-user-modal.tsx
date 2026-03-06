@@ -37,7 +37,7 @@ import { userSchema } from "@/lib/validations/user";
 import { cn } from "@/lib/utils";
 import DatePicker from "@/components/ui/date-picker";
 import { userService } from "@/lib/services/user.service";
-import { useFormStore } from "@/hooks/use-form-store";
+import { useFormValidation } from "@/hooks/use-form-store";
 
 type AddUserModalProps = {
   open: boolean;
@@ -47,7 +47,8 @@ type AddUserModalProps = {
 
 export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { setFormErrors, clearFormErrors } = useFormStore();
+  const formId = "add-user-form";
+  const { addFieldError, clearFieldErrors } = useFormValidation(formId);
   
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -64,7 +65,7 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
   async function onSubmit(values: z.infer<typeof userSchema>) {
     try {
       setIsSubmitting(true);
-      clearFormErrors();
+      clearFieldErrors();
       
       // Generate password from birth date
       const password = format(values.birthDate, "ddMMyy");
@@ -117,7 +118,9 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
           form.setError(field as any, { message });
         });
         
-        setFormErrors(fieldErrors);
+        Object.entries(fieldErrors).forEach(([field, message]) => {
+          addFieldError(field, message);
+        });
       } else {
         // Handle general errors
         toast.error("Failed to create user", {
@@ -132,7 +135,7 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
   const handleClose = () => {
     if (!isSubmitting) {
       form.reset();
-      clearFormErrors();
+      clearFieldErrors();
       onOpenChange(false);
     }
   };

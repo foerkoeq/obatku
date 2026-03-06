@@ -83,6 +83,22 @@ export interface ExpiryDateWithPercentage {
   percentage: number;
 }
 
+function isExpiryDateWithPercentageArray(
+  expiryDate: Date | Date[] | string | string[] | ExpiryDateWithPercentage[] | null | undefined
+): expiryDate is ExpiryDateWithPercentage[] {
+  if (!Array.isArray(expiryDate) || expiryDate.length === 0) {
+    return false;
+  }
+
+  return expiryDate.every(
+    (item) =>
+      typeof item === "object" &&
+      item !== null &&
+      "percentage" in item &&
+      "date" in item
+  );
+}
+
 /**
  * Formats an expiry date which can be a single Date, array of Dates, or array with percentage
  * Returns formatted string or object with primary and additional dates
@@ -105,7 +121,7 @@ export function formatExpiryDate(
   }
   
   // Check if it's an array with percentage objects
-  if (Array.isArray(expiryDate) && expiryDate.length > 0 && typeof expiryDate[0] === 'object' && 'percentage' in expiryDate[0]) {
+  if (isExpiryDateWithPercentageArray(expiryDate)) {
     // This is ExpiryDateWithPercentage[]
     const datesWithPercentage = expiryDate as ExpiryDateWithPercentage[];
     
@@ -201,7 +217,7 @@ export function formatExpiryDatesWithPercentage(
   }
   
   // Check if it's an array with percentage objects
-  if (Array.isArray(expiryDate) && expiryDate.length > 0 && typeof expiryDate[0] === 'object' && 'percentage' in expiryDate[0]) {
+  if (isExpiryDateWithPercentageArray(expiryDate)) {
     const datesWithPercentage = expiryDate as ExpiryDateWithPercentage[];
     
     // Sort by date (earliest first)
@@ -279,7 +295,7 @@ export function extractExpiryDates(
   }
   
   // Check if it's an array with percentage objects
-  if (Array.isArray(expiryDate) && expiryDate.length > 0 && typeof expiryDate[0] === 'object' && 'percentage' in expiryDate[0]) {
+  if (isExpiryDateWithPercentageArray(expiryDate)) {
     // This is ExpiryDateWithPercentage[]
     const datesWithPercentage = expiryDate as ExpiryDateWithPercentage[];
     return datesWithPercentage

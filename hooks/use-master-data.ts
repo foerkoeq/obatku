@@ -9,6 +9,28 @@ import { useState, useEffect, useCallback } from 'react';
 import { masterDataService, FarmerGroup, Commodity, PestType } from '@/lib/services/master-data.service';
 import { toast } from 'sonner';
 
+type NormalizedList<T> = {
+  items: T[];
+  total: number;
+};
+
+const normalizeListResponse = <T,>(
+  data: T[] | { items: T[]; total?: number } | undefined,
+): NormalizedList<T> => {
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length };
+  }
+
+  if (data && Array.isArray(data.items)) {
+    return {
+      items: data.items,
+      total: data.total ?? data.items.length,
+    };
+  }
+
+  return { items: [], total: 0 };
+};
+
 // # START OF useFarmerGroups Hook - Hook for farmer groups management
 // Purpose: Manage farmer groups data with CRUD operations
 // Returns: Farmer groups state and operations
@@ -33,8 +55,9 @@ export const useFarmerGroups = (params?: {
     try {
       const response = await masterDataService.getFarmerGroups(params);
       if (response.success) {
-        setFarmerGroups(response.data.items || response.data);
-        setTotal(response.data.total || response.data.length);
+        const { items, total } = normalizeListResponse(response.data);
+        setFarmerGroups(items);
+        setTotal(total);
       } else {
         throw new Error(response.message || 'Failed to fetch farmer groups');
       }
@@ -139,8 +162,9 @@ export const useCommodities = (params?: {
     try {
       const response = await masterDataService.getCommodities(params);
       if (response.success) {
-        setCommodities(response.data.items || response.data);
-        setTotal(response.data.total || response.data.length);
+        const { items, total } = normalizeListResponse(response.data);
+        setCommodities(items);
+        setTotal(total);
       } else {
         throw new Error(response.message || 'Failed to fetch commodities');
       }
@@ -246,8 +270,9 @@ export const usePestTypes = (params?: {
     try {
       const response = await masterDataService.getPestTypes(params);
       if (response.success) {
-        setPestTypes(response.data.items || response.data);
-        setTotal(response.data.total || response.data.length);
+        const { items, total } = normalizeListResponse(response.data);
+        setPestTypes(items);
+        setTotal(total);
       } else {
         throw new Error(response.message || 'Failed to fetch pest types');
       }
@@ -346,7 +371,7 @@ export const useDistricts = (options?: { showErrorToast?: boolean }) => {
     try {
       const response = await masterDataService.getDistricts();
       if (response.success) {
-        setDistricts(response.data);
+        setDistricts(response.data ?? []);
       } else {
         throw new Error(response.message || 'Failed to fetch districts');
       }

@@ -268,7 +268,7 @@ export function SubmissionWizard() {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
-              variant="secondary"
+              color="secondary"
               onClick={handleSaveDraft}
               disabled={isSubmitting}
               className="h-10 flex-1 sm:flex-none"

@@ -76,6 +76,34 @@ type ActionState = {
   user: User | null;
 };
 
+const ROLE_OPTIONS = ["Admin", "PPL", "Dinas", "POPT"] as const;
+const DEFAULT_AVATAR = "/images/avatar/av-1.svg";
+
+const normalizeUserRole = (role: string): User["role"] => {
+  if (ROLE_OPTIONS.includes(role as User["role"])) {
+    return role as User["role"];
+  }
+  return "PPL";
+};
+
+const mapApiUserToTableUser = (apiUser: any): User => ({
+  id: String(apiUser.id),
+  name: apiUser.name ?? "Unknown User",
+  email: apiUser.email ?? undefined,
+  role: normalizeUserRole(apiUser.role ?? "PPL"),
+  avatar: apiUser.avatar ?? DEFAULT_AVATAR,
+  status: apiUser.isActive ? "active" : "inactive",
+  lastLogin: apiUser.lastLogin ?? apiUser.updatedAt ?? new Date().toISOString(),
+  nip: apiUser.nip ?? "-",
+  phone: apiUser.phone ?? "",
+  birthDate: apiUser.birthDate ?? new Date().toISOString(),
+  address: apiUser.address,
+  isActive: Boolean(apiUser.isActive),
+  permissions: apiUser.permissions,
+  createdAt: apiUser.createdAt,
+  updatedAt: apiUser.updatedAt,
+});
+
 const UserRoleBadge = ({
   role,
   onClick,
@@ -151,8 +179,11 @@ export function UserTable() {
       const response = await userService.getUsers(pagination, filters);
       
       if (response.success) {
-        setUsers(response.data || []);
-        setTotalUsers(response.total || 0);
+        const paginationData = response.data;
+        const nextUsers = (paginationData?.data ?? []).map(mapApiUserToTableUser);
+
+        setUsers(nextUsers);
+        setTotalUsers(paginationData?.pagination?.total ?? 0);
       } else {
         toast.error("Failed to fetch users", {
           description: response.message || "An error occurred while fetching users",

@@ -228,8 +228,12 @@ const TransactionSubmissionForm = () => {
               {pestTypeOptions.map((pestType) => (
                 <Badge
                   key={pestType}
-                  variant={formData.pestTypes.includes(pestType) ? "default" : "outline"}
-                  className="cursor-pointer"
+                  color={formData.pestTypes.includes(pestType) ? "default" : undefined}
+                  className={`cursor-pointer ${
+                    !formData.pestTypes.includes(pestType)
+                      ? "border-border bg-transparent text-foreground hover:bg-muted"
+                      : ""
+                  }`}
                   onClick={() => handlePestTypeToggle(pestType)}
                 >
                   {pestType}

@@ -10,7 +10,7 @@ import { colorBank, ColorBankKey } from "@/components/ui/color-bank";
 import { cn } from "@/lib/utils";
 import { StockOpnameStats } from "@/lib/types/stock-opname";
 
-interface StockOpnameStatsCardsProps {
+export interface StockOpnameStatsCardsProps {
   stats: StockOpnameStats;
   onFilterClick?: (filterType: 'all' | 'checked' | 'unchecked' | 'discrepancy' | null) => void;
   activeFilter?: 'all' | 'checked' | 'unchecked' | 'discrepancy' | null;

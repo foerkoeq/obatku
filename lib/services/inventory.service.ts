@@ -652,7 +652,15 @@ class InventoryService {
     supplierDistribution: Record<string, number>;
   }>> {
     try {
-      const response = await api.get(`${API_ENDPOINTS.INVENTORY.MEDICINES}/stats`);
+      const response = await api.get<{
+        totalMedicines: number;
+        totalStock: number;
+        lowStockCount: number;
+        expiringCount: number;
+        totalValue: number;
+        categoryDistribution: Record<string, number>;
+        supplierDistribution: Record<string, number>;
+      }>(`${API_ENDPOINTS.INVENTORY.MEDICINES}/stats`);
       return response;
     } catch (error) {
       throw ApiServiceError.fromApiError(error as any);
@@ -700,25 +708,3 @@ class InventoryService {
 
 // Export singleton instance
 export const inventoryService = new InventoryService();
-
-// Export types
-export type {
-  Medicine,
-  CreateMedicineRequest,
-  UpdateMedicineRequest,
-  Stock,
-  CreateStockRequest,
-  UpdateStockRequest,
-  StockAdjustment,
-  CreateStockAdjustmentRequest,
-  Category,
-  CreateCategoryRequest,
-  UpdateCategoryRequest,
-  Supplier,
-  CreateSupplierRequest,
-  UpdateSupplierRequest,
-  MedicineFilters,
-  StockFilters,
-  CategoryFilters,
-  SupplierFilters,
-};

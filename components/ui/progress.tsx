@@ -1,9 +1,8 @@
 "use client"
 import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
-import { cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { color, size } from "@/lib/type";
 
 const progressVariants = cva(
   "relative overflow-hidden rounded-full bg-default-200 dark:bg-default-300",
@@ -32,11 +31,13 @@ const progressVariants = cva(
   }
 );
 
-interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
-  size?: size,
+type ProgressVariantProps = VariantProps<typeof progressVariants>;
+
+interface ProgressProps extends Omit<React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>, "color"> {
+  size?: ProgressVariantProps["size"],
   value?: number,
   showValue?: boolean,
-  color?: color,
+  color?: ProgressVariantProps["color"],
   isStripe?: boolean,
   isAnimate?: boolean
 }

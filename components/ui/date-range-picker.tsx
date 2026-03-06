@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import "react-datepicker/dist/react-datepicker.css"
 import "./date-picker-styles.css"
 
-interface DateRange {
+export interface DateRange {
   startDate: Date | null
   endDate: Date | null
 }
@@ -112,7 +112,7 @@ export function DateRangePicker({
   // Custom input component
   const CustomInput = React.forwardRef<
     HTMLButtonElement,
-    React.ButtonHTMLAttributes<HTMLButtonElement> & { value?: string }
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color"> & { value?: string }
   >(({ value: inputValue, onClick, ...inputProps }, ref) => (
     <Button
       ref={ref}

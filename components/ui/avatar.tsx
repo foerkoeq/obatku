@@ -4,16 +4,7 @@ import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
-import { cva } from "class-variance-authority";
-import { color, rounded } from "@/lib/type";
-
-export interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
-  size?: "sm" | "base" | "md" | "lg" | "xl";
-  shape?: "circle" | "square";
-  color?: color;
-  variant?: "default" | "outline" | "soft" | "ghost";
-  rounded?: rounded;
-}
+import { cva, type VariantProps } from "class-variance-authority";
 
 const avatarVariant = cva(
   "inline-flex items-center justify-center font-normal text-foreground select-none shrink-0  overflow-hidden",
@@ -162,6 +153,16 @@ const avatarVariant = cva(
     },
   }
 );
+
+type AvatarVariantProps = VariantProps<typeof avatarVariant>;
+
+export type AvatarProps = Omit<React.HTMLAttributes<HTMLSpanElement>, "color"> & {
+  size?: AvatarVariantProps["size"];
+  shape?: AvatarVariantProps["shape"];
+  color?: AvatarVariantProps["color"];
+  variant?: AvatarVariantProps["variant"];
+  rounded?: AvatarVariantProps["rounded"];
+};
 
 const Avatar = React.forwardRef<HTMLSpanElement, AvatarProps>(
   ({ size, shape, color, variant, rounded, className, ...props }, ref) => {

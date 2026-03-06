@@ -301,9 +301,9 @@ export const Step4FileUpload: React.FC<Step4FileUploadProps> = ({
               Upload foto atau scan Berita Acara yang telah ditandatangani oleh kedua belah pihak.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">JPG, PNG, PDF</Badge>
-              <Badge variant="outline">Maks 10MB</Badge>
-              <Badge variant="outline">Foto harus jelas</Badge>
+              <Badge color="secondary">JPG, PNG, PDF</Badge>
+              <Badge color="secondary">Maks 10MB</Badge>
+              <Badge color="secondary">Foto harus jelas</Badge>
             </div>
           </div>
         </CardContent>
@@ -411,7 +411,15 @@ export const Step4FileUpload: React.FC<Step4FileUploadProps> = ({
             <CardTitle className="flex items-center justify-between">
               <span>File Terpilih</span>
               <Badge 
-                variant={uploadedFile.uploadStatus === 'completed' ? 'default' : 'outline'}
+                color={
+                  uploadedFile.uploadStatus === 'completed'
+                    ? 'success'
+                    : uploadedFile.uploadStatus === 'error'
+                      ? 'destructive'
+                      : uploadedFile.uploadStatus === 'uploading'
+                        ? 'info'
+                        : 'secondary'
+                }
               >
                 {uploadedFile.uploadStatus === 'pending' && 'Siap Upload'}
                 {uploadedFile.uploadStatus === 'uploading' && 'Mengupload...'}

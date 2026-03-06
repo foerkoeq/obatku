@@ -3,7 +3,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
-import { color, rounded, shadow } from "@/lib/type";
+import { InputColor, rounded, shadow } from "@/lib/type";
 
 const alertVariants = cva(
   "relative w-full py-[18px] px-6 font-normal text-sm rounded-md flex md:items-center items-start gap-4",
@@ -96,7 +96,7 @@ export interface AlertProps
   VariantProps<typeof alertVariants> {
   dismissible?: boolean;
   onDismiss?: () => void;
-  color?: color;
+  color?: InputColor;
   shadow?: shadow;
   rounded?: rounded;
 }

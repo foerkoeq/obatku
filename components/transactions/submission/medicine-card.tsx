@@ -167,7 +167,7 @@ export function MedicineCard({
               {medicine.name}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge color="secondary" className="text-xs">
                 {medicine.category}
               </Badge>
             </div>
@@ -319,7 +319,7 @@ export function MedicineCard({
                     if (!isOutOfStock) onSelect();
                   }}
                   disabled={isOutOfStock}
-                  variant={recommended ? "default" : "secondary"}
+                  color={recommended ? "default" : "secondary"}
                 >
                   {isOutOfStock ? (
                     <>

@@ -14,7 +14,7 @@ import { Link } from '@/components/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { notifications } from "./data";
-import shortImage from "@/public/images/all-img/short-image-2.png";
+import fallbackAvatar from "@/public/images/all-img/inbox-2.png";
 import { Icon } from "@/components/ui/icon";
 
 const Notifications = () => {
@@ -52,7 +52,7 @@ const Notifications = () => {
                             >
                                 <div className="flex-none">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={item.avatar || shortImage.src} />
+                                        <AvatarImage src={item.avatar || fallbackAvatar.src} />
                                         <AvatarFallback>{item.title.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 </div>

@@ -151,7 +151,7 @@ export const useUserAuthActions = () => {
   const clearUserState = useSetAtom(clearUserStateAtom)
   
   const login = (profile: UserState['profile']) => {
-    setAuthStatus({ isAuthenticated: true, profile })
+    setAuthStatus({ isAuthenticated: true, profile: profile ?? undefined })
     updateLastActivity()
   }
   

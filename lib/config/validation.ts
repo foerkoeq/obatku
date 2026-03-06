@@ -146,5 +146,3 @@ export function getFeatureSummary(): Record<string, boolean> {
 // Export validation functions
 export const validateEnv = validateEnvironment;
 export const logEnvValidation = logEnvironmentValidation;
-export const isFeatureEnabled = isFeatureEnabled;
-export const getFeatureSummary = getFeatureSummary;

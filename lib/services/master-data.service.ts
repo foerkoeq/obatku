@@ -73,6 +73,15 @@ export interface CreatePestTypeRequest {
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
+interface PaginatedData<T> {
+  items: T[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+type ListResponse<T> = T[] | PaginatedData<T>;
+
 export const masterDataService = {
   // Farmer Groups
   async getFarmerGroups(params?: {
@@ -91,23 +100,23 @@ export const masterDataService = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}?${queryParams.toString()}`);
+    return api.get<ListResponse<FarmerGroup>>(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}?${queryParams.toString()}`);
   },
 
   async getFarmerGroup(id: string) {
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`);
+    return api.get<FarmerGroup>(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`);
   },
 
   async createFarmerGroup(data: CreateFarmerGroupRequest) {
-    return api.post(API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS, data);
+    return api.post<FarmerGroup>(API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS, data);
   },
 
   async updateFarmerGroup(id: string, data: Partial<CreateFarmerGroupRequest>) {
-    return api.put(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`, data);
+    return api.put<FarmerGroup>(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`, data);
   },
 
   async deleteFarmerGroup(id: string) {
-    return api.delete(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`);
+    return api.delete<{ id: string }>(`${API_ENDPOINTS.MASTER_DATA.FARMER_GROUPS}/${id}`);
   },
 
   // Commodities
@@ -125,23 +134,23 @@ export const masterDataService = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}?${queryParams.toString()}`);
+    return api.get<ListResponse<Commodity>>(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}?${queryParams.toString()}`);
   },
 
   async getCommodity(id: string) {
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`);
+    return api.get<Commodity>(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`);
   },
 
   async createCommodity(data: CreateCommodityRequest) {
-    return api.post(API_ENDPOINTS.MASTER_DATA.COMMODITIES, data);
+    return api.post<Commodity>(API_ENDPOINTS.MASTER_DATA.COMMODITIES, data);
   },
 
   async updateCommodity(id: string, data: Partial<CreateCommodityRequest>) {
-    return api.put(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`, data);
+    return api.put<Commodity>(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`, data);
   },
 
   async deleteCommodity(id: string) {
-    return api.delete(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`);
+    return api.delete<{ id: string }>(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/${id}`);
   },
 
   // Pest Types
@@ -161,41 +170,41 @@ export const masterDataService = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}?${queryParams.toString()}`);
+    return api.get<ListResponse<PestType>>(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}?${queryParams.toString()}`);
   },
 
   async getPestType(id: string) {
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`);
+    return api.get<PestType>(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`);
   },
 
   async createPestType(data: CreatePestTypeRequest) {
-    return api.post(API_ENDPOINTS.MASTER_DATA.PEST_TYPES, data);
+    return api.post<PestType>(API_ENDPOINTS.MASTER_DATA.PEST_TYPES, data);
   },
 
   async updatePestType(id: string, data: Partial<CreatePestTypeRequest>) {
-    return api.put(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`, data);
+    return api.put<PestType>(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`, data);
   },
 
   async deletePestType(id: string) {
-    return api.delete(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`);
+    return api.delete<{ id: string }>(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/${id}`);
   },
 
   // Utility methods
   async getCommodityCategories() {
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/categories`);
+    return api.get<string[]>(`${API_ENDPOINTS.MASTER_DATA.COMMODITIES}/categories`);
   },
 
   async getPestTypeCategories() {
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/categories`);
+    return api.get<string[]>(`${API_ENDPOINTS.MASTER_DATA.PEST_TYPES}/categories`);
   },
 
   async getDistricts() {
-    return api.get(API_ENDPOINTS.MASTER_DATA.DISTRICTS);
+    return api.get<string[]>(API_ENDPOINTS.MASTER_DATA.DISTRICTS);
   },
 
   async getVillages(district?: string) {
     const queryParams = district ? `?district=${encodeURIComponent(district)}` : '';
-    return api.get(`${API_ENDPOINTS.MASTER_DATA.VILLAGES}${queryParams}`);
+    return api.get<string[]>(`${API_ENDPOINTS.MASTER_DATA.VILLAGES}${queryParams}`);
   }
 };
 
