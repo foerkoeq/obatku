@@ -80,7 +80,7 @@
     "lucide-react": "^0.577.0",
     "moment": "^2.30.1",
     "multer": "^2.0.2",
-    "next": "15.3.4",
+    "next": "^16.1.6",
     "next-auth": "^5.0.0-beta.19",
     "next-themes": "^0.4.4",
     "nextra": "^4.2.17",
@@ -88,34 +88,24 @@
     "qrcode": "^1.5.4",
     "quill": "^2.0.2",
     "rate-limit-redis": "^4.2.1",
-    "react": "18.3.1",
+    "react": "^19.2.4",
     "react-apexcharts": "^1.4.1",
     "react-chartjs-2": "^5.2.0",
     "react-datepicker": "^8.4.0",
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "react-day-picker": "^9.14.0",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^19.2.4",
-=======
-    "react-day-picker": "^8.10.1",
-    "react-dom": "18.3.1",
->>>>>>> parent of d8f0970 (updatenext)
-=======
-    "react-day-picker": "^8.10.1",
-    "react-dom": "18.3.1",
->>>>>>> parent of d8f0970 (updatenext)
     "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.58.1",
     "react-hot-toast": "^2.4.1",
     "react-leaflet": "^4.2.1",
-    "react-quill": "^0.0.2",
+    "react-quill": "^2.0.0",
     "react-resizable-panels": "^2.0.19",
     "react-select": "^5.10.2",
-    "react-syntax-highlighter": "^5.8.0",
+    "react-syntax-highlighter": "^16.1.1",
     "recharts": "^2.12.7",
     "sharp": "^0.33.4",
     "sonner": "^1.5.0",
-    "swiper": "^11.1.4",
+    "swiper": "^12.1.2",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "validator": "^13.15.15",
@@ -128,8 +118,8 @@
     "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.12",
     "@types/node": "^20",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "^8",
     "eslint-config-next": "15.3.4",
     "jest": "^30.0.4",
@@ -139,7 +129,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   }
 }
