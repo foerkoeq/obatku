@@ -45,6 +45,7 @@ import StatusIndicator from "./status-indicator";
 import { Badge } from "@/components/ui/badge";
 import { DrugInventory, UserRole } from "@/lib/types/inventory";
 import { cn } from "@/lib/utils";
+import { extractExpiryDates } from "@/lib/utils/date-utils";
 
 interface InventoryTableProps {
   data: DrugInventory[];
@@ -251,20 +252,21 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         </Button>
       ),
       cell: ({ row }) => {
-        const expiryDates = Array.isArray(row.original.expiryDate) 
-          ? row.original.expiryDate 
-          : [row.original.expiryDate];
+        const expiryDates = extractExpiryDates(row.original.expiryDate);
+
+        if (expiryDates.length === 0) {
+          return <span className="text-xs text-default-400">-</span>;
+        }
         
         if (expiryDates.length === 1) {
           return (
             <span className="text-xs whitespace-nowrap">
-              {format(new Date(expiryDates[0]), "dd/MM/yy", { locale: id })}
+              {format(expiryDates[0], "dd/MM/yy", { locale: id })}
             </span>
           );
         }
         
-        const firstDate = format(new Date(expiryDates[0]), "dd/MM/yy", { locale: id });
-        const allDates = expiryDates.map(d => format(new Date(d), "dd/MM/yyyy", { locale: id })).join(", ");
+        const firstDate = format(expiryDates[0], "dd/MM/yy", { locale: id });
         
         return (
           <TooltipProvider>
@@ -280,7 +282,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
               <TooltipContent>
                 <div className="text-xs space-y-1">
                   {expiryDates.map((date, idx) => (
-                    <div key={idx}>{format(new Date(date), "dd/MM/yyyy", { locale: id })}</div>
+                    <div key={idx}>{format(date, "dd/MM/yyyy", { locale: id })}</div>
                   ))}
                 </div>
               </TooltipContent>

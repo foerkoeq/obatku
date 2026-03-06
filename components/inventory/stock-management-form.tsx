@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { inventoryService } from "@/lib/services/inventory.service";
 
 // Types
-import { Stock, Medicine, StockAdjustment } from "@/lib/services/inventory.service";
+import { Stock, Medicine } from "@/lib/services/inventory.service";
 
 // Validation Schema
 const stockAdjustmentSchema = z.object({
@@ -90,7 +90,7 @@ const StockManagementForm: React.FC<StockManagementFormProps> = ({
     const loadMedicines = async () => {
       try {
         const response = await inventoryService.getMedicines();
-        setMedicines(response.data || []);
+        setMedicines(response.data?.data || []);
       } catch (error) {
         console.error('Error loading medicines:', error);
         toast.error('Gagal memuat daftar obat');
@@ -115,8 +115,8 @@ const StockManagementForm: React.FC<StockManagementFormProps> = ({
 
   const loadStockData = async (medicineId: string) => {
     try {
-      const response = await inventoryService.getStock({ medicineId });
-      const stock = response.data?.[0];
+      const response = await inventoryService.getStock(undefined, { medicineId });
+      const stock = response.data?.data?.[0];
       setCurrentStock(stock || null);
       
       if (stock) {
@@ -155,11 +155,16 @@ const StockManagementForm: React.FC<StockManagementFormProps> = ({
       }
 
       // Create stock adjustment record
+      const adjustmentTypeMap: Record<StockAdjustmentFormData['adjustmentType'], 'addition' | 'subtraction' | 'correction'> = {
+        add: 'addition',
+        subtract: 'subtraction',
+        set: 'correction',
+      };
+
       await inventoryService.createStockAdjustment({
         stockId: currentStock?.id || '',
-        adjustmentType: data.adjustmentType,
+        type: adjustmentTypeMap[data.adjustmentType],
         quantity: data.quantity,
-        newQuantity,
         reason: data.reason,
         notes: data.notes,
       });
@@ -306,7 +311,7 @@ const StockManagementForm: React.FC<StockManagementFormProps> = ({
                             <SelectItem key={medicine.id} value={medicine.id}>
                               <div className="flex items-center gap-2">
                                 <span>{medicine.name}</span>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge color="secondary" className="text-xs">
                                   {medicine.category}
                                 </Badge>
                               </div>
@@ -449,8 +454,8 @@ const StockManagementForm: React.FC<StockManagementFormProps> = ({
                       <FormLabel>Tanggal Expired</FormLabel>
                       <FormControl>
                         <DatePicker
-                          date={field.value}
-                          onSelect={field.onChange}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormDescription>

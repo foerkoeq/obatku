@@ -107,7 +107,7 @@ const CategoryManagementForm: React.FC<CategoryManagementFormProps> = ({
   const loadCategories = async () => {
     try {
       const response = await inventoryService.getCategories();
-      setCategories(response.data || []);
+      setCategories(response.data?.data ?? []);
     } catch (error) {
       console.error('Error loading categories:', error);
       toast.error('Gagal memuat daftar kategori');
@@ -176,8 +176,8 @@ const CategoryManagementForm: React.FC<CategoryManagementFormProps> = ({
       }
 
       // Check if category is used by medicines
-      const medicinesResponse = await inventoryService.getMedicines({ categoryId: category.id });
-      if (medicinesResponse.data && medicinesResponse.data.length > 0) {
+      const medicinesResponse = await inventoryService.getMedicines(undefined, { categoryId: category.id });
+      if ((medicinesResponse.data?.data?.length ?? 0) > 0) {
         toast.error('Tidak dapat menghapus kategori yang masih digunakan oleh obat');
         return;
       }
@@ -252,7 +252,7 @@ const CategoryManagementForm: React.FC<CategoryManagementFormProps> = ({
                 )}
                 {category.name}
                 {hasChildren && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge color="secondary" className="text-xs">
                     {subCategories.length} sub
                   </Badge>
                 )}
@@ -265,7 +265,7 @@ const CategoryManagementForm: React.FC<CategoryManagementFormProps> = ({
               {category.parentId ? getCategoryName(category.parentId) : 'Root'}
             </TableCell>
             <TableCell>
-              <Badge variant={category.isActive ? "default" : "secondary"}>
+              <Badge color={category.isActive ? "default" : "secondary"}>
                 {category.isActive ? "Aktif" : "Tidak Aktif"}
               </Badge>
             </TableCell>

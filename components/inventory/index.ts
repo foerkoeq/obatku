@@ -19,18 +19,20 @@ export { default as StockManagementForm } from './stock-management-form';
 export { default as CategoryManagementForm } from './category-management-form';
 
 // Types
-export type { InventoryTableProps } from './inventory-table';
-export type { InventorySearchProps } from './inventory-search';
-export type { InventoryDetailModalProps } from './inventory-detail-modal';
-export type { MedicineDetailModalProps } from './medicine-detail-modal';
-export type { FilterSidebarProps } from './filter-sidebar';
-export type { StatusIndicatorProps } from './status-indicator';
-export type { ExportModalProps } from './export-modal';
-export type { BarcodeModalProps } from './barcode-modal';
-export type { QRPrintModalProps } from './qr-print-modal';
-export type { QRPrintSettingsProps } from './qr-print-settings';
-export type { QRPrintPreviewProps } from './qr-print-preview';
-export type { QRRangeConfiguratorProps } from './qr-range-configurator';
+import type { ComponentProps } from 'react';
+
+export type InventoryTableProps = ComponentProps<typeof import('./inventory-table').default>;
+export type InventorySearchProps = ComponentProps<typeof import('./inventory-search').default>;
+export type InventoryDetailModalProps = ComponentProps<typeof import('./inventory-detail-modal').default>;
+export type MedicineDetailModalProps = ComponentProps<typeof import('./medicine-detail-modal').default>;
+export type FilterSidebarProps = ComponentProps<typeof import('./filter-sidebar').default>;
+export type StatusIndicatorProps = ComponentProps<typeof import('./status-indicator').default>;
+export type ExportModalProps = ComponentProps<typeof import('./export-modal').default>;
+export type BarcodeModalProps = ComponentProps<typeof import('./barcode-modal').default>;
+export type QRPrintModalProps = ComponentProps<typeof import('./qr-print-modal').default>;
+export type QRPrintSettingsProps = ComponentProps<typeof import('./qr-print-settings').default>;
+export type QRPrintPreviewProps = ComponentProps<typeof import('./qr-print-preview').default>;
+export type QRRangeConfiguratorProps = ComponentProps<typeof import('./qr-range-configurator').default>;
 
 // Demo data
 export {

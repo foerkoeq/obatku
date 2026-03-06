@@ -560,7 +560,7 @@ export const BeritaAcaraForm: React.FC<BeritaAcaraFormProps> = ({
                     {fields.length > 1 && (
                       <Button
                         type="button"
-                        variant="destructive"
+                        color="destructive"
                         size="sm"
                         onClick={() => removeBarang(index)}
                       >

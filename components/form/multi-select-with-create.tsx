@@ -100,7 +100,8 @@ export const MultiSelectWithCreate: React.FC<MultiSelectWithCreateProps> = ({
   const [open, setOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [createFormData, setCreateFormData] = useState<CreateFormData>({});
+  const initialCreateFormData: CreateFormData = { name: "" };
+  const [createFormData, setCreateFormData] = useState<CreateFormData>(initialCreateFormData);
 
   const selectedOptions = useMemo(() => {
     return options.filter((option) => value.includes(option.value));
@@ -130,7 +131,7 @@ export const MultiSelectWithCreate: React.FC<MultiSelectWithCreateProps> = ({
       const newOption = await onCreate(createFormData);
       onChange([...value, newOption.value]);
       setCreateDialogOpen(false);
-      setCreateFormData({});
+      setCreateFormData(initialCreateFormData);
       toast.success("Opsi berhasil ditambahkan");
     } catch (error) {
       console.error("Error creating option:", error);
@@ -154,7 +155,7 @@ export const MultiSelectWithCreate: React.FC<MultiSelectWithCreateProps> = ({
         <div className="mb-2">
           <div className="flex flex-wrap gap-2">
             {selectedOptions.map((option) => (
-              <Badge key={option.value} variant="secondary" className="pr-1">
+              <Badge key={option.value} color="secondary" className="pr-1">
                 {option.label}
                 <Button
                   type="button"

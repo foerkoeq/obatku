@@ -8,7 +8,11 @@
 
 import React from "react";
 import { DashboardWidget } from "./dashboard-widget";
-import { ExpiringDrugsData, BaseWidgetProps } from "@/lib/types/dashboard";
+import {
+  ExpiringDrugsData,
+  BaseWidgetProps,
+  DashboardWidgetProps
+} from "@/lib/types/dashboard";
 import { cn } from "@/lib/utils";
 
 interface ExpiringDrugsWidgetProps extends BaseWidgetProps {
@@ -25,7 +29,9 @@ const ExpiringDrugsWidget = ({
   onActionClick 
 }: ExpiringDrugsWidgetProps) => {
 
-  const getWidgetConfig = () => {
+  type WidgetConfig = Omit<DashboardWidgetProps, "className" | "loading">;
+
+  const getWidgetConfig = (): WidgetConfig => {
     switch (variant) {
       case 'expiring-soon':
         return {

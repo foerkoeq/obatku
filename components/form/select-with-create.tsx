@@ -99,7 +99,8 @@ export const SelectWithCreate: React.FC<SelectWithCreateProps> = ({
   const [open, setOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [createFormData, setCreateFormData] = useState<CreateFormData>({});
+  const initialCreateFormData: CreateFormData = { name: "" };
+  const [createFormData, setCreateFormData] = useState<CreateFormData>(initialCreateFormData);
 
   const selectedOption = useMemo(() => {
     return options.find((option) => option.value === value);
@@ -113,7 +114,7 @@ export const SelectWithCreate: React.FC<SelectWithCreateProps> = ({
       const newOption = await onCreate(createFormData);
       onChange(newOption.value);
       setCreateDialogOpen(false);
-      setCreateFormData({});
+      setCreateFormData(initialCreateFormData);
       toast.success("Opsi berhasil ditambahkan");
     } catch (error) {
       console.error("Error creating option:", error);

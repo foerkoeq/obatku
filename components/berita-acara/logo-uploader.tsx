@@ -117,7 +117,7 @@ export const LogoUploader: React.FC<LogoUploaderProps> = ({
                 />
                 <Button
                   size="sm"
-                  variant="destructive"
+                  color="destructive"
                   className="absolute -top-2 -right-2 h-6 w-6 p-0"
                   onClick={handleRemoveLogo}
                 >

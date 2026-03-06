@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { color, shadow, rounded } from "@/lib/type"
+import { InputColor, shadow, rounded } from "@/lib/type"
 
 import { cn } from "@/lib/utils"
 
@@ -162,7 +162,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
   VariantProps<typeof buttonVariants> {
   asChild?: boolean
-  color?: color
+  color?: InputColor
   shadow?: shadow
   rounded?: rounded
   fullWidth?: boolean

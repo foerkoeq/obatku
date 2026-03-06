@@ -8,7 +8,7 @@
 
 import React from "react";
 import { DashboardWidget } from "./dashboard-widget";
-import { SubmissionWidgetData, BaseWidgetProps } from "@/lib/types/dashboard";
+import { SubmissionWidgetData, BaseWidgetProps, DashboardWidgetProps } from "@/lib/types/dashboard";
 import { formatNumber, mockChartData } from "@/lib/data/dashboard-demo";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,9 @@ const SubmissionWidget = ({
   onActionClick 
 }: SubmissionWidgetProps) => {
 
-  const getWidgetConfig = () => {
+  type SubmissionWidgetConfig = Omit<DashboardWidgetProps, 'className' | 'loading'>;
+
+  const getWidgetConfig = (): SubmissionWidgetConfig => {
     switch (variant) {
       case 'total':
         return {

@@ -16,7 +16,7 @@ import Link from 'next/link'
 
 // Login form validation schema
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  nip: z.string().min(1, 'NIP is required'),
   password: z.string().min(6, 'Password must be at least 6 characters')
 })
 
@@ -50,7 +50,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       clearError()
       
       const credentials: LoginCredentials = {
-        email: data.email,
+        nip: data.nip,
         password: data.password
       }
 
@@ -88,22 +88,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email field */}
+          {/* NIP field */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="nip">NIP</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
+                id="nip"
+                type="text"
+                placeholder="Enter your NIP"
                 className="pl-10"
-                {...register('email')}
+                {...register('nip')}
                 disabled={isLoading}
               />
             </div>
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+            {errors.nip && (
+              <p className="text-sm text-destructive">{errors.nip.message}</p>
             )}
           </div>
 
@@ -142,7 +142,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
           {/* Error display */}
           {error && (
-            <Alert variant="destructive">
+            <Alert color="destructive" variant="soft">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

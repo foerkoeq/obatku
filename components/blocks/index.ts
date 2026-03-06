@@ -18,9 +18,9 @@ export { QuickActionsWidget } from './quick-actions-widget';
 // Existing widgets (if needed for backward compatibility)
 export { StatisticsBlock } from './statistics-block';
 export { StatusBlock } from './status-block';
-export { ProgressBlock } from './progress-block';
-export { OrdersBlock } from './orders-block';
-export { EarningBlock } from './earning-block';
+export { default as ProgressBlock } from './progress-block';
+export { default as OrdersBlock } from './orders-block';
+export { default as EarningBlock } from './earning-block';
 export { UpgradeBlock } from './upgrade-block';
 export { WelcomeBlock } from './welcome-block';
 

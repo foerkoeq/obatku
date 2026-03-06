@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import StatusIndicator from "./status-indicator";
 import { DrugInventory, UserRole } from "@/lib/types/inventory";
+import { extractExpiryDates } from "@/lib/utils/date-utils";
 
 interface InventoryDetailModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
   if (!item) return null;
 
   const canEdit = userRole !== 'ppl';
+  const expiryDates = extractExpiryDates(item.expiryDate);
+  const primaryExpiryDate = expiryDates[0];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -150,7 +153,9 @@ const InventoryDetailModal: React.FC<InventoryDetailModalProps> = ({
                     ? 'text-destructive font-medium' 
                     : ''
                 }>
-                  {format(new Date(item.expiryDate), "dd MMMM yyyy", { locale: id })}
+                  {primaryExpiryDate
+                    ? format(primaryExpiryDate, "dd MMMM yyyy", { locale: id })
+                    : '-'}
                 </span>
               } 
             />

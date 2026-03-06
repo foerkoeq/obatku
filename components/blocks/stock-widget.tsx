@@ -8,7 +8,7 @@
 
 import React from "react";
 import { DashboardWidget } from "./dashboard-widget";
-import { StockWidgetData, BaseWidgetProps } from "@/lib/types/dashboard";
+import { StockWidgetData, BaseWidgetProps, DashboardWidgetProps } from "@/lib/types/dashboard";
 import { formatCurrency, formatNumber, mockChartData } from "@/lib/data/dashboard-demo";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,9 @@ const StockWidget = ({
   onActionClick 
 }: StockWidgetProps) => {
 
-  const getWidgetConfig = () => {
+  type StockWidgetConfig = Omit<DashboardWidgetProps, 'className' | 'loading'>;
+
+  const getWidgetConfig = (): StockWidgetConfig => {
     switch (variant) {
       case 'total':
         return {

@@ -91,8 +91,10 @@ const StockManagementPage: React.FC = () => {
         
         <PageTitle 
           title="Manajemen Stok" 
-          description="Kelola stok obat, lakukan penyesuaian, dan pantau alert stok rendah"
         />
+        <p className="text-sm text-muted-foreground mt-1">
+          Kelola stok obat, lakukan penyesuaian, dan pantau alert stok rendah
+        </p>
       </div>
 
       {/* Statistics Cards */}

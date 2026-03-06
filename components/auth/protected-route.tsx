@@ -3,7 +3,6 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/providers/auth.provider'
-import { Loader } from '@/components/ui/loader'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -55,7 +54,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (isLoading) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader className="w-8 h-8" />
+
         <span className="ml-2 text-gray-600">Checking authentication...</span>
       </div>
     )
@@ -65,7 +64,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!isAuthenticated) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader className="w-8 h-8" />
+
         <span className="ml-2 text-gray-600">Redirecting to login...</span>
       </div>
     )
@@ -75,7 +74,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredRole && user?.role !== requiredRole) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader className="w-8 h-8" />
+
         <span className="ml-2 text-gray-600">Checking permissions...</span>
       </div>
     )
@@ -90,7 +89,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!hasRequiredPermissions) {
       return fallback || (
         <div className="flex items-center justify-center min-h-screen">
-          <Loader className="w-8 h-8" />
           <span className="ml-2 text-gray-600">Checking permissions...</span>
         </div>
       )
