@@ -93,8 +93,13 @@
     "react-chartjs-2": "^5.2.0",
     "react-datepicker": "^8.4.0",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.4",
+=======
+    "react-day-picker": "^8.10.1",
+    "react-dom": "18.3.1",
+>>>>>>> parent of d8f0970 (updatenext)
 =======
     "react-day-picker": "^8.10.1",
     "react-dom": "18.3.1",
