@@ -66,7 +66,6 @@ import {
 } from "@/components/form/multi-date-expiry-manager";
 import {
   CommodityDosageManager,
-  type CommodityDosage,
 } from "@/components/form/commodity-dosage-manager";
 import {
   MultiLocationStorageManager,
@@ -144,18 +143,40 @@ const addMedicineSchema = z.object({
     ),
 
   // Step 3: OPT
-  targetPest: z.array(z.string()).min(1, "Minimal 1 jenis OPT wajib diisi"),
+  targetPest: z.array(z.string()),
   commodities: z
     .array(
       z.object({
+        commodityId: z.string().min(1),
         commodity: z.string(),
+        commodityType: z.enum(["Pangan", "Hortikultura", "Perkebunan"]),
         selected: z.boolean(),
-        dosageAmount: z.number(),
-        dosageUnit: z.string(),
-        landArea: z.number(),
+        optDosages: z
+          .array(
+            z
+              .object({
+                optId: z.string().min(1, "OPT wajib dipilih"),
+                optName: z.string().min(1, "Nama OPT wajib diisi"),
+                customOptName: z.string().optional(),
+                dosageAmount: z.number().gt(0, "Jumlah dosis harus lebih dari 0"),
+                dosageUnit: z.string().min(1, "Satuan dosis wajib diisi"),
+                landArea: z.number().gt(0, "Efektif luas lahan harus lebih dari 0"),
+              })
+              .refine(
+                (opt) =>
+                  opt.optName !== "Lainnya" ||
+                  (opt.customOptName && opt.customOptName.trim().length > 0),
+                {
+                  message: "Nama OPT lainnya wajib diisi",
+                  path: ["customOptName"],
+                }
+              )
+          )
+          .min(1, "Minimal 1 OPT wajib dipilih per komoditas"),
       })
     )
-    .refine((commodities) => commodities.some((c) => c.selected), {
+    .min(1, "Minimal 1 komoditas harus dipilih")
+    .refine((commodities) => commodities.some((c) => c.selected && c.optDosages.length > 0), {
       message: "Minimal 1 komoditas harus dipilih",
     }),
 
@@ -307,6 +328,28 @@ const AddMedicinePage: React.FC = () => {
     },
   });
 
+  // Keep legacy targetPest field in sync from detailed OPT selections.
+  const watchedCommodities = form.watch("commodities");
+  useEffect(() => {
+    const dedupedOPT = Array.from(
+      new Set(
+        watchedCommodities
+          .flatMap((commodity) => commodity.optDosages)
+          .map((opt) =>
+            opt.optName === "Lainnya"
+              ? opt.customOptName?.trim() || ""
+              : opt.optName
+          )
+          .filter((name) => name.length > 0)
+      )
+    );
+
+    form.setValue("targetPest", dedupedOPT, {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  }, [watchedCommodities, form]);
+
   // Navigation functions
   const handleNext = async () => {
     let fieldsToValidate: (keyof AddMedicineFormData)[] = [];
@@ -319,7 +362,7 @@ const AddMedicinePage: React.FC = () => {
         fieldsToValidate = ["entryDate", "batches"];
         break;
       case 3:
-        fieldsToValidate = ["targetPest", "commodities"];
+        fieldsToValidate = ["commodities"];
         break;
       case 4:
         fieldsToValidate = ["storageLocations", "profileImage"];
@@ -803,38 +846,25 @@ const AddMedicinePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Target Pest */}
-            <FormField
-              control={form.control}
-              name="targetPest"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    Jenis OPT yang Dikendalikan *
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Organisme Pengganggu Tumbuhan yang dapat dikendalikan</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </FormLabel>
-                  <FormControl>
-                    <TagInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Ketik jenis OPT dan tekan Enter atau koma (,)"
-                      maxTags={20}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Contoh: Wereng Batang Coklat, Penggerek Batang Padi, Ulat Grayak, dll.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Auto-derived OPT summary */}
+            {form.watch("targetPest").length > 0 && (
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs font-semibold">OPT Terdeteksi Otomatis</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {form.watch("targetPest").map((optName) => (
+                    <span
+                      key={optName}
+                      className="inline-flex items-center rounded-md border bg-background px-2 py-0.5 text-[11px]"
+                    >
+                      {optName}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Daftar ini terisi otomatis dari OPT yang dipilih di setiap komoditas.
+                </p>
+              </div>
+            )}
 
             {/* Commodities */}
             <FormField

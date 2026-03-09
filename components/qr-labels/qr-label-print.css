@@ -1,0 +1,47 @@
+/* Print-specific styles for QR Label templates */
+
+/* Label 119 (Rack) */
+@media print {
+  .label-119-print-container,
+  .label-101-print-container {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .label-119-page,
+  .label-101-page {
+    page-break-after: always;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .label-119-page:last-child,
+  .label-101-page:last-child {
+    page-break-after: auto;
+  }
+}
+
+/* Screen preview enhancements */
+.label-119-page,
+.label-101-page {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+}
+
+.label-119-page:last-child,
+.label-101-page:last-child {
+  margin-bottom: 0;
+}
+
+/* Label cells for screen */
+.rack-label-cell,
+.medicine-label-cell {
+  border: 0.5px solid #e0e0e0;
+}
+
+@media print {
+  .rack-label-cell,
+  .medicine-label-cell {
+    border: none;
+  }
+}
