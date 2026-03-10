@@ -93,6 +93,21 @@ export interface BAFontConfig {
   baseSizePt: number;
 }
 
+export interface BATextFormat {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
+export interface BAPihakPertamaBiodata {
+  nama: string;
+  pangkat: string;
+  golongan: string;
+  nip: string;
+  jabatan: string;
+  unitKerja: string;
+}
+
 export interface BALogoConfig {
   enabled: boolean;
   url?: string;
@@ -104,13 +119,18 @@ export interface BAKopSuratConfig {
   logo: BALogoConfig;
   namaInstansi: string;
   namaInstansiFontSize: number;
+  namaInstansiFormat: BATextFormat;
   namaDinas: string;
   namaDinasFontSize: number;
+  namaDinasFormat: BATextFormat;
   alamat: string;
   alamatFontSize: number;
+  alamatFormat: BATextFormat;
   kontak: string;
   kontakFontSize: number;
+  kontakFormat: BATextFormat;
   separatorThicknessPt: number;
+  lineSpacing: number;
 }
 
 export interface BAJudulConfig {
@@ -128,33 +148,42 @@ export interface BANomorConfig {
 
 export interface BANarrativeConfig {
   pembukaan: string;
+  pembukaanFormat: BATextFormat;
 
   labelPihakPertama: string;
-  fieldsPihakPertama: { label: string; defaultValue: string }[];
+  biodataPihakPertama: BAPihakPertamaBiodata;
   redaksiPihakPertama: string;
+  redaksiPihakPertamaFormat: BATextFormat;
 
   labelPihakKedua: string;
-  fieldsPihakKedua: { label: string; defaultValue: string }[];
+  fieldLabelsPihakKedua: string[];
   redaksiPihakKedua: string;
+  redaksiPihakKeduaFormat: BATextFormat;
 
   redaksiDasar: string;
+  redaksiDasarFormat: BATextFormat;
   dasarItems: string[];
 
   redaksiSerahTerima: string;
+  redaksiSerahTerimaFormat: BATextFormat;
 
   redaksiKetentuan: string;
+  redaksiKetentuanFormat: BATextFormat;
   ketentuanItems: string[];
 
   penutup: string;
+  penutupFormat: BATextFormat;
 }
 
 export interface BATandaTanganConfig {
   pihakKedua: {
     label: string;
+    labelFormat: BATextFormat;
     jabatanLabel: string;
   };
   pihakPertama: {
     label: string;
+    labelFormat: BATextFormat;
     jabatanLabel: string;
   };
 }
@@ -195,9 +224,11 @@ export interface BAPreviewData {
   tahun: string;
   pihakPertama: {
     nama: string;
+    pangkat: string;
+    golongan: string;
     nip: string;
     jabatan: string;
-    pangkat: string;
+    unitKerja: string;
   };
   pihakKedua: {
     nama: string;

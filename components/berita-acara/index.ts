@@ -2,6 +2,7 @@ export { BeritaAcaraTemplate } from './berita-acara-template';
 export { BeritaAcaraForm } from './berita-acara-form';
 export { LogoUploader } from './logo-uploader';
 export { BADocumentPreview } from './ba-document-preview';
+export { TextFormatToolbar } from './text-format-toolbar';
 
 // Re-export types
 export type { 
@@ -20,4 +21,7 @@ export type {
   BAPaperSize,
   BAKopSuratConfig,
   BANarrativeConfig,
+  BATextFormat,
+  BAPihakPertamaBiodata,
+  BATandaTanganConfig,
 } from '@/lib/types/berita-acara';

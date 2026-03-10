@@ -6,7 +6,14 @@
 import type {
   BATemplateConfig,
   BAPreviewData,
+  BATextFormat,
 } from '@/lib/types/berita-acara';
+
+export const DEFAULT_TEXT_FORMAT: BATextFormat = {
+  bold: false,
+  italic: false,
+  underline: false,
+};
 
 // ============================================================================
 // DEFAULT TEMPLATE: BA-01
@@ -46,13 +53,18 @@ export const TEMPLATE_BA_01: BATemplateConfig = {
     },
     namaInstansi: 'PEMERINTAH KABUPATEN TUBAN',
     namaInstansiFontSize: 12,
+    namaInstansiFormat: { bold: false, italic: false, underline: false },
     namaDinas: 'DINAS KETAHANAN PANGAN, PERTANIAN DAN PERIKANAN',
     namaDinasFontSize: 14,
+    namaDinasFormat: { bold: true, italic: false, underline: false },
     alamat: 'Jalan Mastrip No. 5, Sidorejo Tuban Jawa Timur 62315',
     alamatFontSize: 10,
+    alamatFormat: { bold: false, italic: false, underline: false },
     kontak: 'Telepon (0356) 322086 Laman https://dkp2p.tubankab.go.id , Pos-el dkp2p@tubankab.go.id',
     kontakFontSize: 10,
+    kontakFormat: { bold: false, italic: false, underline: false },
     separatorThicknessPt: 0.5,
+    lineSpacing: 1.15,
   },
 
   judul: {
@@ -71,29 +83,30 @@ export const TEMPLATE_BA_01: BATemplateConfig = {
   narratives: {
     pembukaan:
       'Pada hari ini, {hari} tanggal {tanggal} bulan {bulan} tahun Dua Ribu Dua Puluh {tahun}, bertempat di Kantor Dinas Ketahanan Pangan, Pertanian dan Perikanan Kabupaten Tuban, yang bertanda tangan di bawah ini',
+    pembukaanFormat: { bold: false, italic: false, underline: false },
 
     labelPihakPertama: 'Pihak Pertama',
-    fieldsPihakPertama: [
-      { label: 'Nama', defaultValue: '' },
-      { label: 'NIP', defaultValue: '' },
-      { label: 'Jabatan', defaultValue: '' },
-      { label: 'Unit Kerja', defaultValue: 'Dinas Ketahanan Pangan, Pertanian dan Perikanan Kabupaten Tuban' },
-    ],
+    biodataPihakPertama: {
+      nama: '',
+      pangkat: '',
+      golongan: '',
+      nip: '',
+      jabatan: '',
+      unitKerja: 'Dinas Ketahanan Pangan, Pertanian dan Perikanan Kabupaten Tuban',
+    },
     redaksiPihakPertama:
       'Selanjutnya disebut sebagai PIHAK PERTAMA, yaitu pihak yang menyerahkan obat/pestisida pertanian.',
+    redaksiPihakPertamaFormat: { bold: false, italic: false, underline: false },
 
     labelPihakKedua: 'Pihak Kedua',
-    fieldsPihakKedua: [
-      { label: 'Nama', defaultValue: '' },
-      { label: 'Jabatan', defaultValue: 'Ketua Kelompok Tani / Gapoktan' },
-      { label: 'Nama Poktan/Gapoktan', defaultValue: '' },
-      { label: 'Desa / Kecamatan', defaultValue: '' },
-    ],
+    fieldLabelsPihakKedua: ['Nama', 'Jabatan', 'Nama Poktan/Gapoktan', 'Desa / Kecamatan'],
     redaksiPihakKedua:
       'Selanjutnya disebut sebagai PIHAK KEDUA, yaitu pihak yang menerima obat/pestisida pertanian.',
+    redaksiPihakKeduaFormat: { bold: false, italic: false, underline: false },
 
     redaksiDasar:
       'Kedua belah pihak sepakat untuk melakukan serah terima obat/pestisida pertanian dalam rangka Pengendalian Organisme Pengganggu Tumbuhan (OPT), berdasarkan:',
+    redaksiDasarFormat: { bold: false, italic: false, underline: false },
     dasarItems: [
       'Rekomendasi/Surat Pengantar dari Balai Penyuluhan Pertanian (BPP) Kecamatan Nomor : {nomorBPP} tanggal {tanggalBPP};',
       'Laporan/Rekomendasi Petugas Pengamat Organisme Pengganggu Tumbuhan (POPT) Nomor : {nomorPOPT} tanggal {tanggalPOPT}',
@@ -101,9 +114,11 @@ export const TEMPLATE_BA_01: BATemplateConfig = {
 
     redaksiSerahTerima:
       'Dengan ini menyatakan bahwa PIHAK PERTAMA telah menyerahkan kepada PIHAK KEDUA, dan PIHAK KEDUA telah menerima dari PIHAK PERTAMA berupa bantuan obat-obatan/pestisida pertanian dengan rincian sebagaimana tercantum dalam Lampiran Berita Acara ini.',
+    redaksiSerahTerimaFormat: { bold: false, italic: false, underline: false },
 
     redaksiKetentuan:
       'Selanjutnya, PIHAK KEDUA menyatakan kesanggupan dan terikat dengan ketentuan sebagai berikut:',
+    redaksiKetentuanFormat: { bold: false, italic: false, underline: false },
     ketentuanItems: [
       'Segera melaksanakan Gerakan Pengendalian (Gerdal) Organisme Pengganggu Tumbuhan (OPT) pada lahan yang terserang/terancam setelah menerima obat/pestisida ini, sesuai dengan dosis dan cara pemakaian yang dianjurkan bersama anggota kelompok tani / petugas lapangan.',
       'Menggunakan obat/pestisida sesuai peruntukan yaitu untuk pengendalian OPT sebagaimana tercantum dalam lampiran dan tidak diperkenankan untuk diperjualbelikan atau dialihfungsikan;',
@@ -113,15 +128,18 @@ export const TEMPLATE_BA_01: BATemplateConfig = {
 
     penutup:
       'Demikian Berita Acara Serah Terima ini dibuat dengan sebenarnya dalam rangkap 2 (dua) untuk dipergunakan sebagaimana mestinya.',
+    penutupFormat: { bold: false, italic: false, underline: false },
   },
 
   tandaTangan: {
     pihakKedua: {
       label: 'Yang Menerima,',
+      labelFormat: { bold: false, italic: false, underline: false },
       jabatanLabel: 'Ketua Poktan/Gapoktan',
     },
     pihakPertama: {
       label: 'Yang Menyerahkan,',
+      labelFormat: { bold: false, italic: false, underline: false },
       jabatanLabel: 'Kepala Dinas Ketahanan Pangan,\nPertanian dan Perikanan\nKabupaten Tuban',
     },
   },
@@ -148,9 +166,11 @@ export const SAMPLE_BA_PREVIEW: BAPreviewData = {
   tahun: 'Enam',
   pihakPertama: {
     nama: 'Ir. WAHYU HIDAYAT, M.Si.',
+    pangkat: 'Pembina Tk. I',
+    golongan: 'IV/b',
     nip: '196805151999031002',
     jabatan: 'Kepala Bidang Tanaman Pangan dan Hortikultura',
-    pangkat: 'Pembina Tk. I (IV/b)',
+    unitKerja: 'Dinas Ketahanan Pangan, Pertanian dan Perikanan Kabupaten Tuban',
   },
   pihakKedua: {
     nama: 'SUTRISNO',

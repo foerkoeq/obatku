@@ -1,18 +1,35 @@
+export const USER_ROLES = [
+  "Admin",
+  "Kabid",
+  "Kasubbid",
+  "Staf Dinas",
+  "BPP",
+  "PPL",
+  "POPT",
+] as const;
+
+export type UserRoleType = (typeof USER_ROLES)[number];
+
 export type User = {
   id: string;
+  username: string;
   name: string;
   email?: string;
-  role: "Admin" | "PPL" | "Dinas" | "POPT";
+  role: UserRoleType;
   avatar?: string;
   status: "active" | "inactive";
-  lastLogin: string;
+  lastLogin?: string;
   nip: string;
   phone: string;
   birthDate: string;
   address?: string;
   isActive: boolean;
   permissions?: string[];
-  createdAt?: string;
+  pangkat?: string;
+  golongan?: string;
+  jabatan?: string;
+  lokasi: string; // "Admin" | "Dinas" | nama kecamatan
+  createdAt: string;
   updatedAt?: string;
 };
 

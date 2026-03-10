@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { userSchema } from "@/lib/validations/user";
+import { USER_ROLES } from "@/lib/types/user";
 import { cn } from "@/lib/utils";
 import DatePicker from "@/components/ui/date-picker";
 import { userService } from "@/lib/services/user.service";
@@ -240,10 +241,11 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="PPL">PPL</SelectItem>
-                      <SelectItem value="Dinas">Dinas</SelectItem>
-                      <SelectItem value="POPT">POPT</SelectItem>
+                      {USER_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

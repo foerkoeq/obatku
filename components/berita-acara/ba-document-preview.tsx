@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { BATemplateConfig, BAPreviewData } from '@/lib/types/berita-acara';
+import type { BATemplateConfig, BAPreviewData, BATextFormat } from '@/lib/types/berita-acara';
 import { resolveNarrative, PAPER_SIZES } from '@/lib/data/mock-berita-acara-templates';
 import { cn } from '@/lib/utils';
 
@@ -27,31 +27,32 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
 
   const resolve = (text: string) => resolveNarrative(text, previewData);
 
+  // Helper for text format classes
+  const fmtClass = (fmt?: BATextFormat) =>
+    fmt ? cn(fmt.bold && 'font-bold', fmt.italic && 'italic', fmt.underline && 'underline') : '';
+
   // Build nomor surat from format
   const nomorSurat = resolve(nomor.format);
 
-  // Resolve field values for pihak pertama
-  const getPihakPertamaValue = (label: string) => {
-    const field = narratives.fieldsPihakPertama.find((f) => f.label === label);
-    switch (label) {
-      case 'Nama': return previewData.pihakPertama.nama || field?.defaultValue || '......................................................................';
-      case 'NIP': return previewData.pihakPertama.nip || field?.defaultValue || '......................................................................';
-      case 'Jabatan': return previewData.pihakPertama.jabatan || field?.defaultValue || '......................................................................';
-      case 'Unit Kerja': return field?.defaultValue || 'Dinas Ketahanan Pangan, Pertanian dan Perikanan Kabupaten Tuban';
-      default: return field?.defaultValue || '......................................................................';
-    }
-  };
+  // Build pihak pertama fields from structured biodata
+  const biodataFieldsPertama = [
+    { label: 'Nama', value: narratives.biodataPihakPertama.nama || previewData.pihakPertama.nama },
+    { label: 'Pangkat', value: narratives.biodataPihakPertama.pangkat || previewData.pihakPertama.pangkat },
+    { label: 'Golongan', value: narratives.biodataPihakPertama.golongan || previewData.pihakPertama.golongan },
+    { label: 'NIP', value: narratives.biodataPihakPertama.nip || previewData.pihakPertama.nip },
+    { label: 'Jabatan', value: narratives.biodataPihakPertama.jabatan || previewData.pihakPertama.jabatan },
+    { label: 'Unit Kerja', value: narratives.biodataPihakPertama.unitKerja || previewData.pihakPertama.unitKerja },
+  ];
 
   // Resolve field values for pihak kedua
   const getPihakKeduaValue = (label: string) => {
-    const field = narratives.fieldsPihakKedua.find((f) => f.label === label);
     switch (label) {
-      case 'Nama': return previewData.pihakKedua.nama || field?.defaultValue || '......................................................................';
-      case 'Jabatan': return field?.defaultValue || 'Ketua Kelompok Tani / Gapoktan';
-      case 'Nama Poktan/Gapoktan': return previewData.pihakKedua.namaPoktan || '......................................................................';
+      case 'Nama': return previewData.pihakKedua.nama || dotFill;
+      case 'Jabatan': return 'Ketua Kelompok Tani / Gapoktan';
+      case 'Nama Poktan/Gapoktan': return previewData.pihakKedua.namaPoktan || dotFill;
       case 'Desa / Kecamatan':
         return `${previewData.pihakKedua.desa || '..............................'} / Kec. ${previewData.pihakKedua.kecamatan || '..............................'}`;
-      default: return field?.defaultValue || '......................................................................';
+      default: return dotFill;
     }
   };
 
@@ -100,27 +101,27 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
           )}
 
           {/* Header Text */}
-          <div className="flex-1 text-center">
+          <div className="flex-1 text-center" style={{ lineHeight: kopSurat.lineSpacing }}>
             <p
-              className="uppercase leading-tight"
+              className={cn('uppercase leading-tight', fmtClass(kopSurat.namaInstansiFormat))}
               style={{ fontSize: `${kopSurat.namaInstansiFontSize}pt` }}
             >
               {kopSurat.namaInstansi}
             </p>
             <p
-              className="uppercase font-bold leading-tight"
+              className={cn('uppercase leading-tight', fmtClass(kopSurat.namaDinasFormat))}
               style={{ fontSize: `${kopSurat.namaDinasFontSize}pt` }}
             >
               {kopSurat.namaDinas}
             </p>
             <p
-              className="leading-tight mt-0.5"
+              className={cn('leading-tight mt-0.5', fmtClass(kopSurat.alamatFormat))}
               style={{ fontSize: `${kopSurat.alamatFontSize}pt` }}
             >
               {kopSurat.alamat}
             </p>
             <p
-              className="leading-tight"
+              className={cn('leading-tight', fmtClass(kopSurat.kontakFormat))}
               style={{ fontSize: `${kopSurat.kontakFontSize}pt` }}
             >
               {kopSurat.kontak}
@@ -164,7 +165,7 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
       {/* ================================================================ */}
       <div className="text-justify space-y-3" style={{ fontSize: `${font.baseSizePt}pt` }}>
         {/* Pembukaan */}
-        <p className="indent-[2em]">{resolve(narratives.pembukaan)}</p>
+        <p className={cn('indent-[2em]', fmtClass(narratives.pembukaanFormat))}>{resolve(narratives.pembukaan)}</p>
 
         {/* ============================================================ */}
         {/* PIHAK PERTAMA */}
@@ -173,16 +174,16 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
           <p className="font-bold">{narratives.labelPihakPertama}</p>
           <table className="ml-2 mt-1" style={{ fontSize: `${font.baseSizePt}pt` }}>
             <tbody>
-              {narratives.fieldsPihakPertama.map((field, i) => (
+              {biodataFieldsPertama.map((field, i) => (
                 <tr key={i}>
                   <td className="align-top pr-2 whitespace-nowrap py-0.5">{field.label}</td>
                   <td className="align-top px-2 py-0.5">:</td>
-                  <td className="align-top py-0.5">{getPihakPertamaValue(field.label)}</td>
+                  <td className="align-top py-0.5">{field.value || dotFill}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="mt-2">{narratives.redaksiPihakPertama}</p>
+          <p className={cn('mt-2', fmtClass(narratives.redaksiPihakPertamaFormat))}>{narratives.redaksiPihakPertama}</p>
         </div>
 
         {/* ============================================================ */}
@@ -192,22 +193,22 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
           <p className="font-bold">{narratives.labelPihakKedua}</p>
           <table className="ml-2 mt-1" style={{ fontSize: `${font.baseSizePt}pt` }}>
             <tbody>
-              {narratives.fieldsPihakKedua.map((field, i) => (
+              {narratives.fieldLabelsPihakKedua.map((label, i) => (
                 <tr key={i}>
-                  <td className="align-top pr-2 whitespace-nowrap py-0.5">{field.label}</td>
+                  <td className="align-top pr-2 whitespace-nowrap py-0.5">{label}</td>
                   <td className="align-top px-2 py-0.5">:</td>
-                  <td className="align-top py-0.5">{getPihakKeduaValue(field.label)}</td>
+                  <td className="align-top py-0.5">{getPihakKeduaValue(label)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="mt-2">{narratives.redaksiPihakKedua}</p>
+          <p className={cn('mt-2', fmtClass(narratives.redaksiPihakKeduaFormat))}>{narratives.redaksiPihakKedua}</p>
         </div>
 
         {/* ============================================================ */}
         {/* DASAR SERAH TERIMA */}
         {/* ============================================================ */}
-        <p className="indent-[2em] mt-3">{narratives.redaksiDasar}</p>
+        <p className={cn('indent-[2em] mt-3', fmtClass(narratives.redaksiDasarFormat))}>{narratives.redaksiDasar}</p>
         <ol className="list-decimal ml-8 space-y-1">
           {narratives.dasarItems.map((item, i) => (
             <li key={i}>{resolve(item)}</li>
@@ -217,12 +218,12 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
         {/* ============================================================ */}
         {/* PERNYATAAN SERAH TERIMA */}
         {/* ============================================================ */}
-        <p className="indent-[2em] mt-3">{narratives.redaksiSerahTerima}</p>
+        <p className={cn('indent-[2em] mt-3', fmtClass(narratives.redaksiSerahTerimaFormat))}>{narratives.redaksiSerahTerima}</p>
 
         {/* ============================================================ */}
         {/* KETENTUAN */}
         {/* ============================================================ */}
-        <p className="indent-[2em] mt-3">{narratives.redaksiKetentuan}</p>
+        <p className={cn('indent-[2em] mt-3', fmtClass(narratives.redaksiKetentuanFormat))}>{narratives.redaksiKetentuan}</p>
         <ol className="list-decimal ml-8 space-y-1">
           {narratives.ketentuanItems.map((item, i) => (
             <li key={i}>{item}</li>
@@ -232,7 +233,7 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
         {/* ============================================================ */}
         {/* PENUTUP */}
         {/* ============================================================ */}
-        <p className="indent-[2em] mt-3">{narratives.penutup}</p>
+        <p className={cn('indent-[2em] mt-3', fmtClass(narratives.penutupFormat))}>{narratives.penutup}</p>
       </div>
 
       {/* ================================================================ */}
@@ -241,7 +242,7 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
       <div className="mt-10 flex justify-between" style={{ fontSize: `${font.baseSizePt}pt` }}>
         {/* Pihak Kedua (left) */}
         <div className="text-center" style={{ width: '45%' }}>
-          <p>{tandaTangan.pihakKedua.label}</p>
+          <p className={fmtClass(tandaTangan.pihakKedua.labelFormat)}>{tandaTangan.pihakKedua.label}</p>
           <p className="text-sm mt-0.5">{tandaTangan.pihakKedua.jabatanLabel}</p>
           <div className="mt-16 mb-1">
             <p className="font-bold underline">
@@ -252,16 +253,21 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
 
         {/* Pihak Pertama (right) */}
         <div className="text-center" style={{ width: '45%' }}>
-          <p>{tandaTangan.pihakPertama.label}</p>
+          <p className={fmtClass(tandaTangan.pihakPertama.labelFormat)}>{tandaTangan.pihakPertama.label}</p>
           <p className="text-sm mt-0.5 whitespace-pre-line">
             {tandaTangan.pihakPertama.jabatanLabel}
           </p>
           <div className="mt-10 mb-1">
             <p className="font-bold underline">
-              {previewData.pihakPertama.nama || dotFill}
+              {narratives.biodataPihakPertama.nama || previewData.pihakPertama.nama || dotFill}
             </p>
-            <p className="text-sm">{previewData.pihakPertama.pangkat}</p>
-            <p className="text-sm">NIP. {previewData.pihakPertama.nip}</p>
+            <p className="text-sm">
+              {narratives.biodataPihakPertama.pangkat || previewData.pihakPertama.pangkat}
+              {' ('}
+              {narratives.biodataPihakPertama.golongan || previewData.pihakPertama.golongan}
+              {')'}
+            </p>
+            <p className="text-sm">NIP. {narratives.biodataPihakPertama.nip || previewData.pihakPertama.nip}</p>
           </div>
         </div>
       </div>

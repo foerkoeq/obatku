@@ -36,15 +36,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { userService, UpdateUserRequest } from "@/lib/services/user.service";
-import { User } from "@/lib/types/user";
+import { User, USER_ROLES, UserRoleType } from "@/lib/types/user";
 import { useFormValidation } from "@/hooks/use-form-store";
 
-const ROLE_OPTIONS = ["Admin", "PPL", "Dinas", "POPT"] as const;
-type UserRole = (typeof ROLE_OPTIONS)[number];
-
-const normalizeUserRole = (role: string): UserRole => {
-  if (ROLE_OPTIONS.includes(role as UserRole)) {
-    return role as UserRole;
+const normalizeUserRole = (role: string): UserRoleType => {
+  if (USER_ROLES.includes(role as UserRoleType)) {
+    return role as UserRoleType;
   }
   return "PPL";
 };
@@ -55,7 +52,7 @@ const userProfileSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }).optional().or(z.literal("")),
   phone: z.string().min(10, { message: "Phone number is required." }),
   address: z.string().optional(),
-  role: z.enum(["Admin", "PPL", "Dinas", "POPT"]),
+  role: z.enum(USER_ROLES),
   isActive: z.boolean(),
 });
 
@@ -345,10 +342,11 @@ export function EditUserModal({ user, open, onOpenChange, onSuccess }: EditUserM
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="PPL">PPL</SelectItem>
-                      <SelectItem value="Dinas">Dinas</SelectItem>
-                      <SelectItem value="POPT">POPT</SelectItem>
+                      {USER_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

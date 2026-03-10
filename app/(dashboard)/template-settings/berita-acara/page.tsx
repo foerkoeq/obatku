@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -22,13 +22,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BADocumentPreview } from '@/components/berita-acara/ba-document-preview';
 import { LogoUploader } from '@/components/berita-acara/logo-uploader';
-import type { BATemplateConfig, BAPageView } from '@/lib/types/berita-acara';
+import { TextFormatToolbar } from '@/components/berita-acara/text-format-toolbar';
+import type { BATemplateConfig, BAPageView, BAPihakPertamaBiodata } from '@/lib/types/berita-acara';
 import {
   DEFAULT_BA_TEMPLATES,
   SAMPLE_BA_PREVIEW,
   PAPER_SIZES,
   AVAILABLE_FONTS,
   createBlankBATemplate,
+  DEFAULT_TEXT_FORMAT,
 } from '@/lib/data/mock-berita-acara-templates';
 import { toast } from '@/components/ui/use-toast';
 import {
@@ -47,6 +49,7 @@ import {
   Layout,
   BookOpen,
   PenLine,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +65,7 @@ export default function BeritaAcaraSettingsPage() {
   const [editingTemplate, setEditingTemplate] = useState<BATemplateConfig | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
-  const [customizeTab, setCustomizeTab] = useState<string>('layout');
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
 
 
   // --- Derived ---
@@ -104,13 +107,11 @@ export default function BeritaAcaraSettingsPage() {
     blank.code = blank.name;
     blank.description = 'Template baru';
     setEditingTemplate(blank);
-    setCustomizeTab('layout');
     setView('template-customize');
   };
 
   const handleStartEdit = (tpl: BATemplateConfig) => {
     setEditingTemplate({ ...tpl });
-    setCustomizeTab('layout');
     setView('template-customize');
   };
 
@@ -476,7 +477,7 @@ export default function BeritaAcaraSettingsPage() {
   };
 
   // ============================================================================
-  // VIEW: Template Customize
+  // VIEW: Template Customize (2-column layout: accordion settings + live preview)
   // ============================================================================
   const renderTemplateCustomize = () => {
     if (!editingTemplate) return null;
@@ -503,10 +504,37 @@ export default function BeritaAcaraSettingsPage() {
       );
     };
 
+    const updateBiodata = (partial: Partial<BAPihakPertamaBiodata>) => {
+      setEditingTemplate((prev) =>
+        prev
+          ? {
+              ...prev,
+              narratives: {
+                ...prev.narratives,
+                biodataPihakPertama: { ...prev.narratives.biodataPihakPertama, ...partial },
+              },
+            }
+          : prev
+      );
+    };
+
+    const addDasarItem = () => {
+      updateNarratives({ dasarItems: [...editingTemplate.narratives.dasarItems, ''] });
+    };
+    const removeDasarItem = (idx: number) => {
+      updateNarratives({ dasarItems: editingTemplate.narratives.dasarItems.filter((_, i) => i !== idx) });
+    };
+    const addKetentuanItem = () => {
+      updateNarratives({ ketentuanItems: [...editingTemplate.narratives.ketentuanItems, ''] });
+    };
+    const removeKetentuanItem = (idx: number) => {
+      updateNarratives({ ketentuanItems: editingTemplate.narratives.ketentuanItems.filter((_, i) => i !== idx) });
+    };
+
     return (
       <div className="space-y-4">
         {/* Save Bar */}
-        <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/95 backdrop-blur-sm border-b flex items-center justify-between gap-2">
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur-sm border-b flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{editingTemplate.name || 'Template Baru'}</p>
             <p className="text-xs text-muted-foreground">Menyesuaikan template</p>
@@ -520,669 +548,804 @@ export default function BeritaAcaraSettingsPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={customizeTab} onValueChange={setCustomizeTab}>
-          <TabsList className="w-full grid grid-cols-4 h-auto">
-            <TabsTrigger value="layout" className="text-xs py-2 gap-1 flex-col sm:flex-row">
-              <Layout className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Tata Letak</span>
-              <span className="sm:hidden">Layout</span>
-            </TabsTrigger>
-            <TabsTrigger value="header" className="text-xs py-2 gap-1 flex-col sm:flex-row">
-              <Type className="h-3.5 w-3.5" />
-              <span>Header</span>
-            </TabsTrigger>
-            <TabsTrigger value="content" className="text-xs py-2 gap-1 flex-col sm:flex-row">
-              <PenLine className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Redaksi</span>
-              <span className="sm:hidden">Isi</span>
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs py-2 gap-1 flex-col sm:flex-row">
-              <Eye className="h-3.5 w-3.5" />
-              <span>Preview</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* //// TAB: Layout //// */}
-          <TabsContent value="layout" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Identitas Template</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Kode</Label>
-                    <Input
-                      value={editingTemplate.code}
-                      onChange={(e) => updateField('code', e.target.value)}
-                      placeholder="BA-01"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nama</Label>
-                    <Input
-                      value={editingTemplate.name}
-                      onChange={(e) => updateField('name', e.target.value)}
-                      placeholder="Nama template"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Deskripsi</Label>
-                  <Input
-                    value={editingTemplate.description}
-                    onChange={(e) => updateField('description', e.target.value)}
-                    placeholder="Deskripsi singkat template"
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Ukuran Kertas & Margin</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Ukuran Kertas</Label>
-                    <Select
-                      value={editingTemplate.paper.size}
-                      onValueChange={(v) =>
-                        updateField('paper', { ...editingTemplate.paper, size: v as 'A4' | 'F4' })
-                      }
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(PAPER_SIZES).map(([key, val]) => (
-                          <SelectItem key={key} value={key}>{val.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Orientasi</Label>
-                    <Select
-                      value={editingTemplate.paper.orientation}
-                      onValueChange={(v) =>
-                        updateField('paper', { ...editingTemplate.paper, orientation: v as 'portrait' | 'landscape' })
-                      }
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="portrait">Portrait (Tegak)</SelectItem>
-                        <SelectItem value="landscape">Landscape (Mendatar)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label className="text-xs mb-2 block">Margin (cm)</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {(['top', 'bottom', 'left', 'right'] as const).map((side) => (
-                      <div key={side}>
-                        <Label className="text-[10px] text-muted-foreground capitalize">{
-                          side === 'top' ? 'Atas' : side === 'bottom' ? 'Bawah' : side === 'left' ? 'Kiri' : 'Kanan'
-                        }</Label>
+        {/* Two-column layout: Settings (left) + Live Preview (right) */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* ============================================================ */}
+          {/* LEFT: Settings Panel with Accordion */}
+          {/* ============================================================ */}
+          <div className="w-full lg:w-1/2 xl:w-5/12 min-w-0">
+            <Accordion type="multiple" defaultValue={['layout']}>
+              {/* ============================== */}
+              {/* SECTION: Tata Letak            */}
+              {/* ============================== */}
+              <AccordionItem value="layout">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2 text-sm">
+                    <Layout className="h-4 w-4" /> Tata Letak
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {/* Identitas Template */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identitas Template</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Kode</Label>
+                          <Input
+                            value={editingTemplate.code}
+                            onChange={(e) => updateField('code', e.target.value)}
+                            placeholder="BA-01"
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Nama</Label>
+                          <Input
+                            value={editingTemplate.name}
+                            onChange={(e) => updateField('name', e.target.value)}
+                            placeholder="Nama template"
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Deskripsi</Label>
                         <Input
-                          type="number"
-                          step={0.05}
-                          min={0}
-                          value={editingTemplate.margins[side]}
-                          onChange={(e) =>
-                            updateField('margins', { ...editingTemplate.margins, [side]: Number(e.target.value) })
-                          }
-                          className="h-8 text-sm"
+                          value={editingTemplate.description}
+                          onChange={(e) => updateField('description', e.target.value)}
+                          placeholder="Deskripsi singkat template"
+                          className="h-9 text-sm"
                         />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Font</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Jenis Font</Label>
-                    <Select
-                      value={editingTemplate.font.family}
-                      onValueChange={(v) => updateField('font', { ...editingTemplate.font, family: v })}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AVAILABLE_FONTS.map((f) => (
-                          <SelectItem key={f.value} value={f.value}>
-                            <span style={{ fontFamily: f.value }}>{f.label}</span>
-                          </SelectItem>
+                    <Separator />
+
+                    {/* Ukuran Kertas & Margin */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ukuran Kertas & Margin</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Ukuran</Label>
+                          <Select
+                            value={editingTemplate.paper.size}
+                            onValueChange={(v) =>
+                              updateField('paper', { ...editingTemplate.paper, size: v as 'A4' | 'F4' })
+                            }
+                          >
+                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(PAPER_SIZES).map(([key, val]) => (
+                                <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Orientasi</Label>
+                          <Select
+                            value={editingTemplate.paper.orientation}
+                            onValueChange={(v) =>
+                              updateField('paper', { ...editingTemplate.paper, orientation: v as 'portrait' | 'landscape' })
+                            }
+                          >
+                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="portrait">Portrait (Tegak)</SelectItem>
+                              <SelectItem value="landscape">Landscape (Mendatar)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-2 block">Margin (cm)</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {(['top', 'bottom', 'left', 'right'] as const).map((side) => (
+                            <div key={side}>
+                              <Label className="text-[10px] text-muted-foreground">
+                                {side === 'top' ? 'Atas' : side === 'bottom' ? 'Bawah' : side === 'left' ? 'Kiri' : 'Kanan'}
+                              </Label>
+                              <Input
+                                type="number"
+                                step={0.05}
+                                min={0}
+                                value={editingTemplate.margins[side]}
+                                onChange={(e) =>
+                                  updateField('margins', { ...editingTemplate.margins, [side]: Number(e.target.value) })
+                                }
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Font */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Font</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Jenis Font</Label>
+                          <Select
+                            value={editingTemplate.font.family}
+                            onValueChange={(v) => updateField('font', { ...editingTemplate.font, family: v })}
+                          >
+                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {AVAILABLE_FONTS.map((f) => (
+                                <SelectItem key={f.value} value={f.value}>
+                                  <span style={{ fontFamily: f.value }}>{f.label}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Ukuran Dasar (pt)</Label>
+                          <Input
+                            type="number"
+                            min={8}
+                            max={16}
+                            value={editingTemplate.font.baseSizePt}
+                            onChange={(e) => updateField('font', { ...editingTemplate.font, baseSizePt: Number(e.target.value) })}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* ============================== */}
+              {/* SECTION: Header (Kop Surat)    */}
+              {/* ============================== */}
+              <AccordionItem value="header">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2 text-sm">
+                    <Type className="h-4 w-4" /> Header
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {/* Logo */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Logo Instansi</p>
+                      <LogoUploader
+                        currentLogo={editingTemplate.kopSurat.logo.url}
+                        onLogoChange={(url) =>
+                          updateKopSurat({
+                            logo: { ...editingTemplate.kopSurat.logo, url, enabled: true },
+                          })
+                        }
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Lebar (cm)</Label>
+                          <Input
+                            type="number"
+                            step={0.01}
+                            value={editingTemplate.kopSurat.logo.widthCm}
+                            onChange={(e) =>
+                              updateKopSurat({ logo: { ...editingTemplate.kopSurat.logo, widthCm: Number(e.target.value) } })
+                            }
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Tinggi (cm)</Label>
+                          <Input
+                            type="number"
+                            step={0.01}
+                            value={editingTemplate.kopSurat.logo.heightCm}
+                            onChange={(e) =>
+                              updateKopSurat({ logo: { ...editingTemplate.kopSurat.logo, heightCm: Number(e.target.value) } })
+                            }
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Kop Surat Text Fields with RTF Controls */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kop Surat</p>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Line Spacing</Label>
+                          <Select
+                            value={String(editingTemplate.kopSurat.lineSpacing)}
+                            onValueChange={(v) => updateKopSurat({ lineSpacing: Number(v) })}
+                          >
+                            <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1.0</SelectItem>
+                              <SelectItem value="1.15">1.15</SelectItem>
+                              <SelectItem value="1.5">1.5</SelectItem>
+                              <SelectItem value="2">2.0</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Nama Instansi */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <Label className="text-xs whitespace-nowrap">Nama Instansi</Label>
+                          <div className="flex items-center gap-1.5">
+                            <TextFormatToolbar
+                              format={editingTemplate.kopSurat.namaInstansiFormat}
+                              onChange={(fmt) => updateKopSurat({ namaInstansiFormat: fmt })}
+                            />
+                            <Input
+                              type="number" min={8} max={20}
+                              value={editingTemplate.kopSurat.namaInstansiFontSize}
+                              onChange={(e) => updateKopSurat({ namaInstansiFontSize: Number(e.target.value) })}
+                              className="h-7 w-14 text-xs"
+                            />
+                            <span className="text-[10px] text-muted-foreground">pt</span>
+                          </div>
+                        </div>
+                        <Input
+                          value={editingTemplate.kopSurat.namaInstansi}
+                          onChange={(e) => updateKopSurat({ namaInstansi: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+
+                      {/* Nama Dinas */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <Label className="text-xs whitespace-nowrap">Nama Dinas/OPD</Label>
+                          <div className="flex items-center gap-1.5">
+                            <TextFormatToolbar
+                              format={editingTemplate.kopSurat.namaDinasFormat}
+                              onChange={(fmt) => updateKopSurat({ namaDinasFormat: fmt })}
+                            />
+                            <Input
+                              type="number" min={8} max={20}
+                              value={editingTemplate.kopSurat.namaDinasFontSize}
+                              onChange={(e) => updateKopSurat({ namaDinasFontSize: Number(e.target.value) })}
+                              className="h-7 w-14 text-xs"
+                            />
+                            <span className="text-[10px] text-muted-foreground">pt</span>
+                          </div>
+                        </div>
+                        <Input
+                          value={editingTemplate.kopSurat.namaDinas}
+                          onChange={(e) => updateKopSurat({ namaDinas: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+
+                      {/* Alamat */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <Label className="text-xs whitespace-nowrap">Alamat</Label>
+                          <div className="flex items-center gap-1.5">
+                            <TextFormatToolbar
+                              format={editingTemplate.kopSurat.alamatFormat}
+                              onChange={(fmt) => updateKopSurat({ alamatFormat: fmt })}
+                            />
+                            <Input
+                              type="number" min={8} max={16}
+                              value={editingTemplate.kopSurat.alamatFontSize}
+                              onChange={(e) => updateKopSurat({ alamatFontSize: Number(e.target.value) })}
+                              className="h-7 w-14 text-xs"
+                            />
+                            <span className="text-[10px] text-muted-foreground">pt</span>
+                          </div>
+                        </div>
+                        <Input
+                          value={editingTemplate.kopSurat.alamat}
+                          onChange={(e) => updateKopSurat({ alamat: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+
+                      {/* Kontak */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <Label className="text-xs whitespace-nowrap">Kontak</Label>
+                          <div className="flex items-center gap-1.5">
+                            <TextFormatToolbar
+                              format={editingTemplate.kopSurat.kontakFormat}
+                              onChange={(fmt) => updateKopSurat({ kontakFormat: fmt })}
+                            />
+                            <Input
+                              type="number" min={8} max={16}
+                              value={editingTemplate.kopSurat.kontakFontSize}
+                              onChange={(e) => updateKopSurat({ kontakFontSize: Number(e.target.value) })}
+                              className="h-7 w-14 text-xs"
+                            />
+                            <span className="text-[10px] text-muted-foreground">pt</span>
+                          </div>
+                        </div>
+                        <Input
+                          value={editingTemplate.kopSurat.kontak}
+                          onChange={(e) => updateKopSurat({ kontak: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+
+                      {/* Separator Line */}
+                      <div>
+                        <Label className="text-xs">Garis Separator (pt)</Label>
+                        <Input
+                          type="number" step={0.25} min={0} max={5}
+                          value={editingTemplate.kopSurat.separatorThicknessPt}
+                          onChange={(e) => updateKopSurat({ separatorThicknessPt: Number(e.target.value) })}
+                          className="h-8 w-24 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Judul & Nomor Surat */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Judul & Nomor Surat</p>
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <Label className="text-xs">Judul Surat</Label>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <TextFormatToolbar
+                              format={{ bold: editingTemplate.judul.bold, italic: false, underline: editingTemplate.judul.underline }}
+                              onChange={(fmt) => updateField('judul', { ...editingTemplate.judul, bold: fmt.bold, underline: fmt.underline })}
+                            />
+                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editingTemplate.judul.allCaps}
+                                onChange={(e) => updateField('judul', { ...editingTemplate.judul, allCaps: e.target.checked })}
+                                className="h-3 w-3"
+                              />
+                              CAPS
+                            </label>
+                          </div>
+                        </div>
+                        <Input
+                          value={editingTemplate.judul.text}
+                          onChange={(e) => updateField('judul', { ...editingTemplate.judul, text: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Format Nomor Surat</Label>
+                        <Input
+                          value={editingTemplate.nomor.format}
+                          onChange={(e) => updateField('nomor', { ...editingTemplate.nomor, format: e.target.value })}
+                          className="h-9 text-sm"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Gunakan <code className="bg-muted px-1 rounded">{'{nomor}'}</code> dan <code className="bg-muted px-1 rounded">{'{tahun}'}</code>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* ============================== */}
+              {/* SECTION: Redaksi               */}
+              {/* ============================== */}
+              <AccordionItem value="content">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2 text-sm">
+                    <PenLine className="h-4 w-4" /> Redaksi
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {/* Pembukaan */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Redaksi Pembukaan</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.pembukaanFormat}
+                          onChange={(fmt) => updateNarratives({ pembukaanFormat: fmt })}
+                        />
+                      </div>
+                      <Textarea
+                        rows={3}
+                        value={editingTemplate.narratives.pembukaan}
+                        onChange={(e) => updateNarratives({ pembukaan: e.target.value })}
+                        className="text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Placeholder: <code className="bg-muted px-1 rounded">{'{hari}'}</code>{' '}
+                        <code className="bg-muted px-1 rounded">{'{tanggal}'}</code>{' '}
+                        <code className="bg-muted px-1 rounded">{'{bulan}'}</code>{' '}
+                        <code className="bg-muted px-1 rounded">{'{tahun}'}</code>
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Biodata Pihak Pertama */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Biodata Pihak Pertama</p>
+                      <p className="text-[10px] text-muted-foreground -mt-1">
+                        Data default pejabat yang akan digunakan sebagai penanda tangan pihak pertama.
+                      </p>
+                      <div className="grid gap-2">
+                        {([
+                          { key: 'nama' as const, label: 'Nama' },
+                          { key: 'pangkat' as const, label: 'Pangkat' },
+                          { key: 'golongan' as const, label: 'Golongan' },
+                          { key: 'nip' as const, label: 'NIP' },
+                          { key: 'jabatan' as const, label: 'Jabatan' },
+                          { key: 'unitKerja' as const, label: 'Unit Kerja' },
+                        ]).map(({ key, label }) => (
+                          <div key={key} className="grid grid-cols-3 gap-2 items-center">
+                            <Label className="text-xs col-span-1">{label}</Label>
+                            <Input
+                              value={editingTemplate.narratives.biodataPihakPertama[key]}
+                              onChange={(e) => updateBiodata({ [key]: e.target.value })}
+                              className="h-8 text-xs col-span-2"
+                              placeholder={`Masukkan ${label.toLowerCase()}`}
+                            />
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Ukuran Dasar (pt)</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={16}
-                      value={editingTemplate.font.baseSizePt}
-                      onChange={(e) => updateField('font', { ...editingTemplate.font, baseSizePt: Number(e.target.value) })}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* //// TAB: Header (Kop Surat) //// */}
-          <TabsContent value="header" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Logo Instansi</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <LogoUploader
-                  currentLogo={editingTemplate.kopSurat.logo.url}
-                  onLogoChange={(url) =>
-                    updateKopSurat({
-                      logo: { ...editingTemplate.kopSurat.logo, url, enabled: true },
-                    })
-                  }
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Lebar Logo (cm)</Label>
-                    <Input
-                      type="number"
-                      step={0.01}
-                      value={editingTemplate.kopSurat.logo.widthCm}
-                      onChange={(e) =>
-                        updateKopSurat({
-                          logo: { ...editingTemplate.kopSurat.logo, widthCm: Number(e.target.value) },
-                        })
-                      }
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Tinggi Logo (cm)</Label>
-                    <Input
-                      type="number"
-                      step={0.01}
-                      value={editingTemplate.kopSurat.logo.heightCm}
-                      onChange={(e) =>
-                        updateKopSurat({
-                          logo: { ...editingTemplate.kopSurat.logo, heightCm: Number(e.target.value) },
-                        })
-                      }
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Kop Surat</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">Nama Instansi</Label>
-                  <Input
-                    value={editingTemplate.kopSurat.namaInstansi}
-                    onChange={(e) => updateKopSurat({ namaInstansi: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <div className="flex items-center gap-2 mt-1">
-                    <Label className="text-[10px] text-muted-foreground">Ukuran font:</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={20}
-                      value={editingTemplate.kopSurat.namaInstansiFontSize}
-                      onChange={(e) => updateKopSurat({ namaInstansiFontSize: Number(e.target.value) })}
-                      className="h-6 w-16 text-xs"
-                    />
-                    <span className="text-[10px] text-muted-foreground">pt</span>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Nama Dinas/OPD</Label>
-                  <Input
-                    value={editingTemplate.kopSurat.namaDinas}
-                    onChange={(e) => updateKopSurat({ namaDinas: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <div className="flex items-center gap-2 mt-1">
-                    <Label className="text-[10px] text-muted-foreground">Ukuran font:</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={20}
-                      value={editingTemplate.kopSurat.namaDinasFontSize}
-                      onChange={(e) => updateKopSurat({ namaDinasFontSize: Number(e.target.value) })}
-                      className="h-6 w-16 text-xs"
-                    />
-                    <span className="text-[10px] text-muted-foreground">pt</span>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Alamat</Label>
-                  <Input
-                    value={editingTemplate.kopSurat.alamat}
-                    onChange={(e) => updateKopSurat({ alamat: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <div className="flex items-center gap-2 mt-1">
-                    <Label className="text-[10px] text-muted-foreground">Ukuran font:</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={16}
-                      value={editingTemplate.kopSurat.alamatFontSize}
-                      onChange={(e) => updateKopSurat({ alamatFontSize: Number(e.target.value) })}
-                      className="h-6 w-16 text-xs"
-                    />
-                    <span className="text-[10px] text-muted-foreground">pt</span>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Kontak (Telepon, Laman, Pos-el)</Label>
-                  <Input
-                    value={editingTemplate.kopSurat.kontak}
-                    onChange={(e) => updateKopSurat({ kontak: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <div className="flex items-center gap-2 mt-1">
-                    <Label className="text-[10px] text-muted-foreground">Ukuran font:</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={16}
-                      value={editingTemplate.kopSurat.kontakFontSize}
-                      onChange={(e) => updateKopSurat({ kontakFontSize: Number(e.target.value) })}
-                      className="h-6 w-16 text-xs"
-                    />
-                    <span className="text-[10px] text-muted-foreground">pt</span>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Ketebalan Garis Separator (pt)</Label>
-                  <Input
-                    type="number"
-                    step={0.25}
-                    min={0}
-                    max={5}
-                    value={editingTemplate.kopSurat.separatorThicknessPt}
-                    onChange={(e) => updateKopSurat({ separatorThicknessPt: Number(e.target.value) })}
-                    className="h-8 w-24 text-sm"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Judul & Nomor Surat</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">Judul Surat</Label>
-                  <Input
-                    value={editingTemplate.judul.text}
-                    onChange={(e) => updateField('judul', { ...editingTemplate.judul, text: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editingTemplate.judul.bold}
-                        onChange={(e) => updateField('judul', { ...editingTemplate.judul, bold: e.target.checked })}
-                        className="h-3 w-3"
-                      />
-                      Bold
-                    </label>
-                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editingTemplate.judul.allCaps}
-                        onChange={(e) => updateField('judul', { ...editingTemplate.judul, allCaps: e.target.checked })}
-                        className="h-3 w-3"
-                      />
-                      ALL CAPS
-                    </label>
-                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editingTemplate.judul.underline}
-                        onChange={(e) => updateField('judul', { ...editingTemplate.judul, underline: e.target.checked })}
-                        className="h-3 w-3"
-                      />
-                      Underline
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Format Nomor Surat</Label>
-                  <Input
-                    value={editingTemplate.nomor.format}
-                    onChange={(e) => updateField('nomor', { ...editingTemplate.nomor, format: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Gunakan <code className="bg-muted px-1 rounded">{'{nomor}'}</code> untuk nomor surat dan <code className="bg-muted px-1 rounded">{'{tahun}'}</code> untuk tahun
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* //// TAB: Content (Redaksi) //// */}
-          <TabsContent value="content" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Redaksi Pembukaan</CardTitle>
-                <CardDescription className="text-xs">Paragraf pembuka setelah judul surat</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  rows={3}
-                  value={editingTemplate.narratives.pembukaan}
-                  onChange={(e) => updateNarratives({ pembukaan: e.target.value })}
-                  className="text-sm"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Placeholder: <code className="bg-muted px-1 rounded">{'{hari}'}</code> <code className="bg-muted px-1 rounded">{'{tanggal}'}</code> <code className="bg-muted px-1 rounded">{'{bulan}'}</code> <code className="bg-muted px-1 rounded">{'{tahun}'}</code>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Biodata Pihak Pertama</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {editingTemplate.narratives.fieldsPihakPertama.map((field, idx) => (
-                  <div key={idx} className="grid grid-cols-3 gap-2 items-center">
-                    <Input
-                      value={field.label}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.fieldsPihakPertama];
-                        updated[idx] = { ...updated[idx], label: e.target.value };
-                        updateNarratives({ fieldsPihakPertama: updated });
-                      }}
-                      className="h-8 text-xs col-span-1"
-                      placeholder="Label"
-                    />
-                    <Input
-                      value={field.defaultValue}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.fieldsPihakPertama];
-                        updated[idx] = { ...updated[idx], defaultValue: e.target.value };
-                        updateNarratives({ fieldsPihakPertama: updated });
-                      }}
-                      className="h-8 text-xs col-span-2"
-                      placeholder="Nilai default (kosongkan jika diisi saat buat BA)"
-                    />
-                  </div>
-                ))}
-                <Separator />
-                <div>
-                  <Label className="text-xs">Redaksi setelah Pihak Pertama</Label>
-                  <Textarea
-                    rows={2}
-                    value={editingTemplate.narratives.redaksiPihakPertama}
-                    onChange={(e) => updateNarratives({ redaksiPihakPertama: e.target.value })}
-                    className="text-sm mt-1"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Biodata Pihak Kedua</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {editingTemplate.narratives.fieldsPihakKedua.map((field, idx) => (
-                  <div key={idx} className="grid grid-cols-3 gap-2 items-center">
-                    <Input
-                      value={field.label}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.fieldsPihakKedua];
-                        updated[idx] = { ...updated[idx], label: e.target.value };
-                        updateNarratives({ fieldsPihakKedua: updated });
-                      }}
-                      className="h-8 text-xs col-span-1"
-                      placeholder="Label"
-                    />
-                    <Input
-                      value={field.defaultValue}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.fieldsPihakKedua];
-                        updated[idx] = { ...updated[idx], defaultValue: e.target.value };
-                        updateNarratives({ fieldsPihakKedua: updated });
-                      }}
-                      className="h-8 text-xs col-span-2"
-                      placeholder="Nilai default"
-                    />
-                  </div>
-                ))}
-                <Separator />
-                <div>
-                  <Label className="text-xs">Redaksi setelah Pihak Kedua</Label>
-                  <Textarea
-                    rows={2}
-                    value={editingTemplate.narratives.redaksiPihakKedua}
-                    onChange={(e) => updateNarratives({ redaksiPihakKedua: e.target.value })}
-                    className="text-sm mt-1"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Dasar Serah Terima</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">Redaksi</Label>
-                  <Textarea
-                    rows={2}
-                    value={editingTemplate.narratives.redaksiDasar}
-                    onChange={(e) => updateNarratives({ redaksiDasar: e.target.value })}
-                    className="text-sm mt-1"
-                  />
-                </div>
-                {editingTemplate.narratives.dasarItems.map((item, idx) => (
-                  <div key={idx}>
-                    <Label className="text-xs">Dasar {idx + 1}</Label>
-                    <Textarea
-                      rows={2}
-                      value={item}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.dasarItems];
-                        updated[idx] = e.target.value;
-                        updateNarratives({ dasarItems: updated });
-                      }}
-                      className="text-sm mt-1"
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Pernyataan Serah Terima</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  rows={3}
-                  value={editingTemplate.narratives.redaksiSerahTerima}
-                  onChange={(e) => updateNarratives({ redaksiSerahTerima: e.target.value })}
-                  className="text-sm"
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Ketentuan Pihak Kedua</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">Redaksi</Label>
-                  <Textarea
-                    rows={2}
-                    value={editingTemplate.narratives.redaksiKetentuan}
-                    onChange={(e) => updateNarratives({ redaksiKetentuan: e.target.value })}
-                    className="text-sm mt-1"
-                  />
-                </div>
-                {editingTemplate.narratives.ketentuanItems.map((item, idx) => (
-                  <div key={idx}>
-                    <Label className="text-xs">Ketentuan {idx + 1}</Label>
-                    <Textarea
-                      rows={2}
-                      value={item}
-                      onChange={(e) => {
-                        const updated = [...editingTemplate.narratives.ketentuanItems];
-                        updated[idx] = e.target.value;
-                        updateNarratives({ ketentuanItems: updated });
-                      }}
-                      className="text-sm mt-1"
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Penutup & Tanda Tangan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">Redaksi Penutup</Label>
-                  <Textarea
-                    rows={2}
-                    value={editingTemplate.narratives.penutup}
-                    onChange={(e) => updateNarratives({ penutup: e.target.value })}
-                    className="text-sm mt-1"
-                  />
-                </div>
-                <Separator />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium">Pihak Kedua</p>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Label</Label>
-                      <Input
-                        value={editingTemplate.tandaTangan.pihakKedua.label}
-                        onChange={(e) =>
-                          updateTandaTangan({
-                            pihakKedua: { ...editingTemplate.tandaTangan.pihakKedua, label: e.target.value },
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Jabatan</Label>
-                      <Input
-                        value={editingTemplate.tandaTangan.pihakKedua.jabatanLabel}
-                        onChange={(e) =>
-                          updateTandaTangan({
-                            pihakKedua: { ...editingTemplate.tandaTangan.pihakKedua, jabatanLabel: e.target.value },
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium">Pihak Pertama</p>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Label</Label>
-                      <Input
-                        value={editingTemplate.tandaTangan.pihakPertama.label}
-                        onChange={(e) =>
-                          updateTandaTangan({
-                            pihakPertama: { ...editingTemplate.tandaTangan.pihakPertama, label: e.target.value },
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Jabatan</Label>
+
+                    <Separator />
+
+                    {/* Redaksi Pihak Pertama */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Redaksi Pihak Pertama</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.redaksiPihakPertamaFormat}
+                          onChange={(fmt) => updateNarratives({ redaksiPihakPertamaFormat: fmt })}
+                        />
+                      </div>
                       <Textarea
                         rows={2}
-                        value={editingTemplate.tandaTangan.pihakPertama.jabatanLabel}
-                        onChange={(e) =>
-                          updateTandaTangan({
-                            pihakPertama: { ...editingTemplate.tandaTangan.pihakPertama, jabatanLabel: e.target.value },
-                          })
-                        }
-                        className="text-xs"
+                        value={editingTemplate.narratives.redaksiPihakPertama}
+                        onChange={(e) => updateNarratives({ redaksiPihakPertama: e.target.value })}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Pihak Kedua - Format Only */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pihak Kedua</p>
+                      <div className="rounded-lg border border-dashed p-3 bg-muted/30">
+                        <p className="text-xs text-muted-foreground">
+                          Data pihak kedua diisi otomatis dari data kelompok tani / petani saat pembuatan Berita Acara.
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {editingTemplate.narratives.fieldLabelsPihakKedua.map((label, i) => (
+                            <Badge key={i} className="text-[10px] border bg-transparent text-foreground">{label}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-xs">Redaksi Pihak Kedua</Label>
+                          <TextFormatToolbar
+                            format={editingTemplate.narratives.redaksiPihakKeduaFormat}
+                            onChange={(fmt) => updateNarratives({ redaksiPihakKeduaFormat: fmt })}
+                          />
+                        </div>
+                        <Textarea
+                          rows={2}
+                          value={editingTemplate.narratives.redaksiPihakKedua}
+                          onChange={(e) => updateNarratives({ redaksiPihakKedua: e.target.value })}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Dasar Serah Terima */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dasar Serah Terima</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.redaksiDasarFormat}
+                          onChange={(fmt) => updateNarratives({ redaksiDasarFormat: fmt })}
+                        />
+                      </div>
+                      <Textarea
+                        rows={2}
+                        value={editingTemplate.narratives.redaksiDasar}
+                        onChange={(e) => updateNarratives({ redaksiDasar: e.target.value })}
+                        className="text-sm"
+                      />
+                      {editingTemplate.narratives.dasarItems.map((item, idx) => (
+                        <div key={idx} className="flex gap-2 items-start">
+                          <span className="text-xs text-muted-foreground font-medium mt-2.5 flex-shrink-0 w-5 text-right">
+                            {idx + 1}.
+                          </span>
+                          <Textarea
+                            rows={2}
+                            value={item}
+                            onChange={(e) => {
+                              const updated = [...editingTemplate.narratives.dasarItems];
+                              updated[idx] = e.target.value;
+                              updateNarratives({ dasarItems: updated });
+                            }}
+                            className="text-sm flex-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            color="destructive"
+                            size="sm"
+                            onClick={() => removeDasarItem(idx)}
+                            className="flex-shrink-0 h-8 w-8 p-0 mt-0.5"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" onClick={addDasarItem} className="gap-1.5 w-full">
+                        <Plus className="h-3.5 w-3.5" /> Tambah Dasar
+                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    {/* Pernyataan Serah Terima */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pernyataan Serah Terima</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.redaksiSerahTerimaFormat}
+                          onChange={(fmt) => updateNarratives({ redaksiSerahTerimaFormat: fmt })}
+                        />
+                      </div>
+                      <Textarea
+                        rows={3}
+                        value={editingTemplate.narratives.redaksiSerahTerima}
+                        onChange={(e) => updateNarratives({ redaksiSerahTerima: e.target.value })}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Ketentuan Pihak Kedua */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ketentuan Pihak Kedua</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.redaksiKetentuanFormat}
+                          onChange={(fmt) => updateNarratives({ redaksiKetentuanFormat: fmt })}
+                        />
+                      </div>
+                      <Textarea
+                        rows={2}
+                        value={editingTemplate.narratives.redaksiKetentuan}
+                        onChange={(e) => updateNarratives({ redaksiKetentuan: e.target.value })}
+                        className="text-sm"
+                      />
+                      {editingTemplate.narratives.ketentuanItems.map((item, idx) => (
+                        <div key={idx} className="flex gap-2 items-start">
+                          <span className="text-xs text-muted-foreground font-medium mt-2.5 flex-shrink-0 w-5 text-right">
+                            {idx + 1}.
+                          </span>
+                          <Textarea
+                            rows={2}
+                            value={item}
+                            onChange={(e) => {
+                              const updated = [...editingTemplate.narratives.ketentuanItems];
+                              updated[idx] = e.target.value;
+                              updateNarratives({ ketentuanItems: updated });
+                            }}
+                            className="text-sm flex-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            color="destructive"
+                            size="sm"
+                            onClick={() => removeKetentuanItem(idx)}
+                            className="flex-shrink-0 h-8 w-8 p-0 mt-0.5"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" onClick={addKetentuanItem} className="gap-1.5 w-full">
+                        <Plus className="h-3.5 w-3.5" /> Tambah Ketentuan
+                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    {/* Penutup */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Penutup</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.narratives.penutupFormat}
+                          onChange={(fmt) => updateNarratives({ penutupFormat: fmt })}
+                        />
+                      </div>
+                      <Textarea
+                        rows={2}
+                        value={editingTemplate.narratives.penutup}
+                        onChange={(e) => updateNarratives({ penutup: e.target.value })}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Tanda Tangan */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanda Tangan</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Pihak Kedua */}
+                        <div className="space-y-2 rounded-lg border p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium">Pihak Kedua</p>
+                            <TextFormatToolbar
+                              format={editingTemplate.tandaTangan.pihakKedua.labelFormat}
+                              onChange={(fmt) =>
+                                updateTandaTangan({
+                                  pihakKedua: { ...editingTemplate.tandaTangan.pihakKedua, labelFormat: fmt },
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Label</Label>
+                            <Input
+                              value={editingTemplate.tandaTangan.pihakKedua.label}
+                              onChange={(e) =>
+                                updateTandaTangan({
+                                  pihakKedua: { ...editingTemplate.tandaTangan.pihakKedua, label: e.target.value },
+                                })
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="rounded border border-dashed p-2 bg-muted/30">
+                            <p className="text-[10px] text-muted-foreground">
+                              Nama & jabatan diisi otomatis dari data petani/poktan
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Pihak Pertama */}
+                        <div className="space-y-2 rounded-lg border p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium">Pihak Pertama</p>
+                            <TextFormatToolbar
+                              format={editingTemplate.tandaTangan.pihakPertama.labelFormat}
+                              onChange={(fmt) =>
+                                updateTandaTangan({
+                                  pihakPertama: { ...editingTemplate.tandaTangan.pihakPertama, labelFormat: fmt },
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Label</Label>
+                            <Input
+                              value={editingTemplate.tandaTangan.pihakPertama.label}
+                              onChange={(e) =>
+                                updateTandaTangan({
+                                  pihakPertama: { ...editingTemplate.tandaTangan.pihakPertama, label: e.target.value },
+                                })
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="rounded border border-dashed p-2 bg-muted/30">
+                            <p className="text-[10px] text-muted-foreground">Data diambil dari biodata Pihak Pertama</p>
+                            {editingTemplate.narratives.biodataPihakPertama.nama && (
+                              <div className="mt-1.5 text-[10px] space-y-0.5">
+                                <p className="font-medium">{editingTemplate.narratives.biodataPihakPertama.nama}</p>
+                                {editingTemplate.narratives.biodataPihakPertama.pangkat && (
+                                  <p className="text-muted-foreground">
+                                    {editingTemplate.narratives.biodataPihakPertama.pangkat}
+                                    {editingTemplate.narratives.biodataPihakPertama.golongan && ` (${editingTemplate.narratives.biodataPihakPertama.golongan})`}
+                                  </p>
+                                )}
+                                {editingTemplate.narratives.biodataPihakPertama.nip && (
+                                  <p className="text-muted-foreground">NIP. {editingTemplate.narratives.biodataPihakPertama.nip}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
+          {/* ============================================================ */}
+          {/* RIGHT: Live Preview (Desktop)                                */}
+          {/* ============================================================ */}
+          <div className="hidden lg:block lg:w-1/2 xl:w-7/12">
+            <div className="sticky top-16">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Eye className="h-4 w-4" /> Live Preview
+                  </CardTitle>
+                  <CardDescription className="text-xs">Perubahan langsung terlihat di preview</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className="overflow-auto rounded-lg bg-muted/30 p-2"
+                    style={{ maxHeight: 'calc(100vh - 180px)' }}
+                  >
+                    <div
+                      className="origin-top-left"
+                      style={{
+                        transform: 'scale(0.48)',
+                        transformOrigin: 'top left',
+                        height: '1400px',
+                        width: '210mm',
+                      }}
+                    >
+                      <BADocumentPreview
+                        template={editingTemplate}
+                        previewData={SAMPLE_BA_PREVIEW}
                       />
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
 
-          {/* //// TAB: Preview //// */}
-          <TabsContent value="preview" className="mt-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Eye className="h-4 w-4" /> Preview Dokumen
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Preview dengan data contoh. Perubahan langsung terlihat.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto rounded-lg bg-muted/30 p-4">
-                  <div className="min-w-[600px]" style={{ transform: 'scale(0.55)', transformOrigin: 'top left', height: '750px' }}>
-                    <BADocumentPreview
-                      template={editingTemplate}
-                      previewData={SAMPLE_BA_PREVIEW}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Mobile Preview FAB */}
+        <button
+          onClick={() => setShowMobilePreview(true)}
+          className="lg:hidden fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-3 hover:bg-primary/90 transition-colors"
+        >
+          <Eye className="h-4 w-4" />
+          <span className="text-sm font-medium">Preview</span>
+        </button>
+
+        {/* Mobile Preview Overlay */}
+        {showMobilePreview && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-background flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b bg-background">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Eye className="h-4 w-4" /> Preview Dokumen
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => setShowMobilePreview(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 bg-muted/30">
+              <div
+                className="origin-top-left"
+                style={{
+                  transform: 'scale(0.42)',
+                  transformOrigin: 'top left',
+                  height: '1400px',
+                  width: '210mm',
+                }}
+              >
+                <BADocumentPreview
+                  template={editingTemplate}
+                  previewData={SAMPLE_BA_PREVIEW}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };

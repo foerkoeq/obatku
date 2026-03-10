@@ -1,47 +1,34 @@
 "use client";
 
-import * as React from "react";
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  RowSelectionState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  MoreHorizontal,
-  Trash2,
-  UserPlus,
-  Edit,
-  Eye,
-  Download,
-  Filter,
-  Search,
-  Loader2,
-} from "lucide-react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import {
+  Search,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  X,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Eye,
+  Loader2,
+  MapPin,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -50,701 +37,489 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { User } from "@/lib/types/user";
-import { userService, UserFilters, PaginationParams } from "@/lib/services/user.service";
-import { AddUserModal } from "./add-user-modal";
-import { EditUserModal } from "./edit-user-modal";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, USER_ROLES, UserRoleType } from "@/lib/types/user";
+import { users as usersMock } from "@/lib/data/user-demo";
+import { UserDetailModal } from "./user-detail-modal";
 import { UserActionConfirmationDialog } from "./user-action-confirmation-dialog";
 import { ChangeRoleModal } from "./change-role-modal";
 
-type ActionState = {
-  isOpen: boolean;
-  user: User | null;
+// --- Constants ---
+
+const ROLE_COLORS: Record<UserRoleType, string> = {
+  Admin: "primary",
+  Kabid: "violet",
+  Kasubbid: "indigo",
+  "Staf Dinas": "info",
+  BPP: "warning",
+  PPL: "success",
+  POPT: "secondary",
 };
 
-const ROLE_OPTIONS = ["Admin", "PPL", "Dinas", "POPT"] as const;
-const DEFAULT_AVATAR = "/images/avatar/av-1.svg";
-
-const normalizeUserRole = (role: string): User["role"] => {
-  if (ROLE_OPTIONS.includes(role as User["role"])) {
-    return role as User["role"];
-  }
-  return "PPL";
+const ROLE_LABELS: Record<UserRoleType, string> = {
+  Admin: "Admin",
+  Kabid: "Kabid",
+  Kasubbid: "Kasubbid",
+  "Staf Dinas": "Staf Dinas",
+  BPP: "BPP",
+  PPL: "PPL",
+  POPT: "POPT",
 };
 
-const mapApiUserToTableUser = (apiUser: any): User => ({
-  id: String(apiUser.id),
-  name: apiUser.name ?? "Unknown User",
-  email: apiUser.email ?? undefined,
-  role: normalizeUserRole(apiUser.role ?? "PPL"),
-  avatar: apiUser.avatar ?? DEFAULT_AVATAR,
-  status: apiUser.isActive ? "active" : "inactive",
-  lastLogin: apiUser.lastLogin ?? apiUser.updatedAt ?? new Date().toISOString(),
-  nip: apiUser.nip ?? "-",
-  phone: apiUser.phone ?? "",
-  birthDate: apiUser.birthDate ?? new Date().toISOString(),
-  address: apiUser.address,
-  isActive: Boolean(apiUser.isActive),
-  permissions: apiUser.permissions,
-  createdAt: apiUser.createdAt,
-  updatedAt: apiUser.updatedAt,
-});
+type SortField = "name" | "username" | "lokasi" | "role";
+type SortDirection = "asc" | "desc";
 
-const UserRoleBadge = ({
-  role,
-  onClick,
-}: {
-  role: User["role"];
-  onClick: () => void;
-}) => {
-  const roleColors: Record<User["role"], "primary" | "secondary" | "info" | "success"> = {
-    Admin: "primary",
-    PPL: "success",
-    Dinas: "info",
-    POPT: "secondary",
-  };
+const SORTABLE_COLUMNS: Array<{ key: SortField; label: string }> = [
+  { key: "name", label: "Nama" },
+  { key: "username", label: "Username" },
+  { key: "lokasi", label: "Lokasi" },
+  { key: "role", label: "Role" },
+];
 
+// --- Sub-components ---
+
+function RoleBadge({ role }: { role: UserRoleType }) {
   return (
-    <Badge
-      color={roleColors[role]}
-      className="cursor-pointer hover:opacity-80"
-      onClick={onClick}
-    >
-      {role}
+    <Badge color={ROLE_COLORS[role] as any} className="whitespace-nowrap">
+      {ROLE_LABELS[role]}
     </Badge>
   );
-};
+}
+
+function StatusDot({ isActive }: { isActive: boolean }) {
+  return (
+    <span
+      className={`inline-block h-2 w-2 rounded-full ${
+        isActive ? "bg-success" : "bg-default-300"
+      }`}
+      title={isActive ? "Aktif" : "Nonaktif"}
+    />
+  );
+}
+
+function SortHeaderButton({
+  label,
+  field,
+  activeField,
+  activeDirection,
+  onClick,
+}: {
+  label: string;
+  field: SortField;
+  activeField: SortField;
+  activeDirection: SortDirection;
+  onClick: (field: SortField) => void;
+}) {
+  const isActive = activeField === field;
+
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 text-left hover:text-default-800 font-medium"
+      onClick={() => onClick(field)}
+    >
+      <span>{label}</span>
+      {isActive ? (
+        activeDirection === "asc" ? (
+          <ArrowUp className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowDown className="h-3.5 w-3.5" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3.5 w-3.5 text-default-400" />
+      )}
+    </button>
+  );
+}
+
+function LokasiDisplay({ lokasi }: { lokasi: string }) {
+  if (lokasi === "Admin" || lokasi === "Dinas") {
+    return <span className="text-default-700">{lokasi === "Admin" ? "Admin" : "Dinas Pertanian"}</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-default-700">
+      <MapPin className="h-3 w-3 text-default-400 shrink-0" />
+      Kec. {lokasi}
+    </span>
+  );
+}
+
+// --- Main Component ---
 
 export function UserTable() {
-  // Table state
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const router = useRouter();
+  const [data, setData] = useState<User[]>(usersMock);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserRoleType>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  // Data state
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [totalUsers, setTotalUsers] = useState(0);
+  // Detail / Delete / ChangeRole modal state
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  // Derived: lokasi options from data
+  const lokasiOptions = useMemo(() => {
+    const unique = Array.from(new Set(data.map((u) => u.lokasi))).sort((a, b) =>
+      a.localeCompare(b, "id")
+    );
+    return unique;
+  }, [data]);
 
-  // Filter state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  // Filter + sort
+  const filteredData = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-  // Modal state
-  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
-  const [editUserState, setEditUserState] = React.useState<ActionState>({ isOpen: false, user: null });
-  const [changeRoleState, setChangeRoleState] = React.useState<ActionState>({ isOpen: false, user: null });
-  const [resetPasswordState, setResetPasswordState] = React.useState<ActionState>({ isOpen: false, user: null });
-  const [deleteUserState, setDeleteUserState] = React.useState<ActionState>({ isOpen: false, user: null });
-  const [bulkDeleteState, setBulkDeleteState] = React.useState(false);
-
-  // Fetch users from backend
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      
-      const pagination: PaginationParams = {
-        page: currentPage,
-        limit: pageSize,
-      };
-
-      const filters: UserFilters = {
-        search: searchQuery,
-        role: roleFilter || undefined,
-        isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
-        sort: sorting.length > 0 ? sorting[0].id : undefined,
-        order: sorting.length > 0 ? (sorting[0].desc ? "desc" : "asc") : undefined,
-      };
-
-      const response = await userService.getUsers(pagination, filters);
-      
-      if (response.success) {
-        const paginationData = response.data;
-        const nextUsers = (paginationData?.data ?? []).map(mapApiUserToTableUser);
-
-        setUsers(nextUsers);
-        setTotalUsers(paginationData?.pagination?.total ?? 0);
-      } else {
-        toast.error("Failed to fetch users", {
-          description: response.message || "An error occurred while fetching users",
-        });
+    const filtered = data.filter((user) => {
+      if (roleFilter !== "all" && user.role !== roleFilter) return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "active" && !user.isActive) return false;
+        if (statusFilter === "inactive" && user.isActive) return false;
       }
-    } catch (error: any) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users", {
-        description: error.message || "An error occurred while fetching users",
-      });
-    } finally {
-      setIsLoading(false);
+      if (!q) return true;
+
+      return [user.name, user.username, user.nip, user.lokasi, user.role, user.jabatan]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(q));
+    });
+
+    return filtered.sort((a, b) => {
+      const aVal = a[sortField] ?? "";
+      const bVal = b[sortField] ?? "";
+      const cmp = String(aVal).localeCompare(String(bVal), "id", { sensitivity: "base" });
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+  }, [data, search, roleFilter, statusFilter, sortField, sortDirection]);
+
+  // Active filter count (for clear button)
+  const activeFilterCount = [
+    Boolean(search.trim()),
+    roleFilter !== "all",
+    statusFilter !== "all",
+  ].filter(Boolean).length;
+
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
     }
   };
 
-  // Fetch users when dependencies change
-  useEffect(() => {
-    fetchUsers();
-  }, [currentPage, pageSize, searchQuery, roleFilter, statusFilter, sorting]);
-
-  // Handle search with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page when searching
-      fetchUsers();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Handle filters
-  useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [roleFilter, statusFilter]);
-
-  const table = useReactTable({
-    data: users,
-    columns: getColumns({
-      setEditUserState,
-      setChangeRoleState,
-      setResetPasswordState,
-      setDeleteUserState,
-    }),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
-    manualPagination: true,
-    pageCount: Math.ceil(totalUsers / pageSize),
-  });
-
-  const selectedRows = table.getFilteredSelectedRowModel().rows;
-
-  // Handle bulk delete
-  const handleBulkDelete = async () => {
-    try {
-      const userIds = selectedRows.map(row => row.original.id);
-      const response = await userService.bulkDeleteUsers(userIds);
-      
-      if (response.success) {
-        toast.success(`${userIds.length} users have been deleted.`);
-        setBulkDeleteState(false);
-        table.resetRowSelection();
-        fetchUsers(); // Refresh data
-      } else {
-        toast.error("Failed to delete users", {
-          description: response.message || "An error occurred while deleting users",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error deleting users:", error);
-      toast.error("Failed to delete users", {
-        description: error.message || "An error occurred while deleting users",
-      });
-    }
+  const clearFilters = () => {
+    setSearch("");
+    setRoleFilter("all");
+    setStatusFilter("all");
   };
 
-  // Handle reset password
-  const handleResetPassword = async () => {
-    if (!resetPasswordState.user) return;
-    
-    try {
-      const password = format(new Date(resetPasswordState.user.birthDate), "ddMMyy");
-      const response = await userService.resetUserPassword(resetPasswordState.user.id, password);
-      
-      if (response.success) {
-        toast.success(
-          `Password for ${resetPasswordState.user.name} has been reset to ${password}`
-        );
-        setResetPasswordState({ isOpen: false, user: null });
-      } else {
-        toast.error("Failed to reset password", {
-          description: response.message || "An error occurred while resetting password",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error resetting password:", error);
-      toast.error("Failed to reset password", {
-        description: error.message || "An error occurred while resetting password",
-      });
-    }
-  };
-  
-  // Handle delete user
-  const handleDeleteUser = async () => {
-    if (!deleteUserState.user) return;
-    
-    try {
-      const response = await userService.deleteUser(deleteUserState.user.id);
-      
-      if (response.success) {
-        toast.success(`User ${deleteUserState.user.name} has been deleted.`);
-        setDeleteUserState({ isOpen: false, user: null });
-        fetchUsers(); // Refresh data
-      } else {
-        toast.error("Failed to delete user", {
-          description: response.message || "An error occurred while deleting user",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error("Failed to delete user", {
-        description: error.message || "An error occurred while deleting user",
-      });
-    }
-  };
-
-  // Handle export
-  const handleExport = async (format: 'excel' | 'csv') => {
-    try {
-      const filters: UserFilters = {
-        search: searchQuery,
-        role: roleFilter || undefined,
-        isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
-      };
-
-      const blob = await userService.exportUsers(format, filters);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `users.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success(`Users exported to ${format.toUpperCase()} successfully!`);
-    } catch (error: any) {
-      console.error("Error exporting users:", error);
-      toast.error("Failed to export users", {
-        description: error.message || "An error occurred while exporting users",
-      });
-    }
-  };
-
-  // Handle success callbacks
-  const handleUserCreated = () => {
-    fetchUsers();
-  };
-
-  const handleUserUpdated = () => {
-    fetchUsers();
+  const handleDelete = (user: User) => {
+    setData((prev) => prev.filter((u) => u.id !== user.id));
+    toast.success(`Pengguna ${user.name} berhasil dihapus.`);
+    setDeleteUser(null);
+    if (selectedUser?.id === user.id) setSelectedUser(null);
   };
 
   return (
-    <TooltipProvider>
-      <div className="w-full">
-        {/* Filters and Actions */}
-        <div className="flex flex-col gap-4 py-4">
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
+    <div className="space-y-4">
+      {/* Search & Filters */}
+      <Card>
+        <CardContent className="p-4 sm:p-6 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="h-4 w-4 text-default-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                placeholder="Search users by name, email, or NIP..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari nama, username, NIP, lokasi..."
+                className="pl-9"
               />
             </div>
-            
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All Roles" />
+
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" className="gap-1.5 w-full sm:w-auto" onClick={clearFilters}>
+                <X className="h-4 w-4" />
+                Hapus Filter
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Select
+              value={roleFilter}
+              onValueChange={(v) => setRoleFilter(v as "all" | UserRoleType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter Role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="PPL">PPL</SelectItem>
-                <SelectItem value="Dinas">Dinas</SelectItem>
-                <SelectItem value="POPT">POPT</SelectItem>
+                <SelectItem value="all">Semua Role</SelectItem>
+                {USER_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All Status" />
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Nonaktif</SelectItem>
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {selectedRows.length > 0 && (
-                <Button
-                  color="destructive"
-                  onClick={() => setBulkDeleteState(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete ({selectedRows.length})
-                </Button>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleExport('excel')}
-              >
-                <Download className="mr-2 h-4 w-4" /> Export Excel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('csv')}
-              >
-                <Download className="mr-2 h-4 w-4" /> Export CSV
-              </Button>
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                <UserPlus className="mr-2 h-4 w-4" /> Add User
-              </Button>
-            </div>
-          </div>
-        </div>
+      {/* Summary */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-sm text-default-500">
+          <span className="font-medium text-default-700">{filteredData.length}</span> pengguna
+          {activeFilterCount > 0 && (
+            <span> (dari {data.length} total)</span>
+          )}
+        </p>
+      </div>
 
-        {/* Table */}
-        <div className="rounded-md border">
+      {/* ========== MOBILE CARDS ========== */}
+      <div className="space-y-3 md:hidden">
+        {filteredData.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Users className="mx-auto h-10 w-10 text-default-300 mb-2" />
+              <p className="text-sm text-default-500">Pengguna tidak ditemukan.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredData.map((user) => (
+            <Card
+              key={user.id}
+              className="cursor-pointer hover:shadow-sm transition-shadow active:bg-default-50/50"
+              onClick={() => setSelectedUser(user)}
+            >
+              <CardContent className="p-4 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <StatusDot isActive={user.isActive} />
+                      <h3 className="font-semibold text-default-900 text-sm truncate">
+                        {user.name}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-default-500 truncate">@{user.username}</p>
+                  </div>
+                  <RoleBadge role={user.role} />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-default-100">
+                  <div className="text-xs text-default-500">
+                    <LokasiDisplay lokasi={user.lokasi} />
+                  </div>
+                  <div
+                    className="flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setSelectedUser(user)}
+                      aria-label="Lihat detail"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteUser(user)}
+                      aria-label="Hapus pengguna"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* ========== DESKTOP TABLE ========== */}
+      <Card className="hidden md:block">
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
+              <TableRow className="bg-default-50/60">
+                {SORTABLE_COLUMNS.map((col) => (
+                  <TableHead key={col.key}>
+                    <SortHeaderButton
+                      label={col.label}
+                      field={col.key}
+                      activeField={sortField}
+                      activeDirection={sortDirection}
+                      onClick={handleSort}
+                    />
+                  </TableHead>
+                ))}
+                <TableHead>
+                  <span className="font-medium">Status</span>
+                </TableHead>
+                <TableHead className="text-center">
+                  <span className="font-medium">Aksi</span>
+                </TableHead>
+              </TableRow>
             </TableHeader>
+
             <TableBody>
-              {isLoading ? (
+              {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={table.getAllColumns().length}
-                    className="h-24 text-center"
-                  >
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading users...
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={table.getAllColumns().length}
-                    className="h-24 text-center"
-                  >
-                    No users found.
+                  <TableCell className="text-center text-default-500 py-12" colSpan={6}>
+                    <Users className="mx-auto h-10 w-10 text-default-300 mb-2" />
+                    <p>Pengguna tidak ditemukan.</p>
                   </TableCell>
                 </TableRow>
               ) : (
-                table.getRowModel().rows.map((row) => (
+                filteredData.map((user) => (
                   <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+                    key={user.id}
+                    className="cursor-pointer hover:bg-default-50/70"
+                    onClick={() => setSelectedUser(user)}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <StatusDot isActive={user.isActive} />
+                        <span className="font-medium text-default-900">{user.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-default-600">@{user.username}</TableCell>
+                    <TableCell>
+                      <LokasiDisplay lokasi={user.lokasi} />
+                    </TableCell>
+                    <TableCell>
+                      <RoleBadge role={user.role} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        color={user.isActive ? "success" : "default"}
+                        className="text-[11px]"
+                      >
+                        {user.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <span className="sr-only">Buka menu aksi</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedUser(user)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Lihat Detail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/users/${user.id}/edit`)}
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteUser(user)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            {selectedRows.length} of {totalUsers} row(s) selected.
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Page size:</span>
-              <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {Math.ceil(totalUsers / pageSize)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= Math.ceil(totalUsers / pageSize)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Detail Modal */}
+      <UserDetailModal
+        open={Boolean(selectedUser)}
+        user={selectedUser}
+        onClose={() => setSelectedUser(null)}
+        onEdit={(user) => {
+          setSelectedUser(null);
+          router.push(`/users/${user.id}/edit`);
+        }}
+        onDelete={(user) => {
+          setSelectedUser(null);
+          setDeleteUser(user);
+        }}
+        onChangeRoleStatus={(user) => {
+          setSelectedUser(null);
+          setChangeRoleUser(user);
+        }}
+      />
 
-      {/* Modals and Dialogs */}
-      <AddUserModal 
-        open={isAddModalOpen} 
-        onOpenChange={setIsAddModalOpen}
-        onSuccess={handleUserCreated}
+      {/* Delete Confirmation */}
+      <UserActionConfirmationDialog
+        open={Boolean(deleteUser)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteUser(null);
+        }}
+        onConfirm={() => {
+          if (deleteUser) handleDelete(deleteUser);
+        }}
+        title="Hapus Pengguna?"
+        description={`Tindakan ini tidak bisa dibatalkan. Pengguna "${deleteUser?.name}" akan dihapus secara permanen dari sistem.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
       />
-      
-      <EditUserModal
-        user={editUserState.user}
-        open={editUserState.isOpen}
-        onOpenChange={(isOpen) => setEditUserState({ isOpen, user: isOpen ? editUserState.user : null })}
-        onSuccess={handleUserUpdated}
-      />
-      
+
+      {/* Change Role & Status Modal */}
       <ChangeRoleModal
-        user={changeRoleState.user}
-        open={changeRoleState.isOpen}
-        onOpenChange={(isOpen) => setChangeRoleState({ isOpen, user: isOpen ? changeRoleState.user : null })}
-        onSuccess={handleUserUpdated}
+        user={changeRoleUser}
+        open={Boolean(changeRoleUser)}
+        onOpenChange={(open) => {
+          if (!open) setChangeRoleUser(null);
+        }}
+        onSuccess={({ role, isActive, lokasi }) => {
+          if (changeRoleUser) {
+            setData((prev) =>
+              prev.map((u) =>
+                u.id === changeRoleUser.id
+                  ? { ...u, role, isActive, lokasi, status: isActive ? "active" : "inactive" }
+                  : u
+              )
+            );
+          }
+          setChangeRoleUser(null);
+        }}
       />
-      
-      <UserActionConfirmationDialog
-        open={resetPasswordState.isOpen}
-        onOpenChange={(isOpen) => setResetPasswordState({ isOpen, user: isOpen ? resetPasswordState.user : null })}
-        onConfirm={handleResetPassword}
-        title="Are you sure?"
-        description={`Do you want to reset the password for ${resetPasswordState.user?.name}? The new password will be their date of birth (DDMMYY).`}
-      />
-      
-      <UserActionConfirmationDialog
-        open={deleteUserState.isOpen}
-        onOpenChange={(isOpen) => setDeleteUserState({ isOpen, user: isOpen ? deleteUserState.user : null })}
-        onConfirm={handleDeleteUser}
-        title="Are you absolutely sure?"
-        description={`This action cannot be undone. This will permanently delete the user account for ${deleteUserState.user?.name}.`}
-        confirmText="Yes, delete user"
-      />
-      
-      <UserActionConfirmationDialog
-        open={bulkDeleteState}
-        onOpenChange={setBulkDeleteState}
-        onConfirm={handleBulkDelete}
-        title={`Delete ${selectedRows.length} Users?`}
-        description="This action cannot be undone. Are you sure you want to permanently delete the selected users?"
-        confirmText={`Yes, delete ${selectedRows.length} users`}
-      />
-    </TooltipProvider>
+    </div>
   );
 }
-
-// Moved columns to a function to pass state setters
-const getColumns = ({
-  setEditUserState,
-  setChangeRoleState,
-  setResetPasswordState,
-  setDeleteUserState,
-}: {
-  setEditUserState: React.Dispatch<React.SetStateAction<ActionState>>;
-  setChangeRoleState: React.Dispatch<React.SetStateAction<ActionState>>;
-  setResetPasswordState: React.Dispatch<React.SetStateAction<ActionState>>;
-  setDeleteUserState: React.Dispatch<React.SetStateAction<ActionState>>;
-}): ColumnDef<User>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: "User",
-    cell: ({ row }) => {
-      const user = row.original;
-      return (
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 relative">
-            <Image
-              src={user.avatar || "/images/avatar/av-1.svg"}
-              alt={user.name}
-              fill
-              className="rounded-full object-cover"
-            />
-          </div>
-          <div>
-            <div className="font-medium">{user.name}</div>
-            <div className="text-xs text-muted-foreground">{user.email || 'N/A'}</div>
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "nip",
-    header: "NIP",
-  },
-  {
-    accessorKey: "role",
-    header: "Role",
-    cell: ({ row }) => (
-      <UserRoleBadge
-        role={row.original.role}
-        onClick={() => setChangeRoleState({ isOpen: true, user: row.original })}
-      />
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const color = status === "active" ? "success" : "destructive";
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <Badge color={color}>{status}</Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Account is {status}</p>
-          </TooltipContent>
-        </Tooltip>
-      );
-    },
-  },
-  {
-    accessorKey: "lastLogin",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Last Login
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const lastLogin = new Date(row.getValue("lastLogin"));
-      return <div>{lastLogin.toLocaleDateString()}</div>;
-    },
-  },
-  {
-    id: "actions",
-    header: () => <div className="text-center">Aksi</div>,
-    cell: ({ row }) => {
-      const user = row.original;
-      return (
-        <div className="text-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => setEditUserState({ isOpen: true, user })}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setChangeRoleState({ isOpen: true, user })}
-              >
-                <UserRoleBadge role={user.role} onClick={() => {}} />
-                Change Role
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setResetPasswordState({ isOpen: true, user })}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Reset Password
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteUserState({ isOpen: true, user })}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete User
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
-  },
-];

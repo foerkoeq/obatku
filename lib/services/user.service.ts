@@ -5,6 +5,7 @@
 
 import { api, API_ENDPOINTS, ListResponse, SingleResponse, MessageResponse, ApiServiceError, QueryBuilder, PaginationParams, PaginationResponse, SearchFilterParams } from './api';
 import { getDummyExportBlob } from '@/lib/api/mock-router';
+import { USER_ROLES, UserRoleType } from "@/lib/types/user";
 
 // User interfaces
 export interface User {
@@ -84,12 +85,9 @@ export interface RoleFilters extends SearchFilterParams {
   isActive?: boolean;
 }
 
-const USER_ROLES = ["Admin", "PPL", "Dinas", "POPT"] as const;
-type UserRoleValue = (typeof USER_ROLES)[number];
-
-const normalizeUserRole = (role: string): UserRoleValue => {
-  if (USER_ROLES.includes(role as UserRoleValue)) {
-    return role as UserRoleValue;
+const normalizeUserRole = (role: string): UserRoleType => {
+  if ((USER_ROLES as readonly string[]).includes(role)) {
+    return role as UserRoleType;
   }
   return "PPL";
 };
