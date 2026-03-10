@@ -322,7 +322,7 @@ export default function BeritaAcaraSettingsPage() {
                 <Badge className="gap-0.5"><Star className="h-3 w-3" /> Default</Badge>
               )}
               {selectedTemplate.isProtected && (
-                <Badge variant="outline" className="gap-0.5 text-muted-foreground">
+                <Badge color="default" className="gap-0.5 border bg-transparent text-muted-foreground">
                   <ShieldCheck className="h-3 w-3" /> Bawaan
                 </Badge>
               )}
@@ -447,11 +447,11 @@ export default function BeritaAcaraSettingsPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Isi Surat</p>
               <p className="text-xs text-muted-foreground line-clamp-2">{selectedTemplate.narratives.pembukaan}</p>
               <div className="flex flex-wrap gap-1 mt-2">
-                <Badge variant="outline" className="text-[10px]">Pihak Pertama</Badge>
-                <Badge variant="outline" className="text-[10px]">Pihak Kedua</Badge>
-                <Badge variant="outline" className="text-[10px]">Dasar Serah Terima</Badge>
-                <Badge variant="outline" className="text-[10px]">Ketentuan</Badge>
-                <Badge variant="outline" className="text-[10px]">Penutup</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Pihak Pertama</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Pihak Kedua</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Dasar Serah Terima</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Ketentuan</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Penutup</Badge>
               </div>
             </div>
 
