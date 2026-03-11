@@ -4,6 +4,7 @@ import React from 'react';
 import type { BATemplateConfig, BAPreviewData, BATextFormat } from '@/lib/types/berita-acara';
 import { resolveNarrative, PAPER_SIZES } from '@/lib/data/mock-berita-acara-templates';
 import { cn } from '@/lib/utils';
+import { BALampiranPreview } from './ba-lampiran-preview';
 
 interface BADocumentPreviewProps {
   template: BATemplateConfig;
@@ -24,6 +25,8 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
 }) => {
   const { kopSurat, judul, nomor, narratives, tandaTangan, font, margins, paper } = template;
   const paperDim = PAPER_SIZES[paper.size] || PAPER_SIZES.A4;
+  const lampiranWidthMm = paperDim.height;
+  const lampiranHeightMm = paperDim.width;
 
   const resolve = (text: string) => resolveNarrative(text, previewData);
 
@@ -60,18 +63,23 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
 
   return (
     <div
-      className={cn('bg-white text-black mx-auto shadow-lg', className)}
+      className={cn('space-y-6', className)}
       style={{
-        width: `${paperDim.width}mm`,
-        minHeight: `${paperDim.height}mm`,
-        fontFamily: `${font.family}, sans-serif`,
-        fontSize: `${font.baseSizePt}pt`,
-        lineHeight: 1.5,
-        padding: `${margins.top}cm ${margins.right}cm ${margins.bottom}cm ${margins.left}cm`,
         transform: scale !== 1 ? `scale(${scale})` : undefined,
         transformOrigin: 'top center',
       }}
     >
+      <div
+        className="bg-white text-black mx-auto shadow-lg"
+        style={{
+          width: `${paperDim.width}mm`,
+          minHeight: `${paperDim.height}mm`,
+          fontFamily: `${font.family}, sans-serif`,
+          fontSize: `${font.baseSizePt}pt`,
+          lineHeight: 1.5,
+          padding: `${margins.top}cm ${margins.right}cm ${margins.bottom}cm ${margins.left}cm`,
+        }}
+      >
       {/* ================================================================ */}
       {/* KOP SURAT (HEADER) */}
       {/* ================================================================ */}
@@ -271,6 +279,16 @@ export const BADocumentPreview: React.FC<BADocumentPreviewProps> = ({
           </div>
         </div>
       </div>
+
+      </div>
+
+      <BALampiranPreview
+        template={template}
+        previewData={previewData}
+        resolve={resolve}
+        widthMm={lampiranWidthMm}
+        heightMm={lampiranHeightMm}
+      />
     </div>
   );
 };

@@ -30,7 +30,6 @@ import {
   PAPER_SIZES,
   AVAILABLE_FONTS,
   createBlankBATemplate,
-  DEFAULT_TEXT_FORMAT,
 } from '@/lib/data/mock-berita-acara-templates';
 import { toast } from '@/components/ui/use-toast';
 import {
@@ -409,8 +408,8 @@ export default function BeritaAcaraSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto rounded-lg bg-muted/30 p-4">
-              <div className="min-w-[600px]" style={{ transform: 'scale(0.6)', transformOrigin: 'top left', height: '700px' }}>
+            <div className="overflow-auto rounded-lg bg-muted/30 p-4">
+              <div className="min-w-[780px]" style={{ transform: 'scale(0.42)', transformOrigin: 'top left', height: '2800px' }}>
                 <BADocumentPreview
                   template={selectedTemplate}
                   previewData={SAMPLE_BA_PREVIEW}
@@ -470,6 +469,26 @@ export default function BeritaAcaraSettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Lampiran */}
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Lampiran (Lanskap)</p>
+              <p className="text-sm font-semibold">{selectedTemplate.lampiran.title.text}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Identitas kanan atas, tabel rincian distribusi, dan tanda tangan dengan jabatan lengkap.
+              </p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <Badge color="default" className="border bg-transparent text-[10px]">{selectedTemplate.lampiran.table.columns.length} Kolom</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Font {selectedTemplate.lampiran.identity.fontSize}pt</Badge>
+                <Badge color="default" className="border bg-transparent text-[10px]">Border {selectedTemplate.lampiran.table.design.borderWidthPt}pt</Badge>
+                {selectedTemplate.lampiran.signature.showJabatan && (
+                  <Badge color="default" className="border bg-transparent text-[10px]">Jabatan</Badge>
+                )}
+                {selectedTemplate.lampiran.signature.showNip && (
+                  <Badge color="default" className="border bg-transparent text-[10px]">NIP</Badge>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -502,6 +521,81 @@ export default function BeritaAcaraSettingsPage() {
       setEditingTemplate((prev) =>
         prev ? { ...prev, tandaTangan: { ...prev.tandaTangan, ...partial } } : prev
       );
+    };
+
+    const updateLampiranIdentity = (partial: Partial<BATemplateConfig['lampiran']['identity']>) => {
+      setEditingTemplate((prev) =>
+        prev
+          ? {
+              ...prev,
+              lampiran: {
+                ...prev.lampiran,
+                identity: { ...prev.lampiran.identity, ...partial },
+              },
+            }
+          : prev
+      );
+    };
+
+    const updateLampiranTitle = (partial: Partial<BATemplateConfig['lampiran']['title']>) => {
+      setEditingTemplate((prev) =>
+        prev
+          ? {
+              ...prev,
+              lampiran: {
+                ...prev.lampiran,
+                title: { ...prev.lampiran.title, ...partial },
+              },
+            }
+          : prev
+      );
+    };
+
+    const updateLampiranTableDesign = (partial: Partial<BATemplateConfig['lampiran']['table']['design']>) => {
+      setEditingTemplate((prev) =>
+        prev
+          ? {
+              ...prev,
+              lampiran: {
+                ...prev.lampiran,
+                table: {
+                  ...prev.lampiran.table,
+                  design: { ...prev.lampiran.table.design, ...partial },
+                },
+              },
+            }
+          : prev
+      );
+    };
+
+    const updateLampiranSignature = (partial: Partial<BATemplateConfig['lampiran']['signature']>) => {
+      setEditingTemplate((prev) =>
+        prev
+          ? {
+              ...prev,
+              lampiran: {
+                ...prev.lampiran,
+                signature: { ...prev.lampiran.signature, ...partial },
+              },
+            }
+          : prev
+      );
+    };
+
+    const updateLampiranColumn = (idx: number, partial: Partial<BATemplateConfig['lampiran']['table']['columns'][number]>) => {
+      setEditingTemplate((prev) => {
+        if (!prev) return prev;
+        const nextColumns = prev.lampiran.table.columns.map((col, colIdx) =>
+          colIdx === idx ? { ...col, ...partial } : col
+        );
+        return {
+          ...prev,
+          lampiran: {
+            ...prev.lampiran,
+            table: { ...prev.lampiran.table, columns: nextColumns },
+          },
+        };
+      });
     };
 
     const updateBiodata = (partial: Partial<BAPihakPertamaBiodata>) => {
@@ -554,7 +648,7 @@ export default function BeritaAcaraSettingsPage() {
           {/* LEFT: Settings Panel with Accordion */}
           {/* ============================================================ */}
           <div className="w-full lg:w-1/2 xl:w-5/12 min-w-0">
-            <Accordion type="multiple" defaultValue={['layout']}>
+            <Accordion type="multiple" defaultValue={['layout', 'lampiran']}>
               {/* ============================== */}
               {/* SECTION: Tata Letak            */}
               {/* ============================== */}
@@ -1267,6 +1361,379 @@ export default function BeritaAcaraSettingsPage() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
+
+              {/* ============================== */}
+              {/* SECTION: Lampiran             */}
+              {/* ============================== */}
+              <AccordionItem value="lampiran">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2 text-sm">
+                    <BookOpen className="h-4 w-4" /> Lampiran (Lanskap)
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-dashed p-3 bg-muted/30">
+                      <p className="text-xs text-muted-foreground">
+                        Lampiran merupakan satu kesatuan dokumen dengan Berita Acara. Halaman lampiran otomatis dirender dalam orientasi lanskap.
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identitas Surat</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.lampiran.identity.textFormat}
+                          onChange={(fmt) => updateLampiranIdentity({ textFormat: fmt })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Redaksi Lampiran</Label>
+                          <Input
+                            value={editingTemplate.lampiran.identity.lampLabel}
+                            onChange={(e) => updateLampiranIdentity({ lampLabel: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Nilai Lampiran</Label>
+                          <Input
+                            value={editingTemplate.lampiran.identity.lampValue}
+                            onChange={(e) => updateLampiranIdentity({ lampValue: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Redaksi Nomor BA</Label>
+                          <Input
+                            value={editingTemplate.lampiran.identity.nomorLabel}
+                            onChange={(e) => updateLampiranIdentity({ nomorLabel: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Format Nomor BA</Label>
+                          <Input
+                            value={editingTemplate.lampiran.identity.nomorValueFormat}
+                            onChange={(e) => updateLampiranIdentity({ nomorValueFormat: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Ukuran Font (pt)</Label>
+                          <Input
+                            type="number"
+                            min={8}
+                            max={16}
+                            value={editingTemplate.lampiran.identity.fontSize}
+                            onChange={(e) => updateLampiranIdentity({ fontSize: Number(e.target.value) })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Line Spacing</Label>
+                          <Select
+                            value={String(editingTemplate.lampiran.identity.lineSpacing)}
+                            onValueChange={(v) => updateLampiranIdentity({ lineSpacing: Number(v) })}
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1.0</SelectItem>
+                              <SelectItem value="1.15">1.15</SelectItem>
+                              <SelectItem value="1.5">1.5</SelectItem>
+                              <SelectItem value="2">2.0</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Judul Lampiran</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.lampiran.title.textFormat}
+                          onChange={(fmt) => updateLampiranTitle({ textFormat: fmt })}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Redaksi Judul</Label>
+                        <Input
+                          value={editingTemplate.lampiran.title.text}
+                          onChange={(e) => updateLampiranTitle({ text: e.target.value })}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Ukuran Font (pt)</Label>
+                          <Input
+                            type="number"
+                            min={10}
+                            max={20}
+                            value={editingTemplate.lampiran.title.fontSize}
+                            onChange={(e) => updateLampiranTitle({ fontSize: Number(e.target.value) })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Line Spacing</Label>
+                          <Select
+                            value={String(editingTemplate.lampiran.title.lineSpacing)}
+                            onValueChange={(v) => updateLampiranTitle({ lineSpacing: Number(v) })}
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1.0</SelectItem>
+                              <SelectItem value="1.15">1.15</SelectItem>
+                              <SelectItem value="1.5">1.5</SelectItem>
+                              <SelectItem value="2">2.0</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tabel Rincian - Header Per Kolom</p>
+                      <div className="space-y-3">
+                        {editingTemplate.lampiran.table.columns.map((col, idx) => (
+                          <div key={col.key} className="rounded-lg border p-3 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium">Kolom {idx + 1}: {col.key}</p>
+                              <TextFormatToolbar
+                                format={col.format}
+                                onChange={(fmt) => updateLampiranColumn(idx, { format: fmt })}
+                              />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div className="sm:col-span-2">
+                                <Label className="text-[10px] text-muted-foreground">Redaksi</Label>
+                                <Input
+                                  value={col.label}
+                                  onChange={(e) => updateLampiranColumn(idx, { label: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground">Lebar (%)</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={40}
+                                  value={col.widthPercent}
+                                  onChange={(e) => updateLampiranColumn(idx, { widthPercent: Number(e.target.value) })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground">Perataan</Label>
+                              <Select
+                                value={col.align}
+                                onValueChange={(v) => updateLampiranColumn(idx, { align: v as 'left' | 'center' | 'right' })}
+                              >
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="left">Kiri</SelectItem>
+                                  <SelectItem value="center">Tengah</SelectItem>
+                                  <SelectItem value="right">Kanan</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Desain Tabel</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Warna Border</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="color"
+                              value={editingTemplate.lampiran.table.design.borderColor}
+                              onChange={(e) => updateLampiranTableDesign({ borderColor: e.target.value })}
+                              className="h-8 w-12 p-1"
+                            />
+                            <Input
+                              value={editingTemplate.lampiran.table.design.borderColor}
+                              onChange={(e) => updateLampiranTableDesign({ borderColor: e.target.value })}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Ketebalan Border (pt)</Label>
+                          <Input
+                            type="number"
+                            step={0.25}
+                            min={0.25}
+                            max={3}
+                            value={editingTemplate.lampiran.table.design.borderWidthPt}
+                            onChange={(e) => updateLampiranTableDesign({ borderWidthPt: Number(e.target.value) })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Warna Header</Label>
+                          <Input
+                            type="color"
+                            value={editingTemplate.lampiran.table.design.headerBackgroundColor}
+                            onChange={(e) => updateLampiranTableDesign({ headerBackgroundColor: e.target.value })}
+                            className="h-8 p-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Warna Teks Header</Label>
+                          <Input
+                            type="color"
+                            value={editingTemplate.lampiran.table.design.headerTextColor}
+                            onChange={(e) => updateLampiranTableDesign({ headerTextColor: e.target.value })}
+                            className="h-8 p-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Warna Teks Isi</Label>
+                          <Input
+                            type="color"
+                            value={editingTemplate.lampiran.table.design.bodyTextColor}
+                            onChange={(e) => updateLampiranTableDesign({ bodyTextColor: e.target.value })}
+                            className="h-8 p-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Warna Stripe</Label>
+                          <Input
+                            type="color"
+                            value={editingTemplate.lampiran.table.design.stripeColor}
+                            onChange={(e) => updateLampiranTableDesign({ stripeColor: e.target.value })}
+                            className="h-8 p-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Line Spacing Isi Tabel</Label>
+                          <Select
+                            value={String(editingTemplate.lampiran.table.design.lineSpacing)}
+                            onValueChange={(v) => updateLampiranTableDesign({ lineSpacing: Number(v) })}
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1.0</SelectItem>
+                              <SelectItem value="1.15">1.15</SelectItem>
+                              <SelectItem value="1.5">1.5</SelectItem>
+                              <SelectItem value="2">2.0</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-end pb-1">
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editingTemplate.lampiran.table.design.stripedRows}
+                              onChange={(e) => updateLampiranTableDesign({ stripedRows: e.target.checked })}
+                              className="h-3.5 w-3.5"
+                            />
+                            Aktifkan baris selang-seling
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanda Tangan Lampiran</p>
+                        <TextFormatToolbar
+                          format={editingTemplate.lampiran.signature.textFormat}
+                          onChange={(fmt) => updateLampiranSignature({ textFormat: fmt })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Redaksi Pihak Kedua</Label>
+                          <Input
+                            value={editingTemplate.lampiran.signature.pihakKeduaLabel}
+                            onChange={(e) => updateLampiranSignature({ pihakKeduaLabel: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Redaksi Pihak Pertama</Label>
+                          <Input
+                            value={editingTemplate.lampiran.signature.pihakPertamaLabel}
+                            onChange={(e) => updateLampiranSignature({ pihakPertamaLabel: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Informasi Ditampilkan</p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2">
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editingTemplate.lampiran.signature.showJabatan}
+                              onChange={(e) => updateLampiranSignature({ showJabatan: e.target.checked })}
+                              className="h-3.5 w-3.5"
+                            />
+                            Tampilkan jabatan
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editingTemplate.lampiran.signature.showPangkatGolongan}
+                              onChange={(e) => updateLampiranSignature({ showPangkatGolongan: e.target.checked })}
+                              className="h-3.5 w-3.5"
+                            />
+                            Tampilkan pangkat/golongan
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editingTemplate.lampiran.signature.showNip}
+                              onChange={(e) => updateLampiranSignature({ showNip: e.target.checked })}
+                              className="h-3.5 w-3.5"
+                            />
+                            Tampilkan NIP
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Line Spacing</Label>
+                        <Select
+                          value={String(editingTemplate.lampiran.signature.lineSpacing)}
+                          onValueChange={(v) => updateLampiranSignature({ lineSpacing: Number(v) })}
+                        >
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1.0</SelectItem>
+                            <SelectItem value="1.15">1.15</SelectItem>
+                            <SelectItem value="1.5">1.5</SelectItem>
+                            <SelectItem value="2">2.0</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </div>
 
@@ -1290,10 +1757,10 @@ export default function BeritaAcaraSettingsPage() {
                     <div
                       className="origin-top-left"
                       style={{
-                        transform: 'scale(0.48)',
+                        transform: 'scale(0.38)',
                         transformOrigin: 'top left',
-                        height: '1400px',
-                        width: '210mm',
+                        height: '3200px',
+                        width: '297mm',
                       }}
                     >
                       <BADocumentPreview
@@ -1334,8 +1801,8 @@ export default function BeritaAcaraSettingsPage() {
                 style={{
                   transform: 'scale(0.42)',
                   transformOrigin: 'top left',
-                  height: '1400px',
-                  width: '210mm',
+                  height: '2800px',
+                  width: '297mm',
                 }}
               >
                 <BADocumentPreview

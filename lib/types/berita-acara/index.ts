@@ -188,6 +188,77 @@ export interface BATandaTanganConfig {
   };
 }
 
+export type BAAttachmentTableColumnKey =
+  | 'nomor'
+  | 'wilayah'
+  | 'namaPoktan'
+  | 'ketuaPoktan'
+  | 'komoditas'
+  | 'opt'
+  | 'luasSerangan'
+  | 'luasWaspada'
+  | 'merekKandungan'
+  | 'jumlah'
+  | 'keterangan';
+
+export type BATextAlign = 'left' | 'center' | 'right';
+
+export interface BAAttachmentIdentityConfig {
+  lampLabel: string;
+  lampValue: string;
+  nomorLabel: string;
+  nomorValueFormat: string;
+  fontSize: number;
+  lineSpacing: number;
+  textFormat: BATextFormat;
+}
+
+export interface BAAttachmentTitleConfig {
+  text: string;
+  fontSize: number;
+  lineSpacing: number;
+  textFormat: BATextFormat;
+}
+
+export interface BAAttachmentTableColumnConfig {
+  key: BAAttachmentTableColumnKey;
+  label: string;
+  widthPercent: number;
+  align: BATextAlign;
+  format: BATextFormat;
+}
+
+export interface BAAttachmentTableDesignConfig {
+  borderColor: string;
+  borderWidthPt: number;
+  headerBackgroundColor: string;
+  headerTextColor: string;
+  bodyTextColor: string;
+  stripedRows: boolean;
+  stripeColor: string;
+  lineSpacing: number;
+}
+
+export interface BAAttachmentSignatureConfig {
+  pihakKeduaLabel: string;
+  pihakPertamaLabel: string;
+  showJabatan: boolean;
+  showPangkatGolongan: boolean;
+  showNip: boolean;
+  textFormat: BATextFormat;
+  lineSpacing: number;
+}
+
+export interface BAAttachmentConfig {
+  title: BAAttachmentTitleConfig;
+  identity: BAAttachmentIdentityConfig;
+  table: {
+    columns: BAAttachmentTableColumnConfig[];
+    design: BAAttachmentTableDesignConfig;
+  };
+  signature: BAAttachmentSignatureConfig;
+}
+
 export interface BATemplateConfig {
   id: string;
   name: string;
@@ -205,6 +276,7 @@ export interface BATemplateConfig {
   nomor: BANomorConfig;
   narratives: BANarrativeConfig;
   tandaTangan: BATandaTanganConfig;
+  lampiran: BAAttachmentConfig;
 
   createdAt: string;
   updatedAt: string;
@@ -240,6 +312,24 @@ export interface BAPreviewData {
   tanggalRekomendasiBPP: string;
   nomorRekomendasiPOPT: string;
   tanggalRekomendasiPOPT: string;
+  lampiran: {
+    lampiranNomor: string;
+    rows: Array<{
+      nomor: string;
+      kecamatan: string;
+      desa: string;
+      namaPoktan: string;
+      ketuaPoktan: string;
+      nomorHp: string;
+      komoditas: string[];
+      opt: string[];
+      luasSeranganHa: string;
+      luasWaspadaHa: string;
+      merekKandungan: string[];
+      jumlah: string;
+      keterangan: string;
+    }>;
+  };
 }
 
 // ============================================================================
