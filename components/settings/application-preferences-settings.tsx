@@ -28,7 +28,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import {
   applicationPreferenceDefaults,
   settingsDateFormatOptions,
@@ -54,8 +54,7 @@ const ApplicationPreferencesSettings = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log('application-preferences', values);
-    toast({
-      title: 'Pengaturan tersimpan',
+    toast.success('Pengaturan tersimpan', {
       description: 'Preferensi aplikasi berhasil diperbarui (frontend demo).',
     });
   };

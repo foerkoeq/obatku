@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Search, Trash2, ArrowUpDown, ArrowDown, ArrowUp, X } from "lucide-react";
+import { Pencil, Search, Trash2, ArrowUpDown, ArrowDown, ArrowUp, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,9 +24,162 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from "@/components/ui/pagination";
 import { FarmerGroup, farmerGroupsMock, FarmerGroupType } from "@/lib/data/farmer-groups-mock";
 import { TUBAN_DAERAH } from "@/lib/data/tuban-daerah";
 import { FarmerGroupDetailModal } from "@/components/farmers/farmer-group-detail-modal";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+
+/** Builds the page number array with ellipsis markers ("…") */
+function buildPageRange(current: number, total: number): Array<number | "…"> {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages: Array<number | "…"> = [];
+
+  if (current <= 4) {
+    // Near start: 1 2 3 4 5 … last
+    for (let i = 1; i <= Math.min(5, total); i++) pages.push(i);
+    pages.push("…");
+    pages.push(total);
+  } else if (current >= total - 3) {
+    // Near end: 1 … (last-4) (last-3) (last-2) (last-1) last
+    pages.push(1);
+    pages.push("…");
+    for (let i = Math.max(total - 4, 2); i <= total; i++) pages.push(i);
+  } else {
+    // Middle: 1 … cur-1 cur cur+1 … last
+    pages.push(1);
+    pages.push("…");
+    pages.push(current - 1);
+    pages.push(current);
+    pages.push(current + 1);
+    pages.push("…");
+    pages.push(total);
+  }
+
+  return pages;
+}
+
+/** Pagination control + info bar */
+function TablePagination({
+  total,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  total: number;
+  page: number;
+  pageSize: PageSize;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: PageSize) => void;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const pages = buildPageRange(page, totalPages);
+
+  if (total === 0) return null;
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+      {/* Info text */}
+      <p className="text-xs text-default-500 order-2 sm:order-1 text-center sm:text-left">
+        Menampilkan{" "}
+        <span className="font-medium text-default-700">
+          {from}–{to}
+        </span>{" "}
+        dari{" "}
+        <span className="font-medium text-default-700">{total}</span> data
+      </p>
+
+      <div className="flex items-center justify-center sm:justify-end gap-3 order-1 sm:order-2">
+        {/* Page size selector */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-default-500 whitespace-nowrap">Baris/hal:</span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(v) => onPageSizeChange(Number(v) as PageSize)}
+          >
+            <SelectTrigger className="h-8 w-16 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((s) => (
+                <SelectItem key={s} value={String(s)} className="text-xs">
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Page numbers */}
+        {totalPages > 1 && (
+          <Pagination className="w-auto mx-0">
+            <PaginationContent className="gap-0.5">
+              {/* Prev */}
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page === 1}
+                  onClick={() => onPageChange(page - 1)}
+                  aria-label="Halaman sebelumnya"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+              </PaginationItem>
+
+              {pages.map((p, idx) =>
+                p === "…" ? (
+                  <PaginationItem key={`ellipsis-${idx}`}>
+                    <PaginationEllipsis className="h-8 w-8" />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      isActive={p === page}
+                      onClick={() => onPageChange(p as number)}
+                      className="h-8 w-8 cursor-pointer text-xs"
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+
+              {/* Next */}
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page === totalPages}
+                  onClick={() => onPageChange(page + 1)}
+                  aria-label="Halaman berikutnya"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const SORTABLE_COLUMNS: Array<{
   key: "kecamatan" | "desa" | "jenis" | "namaKelompokTani";
@@ -85,6 +238,8 @@ export function FarmerGroupsTable() {
   const [desaFilter, setDesaFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("kecamatan");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
 
   const kecamatanOptions = useMemo(() => TUBAN_DAERAH.map((item) => item.kecamatan), []);
 
@@ -154,6 +309,16 @@ export function FarmerGroupsTable() {
     kecamatanFilter !== "all",
     desaFilter !== "all",
   ].filter(Boolean).length;
+
+  // Reset to page 1 whenever filters/search/sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, jenisFilter, kecamatanFilter, desaFilter, sortField, sortDirection, pageSize]);
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAndSortedData.slice(start, start + pageSize);
+  }, [filteredAndSortedData, currentPage, pageSize]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -266,7 +431,7 @@ export function FarmerGroupsTable() {
             </CardContent>
           </Card>
         ) : (
-          filteredAndSortedData.map((item) => (
+          paginatedData.map((item) => (
             <Card
               key={item.id}
               className="cursor-pointer hover:shadow-sm transition-shadow"
@@ -325,7 +490,7 @@ export function FarmerGroupsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredAndSortedData.map((item) => (
+                paginatedData.map((item) => (
                   <TableRow
                     key={item.id}
                     onClick={() => setSelectedItem(item)}
@@ -365,6 +530,14 @@ export function FarmerGroupsTable() {
           </Table>
         </CardContent>
       </Card>
+
+      <TablePagination
+        total={filteredAndSortedData.length}
+        page={currentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => setPageSize(size)}
+      />
 
       <FarmerGroupDetailModal
         open={Boolean(selectedItem)}

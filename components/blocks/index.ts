@@ -7,6 +7,12 @@
 // Base components
 export { DashboardWidget } from './dashboard-widget';
 
+// New dashboard widgets (v2)
+export { DashboardStatCard } from './dashboard-stat-card';
+export { LowStockAlertWidget } from './low-stock-alert-widget';
+export { ExpiringItemsWidget } from './expiring-items-widget';
+export { RecentActivityWidget } from './recent-activity-widget';
+
 // Specific widgets for different data types
 export { StockWidget } from './stock-widget';
 export { TransactionWidget } from './transaction-widget';
