@@ -19,6 +19,7 @@ interface MedicineDetailModalProps {
   onDelete?: () => void;
   onBack?: () => void;
   onViewBarcode?: () => void;
+  onPrintQRLabel?: () => void;
 }
 
 const formatCurrency = (amount: number) => {
@@ -55,6 +56,7 @@ const MedicineDetailModal: React.FC<MedicineDetailModalProps> = ({
   onDelete,
   onBack,
   onViewBarcode,
+  onPrintQRLabel,
 }) => {
   return (
     <Modal
@@ -76,6 +78,16 @@ const MedicineDetailModal: React.FC<MedicineDetailModalProps> = ({
             <QrCode className="mr-2 h-4 w-4" />
             Lihat Detail
           </Button>
+          {onPrintQRLabel && (
+            <Button
+              variant="outline"
+              onClick={onPrintQRLabel}
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <QrCode className="mr-2 h-4 w-4" />
+              Cetak QR Label
+            </Button>
+          )}
           {canEdit && (
             <Button variant="outline" onClick={onEdit}>
               <Edit className="mr-2 h-4 w-4" />

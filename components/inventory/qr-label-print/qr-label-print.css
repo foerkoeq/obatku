@@ -1,0 +1,245 @@
+/* ============================================================================
+   QR LABEL PRINT STYLES - Label 101 (6 labels per sheet)
+   Template: 21.5 × 16.5 cm (Landscape)
+   Grid: 2 columns × 3 rows = 6 labels per sheet
+   ============================================================================ */
+
+/* Page Setup */
+@page {
+  size: 21.5cm 16.5cm landscape;
+  margin: 1cm 0.4cm 0 0.4cm;
+}
+
+/* Label Page Container */
+.qr-label-page-101 {
+  width: 21.5cm;
+  height: 16.5cm;
+  position: relative;
+  background: white;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0.8cm 0.4cm 0 0.4cm;
+  box-sizing: border-box;
+}
+
+/* Label Grid - 2 columns × 3 rows */
+.qr-label-grid-101 {
+  display: grid;
+  grid-template-columns: repeat(2, 9.5cm);
+  grid-template-rows: repeat(3, 4.7cm);
+  gap: 0.8cm 0.8cm;
+  width: 100%;
+  height: 100%;
+}
+
+/* Individual Label */
+.qr-label-101 {
+  width: 9.5cm;
+  height: 4.7cm;
+  border: 1px solid #000;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  font-size: 9pt;
+  line-height: 1.2;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.qr-label-empty {
+  border: 1px dashed #ccc;
+  background: #f9f9f9;
+}
+
+.qr-label-empty-state {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  font-size: 8pt;
+}
+
+/* Label Header */
+.qr-label-header {
+  display: flex;
+  flex: 1;
+  padding: 3pt;
+  gap: 3pt;
+  min-height: 0;
+}
+
+/* Color Block (Pesticide Color) */
+.qr-label-color-block {
+  width: 4pt;
+  height: auto;
+  background: #F1A983;
+  flex-shrink: 0;
+  border-radius: 2pt;
+}
+
+/* Label Content */
+.qr-label-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1pt;
+  overflow: hidden;
+}
+
+.qr-label-name {
+  font-weight: bold;
+  font-size: 10pt;
+  line-height: 1.1;
+  max-height: 24pt;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.qr-label-producer {
+  font-size: 7pt;
+  color: #444;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qr-label-ingredient {
+  font-size: 7pt;
+  color: #666;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qr-label-source {
+  font-size: 7pt;
+  color: #888;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-top: auto;
+}
+
+/* Label Footer */
+.qr-label-footer {
+  display: flex;
+  padding: 2pt 3pt 3pt 3pt;
+  border-top: 1px solid #000;
+  gap: 3pt;
+  flex-shrink: 0;
+  height: 1.4cm;
+}
+
+/* QR Code */
+.qr-label-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2cm;
+  height: 1.2cm;
+  flex-shrink: 0;
+}
+
+.qr-label-qr-image {
+  width: 1.2cm;
+  height: 1.2cm;
+  object-fit: contain;
+}
+
+/* Label Info */
+.qr-label-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1pt;
+  font-size: 6pt;
+  color: #444;
+  justify-content: center;
+}
+
+.qr-label-expiry {
+  font-weight: 500;
+}
+
+.qr-label-location {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qr-label-number {
+  font-size: 6pt;
+  color: #888;
+  text-align: right;
+}
+
+/* Print Styles */
+@media print {
+  .qr-label-page-101 {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    width: 21.5cm !important;
+    height: 16.5cm !important;
+    margin: 0 !important;
+    padding: 0.8cm 0.4cm 0 0.4cm !important;
+    page-break-after: always;
+  }
+
+  .qr-label-101 {
+    border: 1px solid #000 !important;
+    page-break-inside: avoid;
+  }
+
+  .qr-label-empty {
+    border: 1px dashed #ccc !important;
+  }
+
+  /* Hide screen-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Screen Styles */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+
+  .qr-label-page-101 {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .qr-label-page-101 {
+    transform: scale(0.6);
+    transform-origin: top left;
+  }
+}
+
+/* Utilities for debugging */
+.debug .qr-label-101 {
+  border: 1px solid red !important;
+}
+
+.debug .qr-label-header {
+  border: 1px solid blue;
+}
+
+.debug .qr-label-footer {
+  border: 1px solid green;
+}
+
+.debug .qr-label-content {
+  border: 1px solid orange;
+}

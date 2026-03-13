@@ -22,6 +22,7 @@ import InventoryStatsCards from "@/components/inventory/inventory-stats-cards";
 import FilterSidebar from "@/components/inventory/filter-sidebar";
 import ExportModal from "@/components/inventory/export-modal";
 import QRPrintModal from "@/components/inventory/qr-print-modal";
+import { QRLabelPrintModal } from "@/components/inventory/qr-label-print";
 
 // Import types
 import {
@@ -154,6 +155,8 @@ const InventoryPage: React.FC = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSelectedExportModal, setShowSelectedExportModal] = useState(false);
   const [showQRPrintModal, setShowQRPrintModal] = useState(false);
+  const [showQRLabelPrintModal, setShowQRLabelPrintModal] = useState(false);
+  const [printModalItems, setPrintModalItems] = useState<string[]>([]);
 
   // Selection state
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -373,9 +376,18 @@ const InventoryPage: React.FC = () => {
       toast.error('Pilih item terlebih dahulu');
       return;
     }
-    
-    // Open QR Print Modal instead of navigating to a page
-    setShowQRPrintModal(true);
+
+    // Open QR Label Print Modal
+    setPrintModalItems(selectedItems);
+    setShowQRLabelPrintModal(true);
+  };
+
+  const handlePrintQRLabelFromDetail = () => {
+    if (selectedMedicine) {
+      setPrintModalItems([selectedMedicine.id]);
+      setShowQRLabelPrintModal(true);
+      setDetailModalOpen(false);
+    }
   };
 
   const handleExportSelected = async (options: ExportOptions) => {
@@ -527,6 +539,7 @@ const InventoryPage: React.FC = () => {
             onDelete={handleModalDelete}
             onBack={handleModalBack}
             onViewBarcode={handleModalViewBarcode}
+            onPrintQRLabel={handlePrintQRLabelFromDetail}
           />
 
           {/* Pagination */}
@@ -594,6 +607,13 @@ const InventoryPage: React.FC = () => {
         isOpen={showQRPrintModal}
         onClose={() => setShowQRPrintModal(false)}
         selectedItems={selectedItems}
+        inventoryData={data}
+      />
+
+      <QRLabelPrintModal
+        isOpen={showQRLabelPrintModal}
+        onClose={() => setShowQRLabelPrintModal(false)}
+        selectedItems={printModalItems}
         inventoryData={data}
       />
     </div>
